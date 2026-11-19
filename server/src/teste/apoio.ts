@@ -1,7 +1,9 @@
 // Apoio para os testes do servidor: config válida e banco em memória já migrado.
 import { criarApp } from '../app.ts';
 import { carregarConfig } from '../config.ts';
-import { abrirBanco, migrar } from '../db/index.ts';
+import { abrirBanco, migrar, type Banco } from '../db/index.ts';
+import { users } from '../db/schema.ts';
+import { criarSessao } from '../http/auth/sessao.ts';
 import { semear } from '../db/seed.ts';
 import type { ClienteDiscord } from '../http/auth/discord.ts';
 
@@ -32,4 +34,10 @@ export async function appDeTeste(
     sqlite.close();
   });
   return app;
+}
+
+/** Cria uma pessoa e uma sessão para ela; devolve o id e o cookie para usar no `inject`. */
+export function pessoaLogada(app: { db: Banco }, nome: string) {
+  const { id } = app.db.insert(users).values({ nome }).returning({ id: users.id }).get();
+  return { id, nome, cookies: { limiar_sessao: criarSessao(app.db, id, false) } };
 }

@@ -1,21 +1,24 @@
 // Entrar: artboards "01 · Entrar" e "Celular · 01 · Entrar".
-import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router';
 import { tituloDaPagina } from '@limiar/shared';
-import { pedir } from '../auth/api.ts';
 import { useMe } from '../auth/sessao.tsx';
-import { Banner, Button, Checkbox, Field, Icon, Input, Marca, Note } from '../ui/index.ts';
+import { Banner, Button, Checkbox, Field, Input, Marca, Note } from '../ui/index.ts';
 import {
+  AvisoDeFalha,
   BotaoDiscord,
   CampoSenha,
   caminhoSeguro,
-  interpretarFalha,
   linkDoDiscord,
   Ou,
   TelaDeAcesso,
   useDiscordLigado,
-  type Falha,
+  useEntrarPorEmail,
 } from './acesso/comum.tsx';
+
+/** Credencial errada: lembra o limite de tentativas, como no canvas. */
+const extraDaRecusa = (mensagem: string) =>
+  mensagem.includes('não conferem') ? ' Depois de 5 tentativas, espere 1 minuto.' : '';
 
 /** Erros que o login pelo Discord manda de volta em ?erro=. */
 const ERROS_DO_DISCORD: Record<string, string> = {
@@ -26,17 +29,15 @@ const ERROS_DO_DISCORD: Record<string, string> = {
 };
 
 export function Entrar() {
-  const { sessao, recarregar } = useMe();
+  const { sessao } = useMe();
   const [params] = useSearchParams();
   const voltar = caminhoSeguro(params.get('voltar'));
   const erroDoDiscord = params.get('erro');
   const discord = useDiscordLigado();
 
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
   const [manter, setManter] = useState(true);
-  const [enviando, setEnviando] = useState(false);
-  const [falha, setFalha] = useState<Falha | null>(null);
+  const { email, setEmail, senha, setSenha, enviando, falha, enviar, camposComErro } =
+    useEntrarPorEmail(manter);
   const [esqueci, setEsqueci] = useState(false);
   const primeiroCampo = useRef<HTMLInputElement>(null);
 
@@ -45,26 +46,8 @@ export function Entrar() {
     primeiroCampo.current?.focus();
   }, []);
 
+  // Ao entrar, a sessão vira "logado" e este <Navigate> leva à página pedida.
   if (sessao.estado === 'logado') return <Navigate to={voltar} replace />;
-
-  async function enviar(evento?: SyntheticEvent) {
-    evento?.preventDefault();
-    setEnviando(true);
-    setFalha(null);
-    try {
-      await pedir('/api/auth/entrar', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, senha, manter }),
-      });
-      await recarregar(); // a sessão vira "logado" e o <Navigate> acima leva à página pedida
-    } catch (erro) {
-      setFalha(interpretarFalha(erro));
-      setEnviando(false);
-    }
-  }
-
-  const camposComErro = falha?.tipo === 'campos' ? falha.campos : {};
 
   return (
     <TelaDeAcesso
@@ -160,27 +143,7 @@ export function Entrar() {
         </Button>
       </form>
 
-      {falha?.tipo === 'recusa' && (
-        <Banner tone="err" icon={<Icon name="alert" size="sm" />}>
-          <span className="small">
-            {falha.mensagem}
-            {falha.mensagem.includes('não conferem') && ' Depois de 5 tentativas, espere 1 minuto.'}
-          </span>
-        </Banner>
-      )}
-      {falha?.tipo === 'rede' && (
-        <Banner
-          tone="err"
-          icon={<Icon name="wifioff" size="sm" />}
-          action={
-            <Button size="sm" onClick={() => void enviar()}>
-              Tentar de novo
-            </Button>
-          }
-        >
-          <span className="small">Sem conexão com o servidor. Confira a internet.</span>
-        </Banner>
-      )}
+      <AvisoDeFalha falha={falha} tentarDeNovo={() => void enviar()} extra={extraDaRecusa} />
 
       <hr className="hr so-pc" />
       <div className="rodape">

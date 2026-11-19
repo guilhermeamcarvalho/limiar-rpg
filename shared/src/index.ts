@@ -11,3 +11,6 @@ export * from './sistemas.ts';
 export * from './senha.ts';
 export * from './conta.ts';
 export * from './permissoes.ts';
+export * from './schemas/campanha.ts';
+export * from './schemas/convite.ts';
+export * from './codigo.ts';
