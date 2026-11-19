@@ -30,7 +30,9 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
+      # ESLint no código e Stylelint no CSS (cor fora de tokens.css reprova).
+      - name: Lint (ESLint e Stylelint)
+        run: pnpm lint
       - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm test:coverage

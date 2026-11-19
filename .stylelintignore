@@ -1,0 +1,6 @@
+# Só o CSS do app: o design/ guarda o lm.css original, com as cores à mão.
+**/dist/
+coverage/
+design/
+docs/
+node_modules/
