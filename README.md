@@ -2,6 +2,14 @@
 
 Plataforma para jogar RPG de mesa de horror investigativo com um grupo de amigos.
 
+## Documentação
+
+Em [`docs/`](docs/), exportada da "Documentação do Sistema LIMIAR" em 19/11/2026:
+
+- [Produto e funcionalidades](docs/produto-e-funcionalidades.md): o que o sistema faz, requisitos RF-01 a RF-87, permissões.
+- [Arquitetura técnica](docs/arquitetura-tecnica.md): pilha, estrutura do código, mesa ao vivo, modelo de dados, hospedagem.
+- [Regras do jogo](docs/regras-do-jogo.md): o que o motor de regras implementa.
+
 ## Design
 
 As telas finais estão em [`design/`](design/):
