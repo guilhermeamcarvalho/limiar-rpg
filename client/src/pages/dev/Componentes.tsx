@@ -4,6 +4,8 @@ import { useState, type ReactNode } from 'react';
 import {
   Avatar,
   Banner,
+  Icon,
+  NOMES_DOS_ICONES,
   Button,
   Card,
   Checkbox,
@@ -125,7 +127,9 @@ function Botoes() {
         <Card pad className="col" style={{ gap: 16 }}>
           <span className="lab">Principal</span>
           <div className="row wrapx">
-            <Button variant="primary">Abrir caso</Button>
+            <Button variant="primary" icon={<Icon name="plus" size="sm" />}>
+              Abrir caso
+            </Button>
             <Button variant="primary" className="is-hover">
               Hover
             </Button>
@@ -136,6 +140,7 @@ function Botoes() {
               Salvando
             </Button>
             <button type="button" className="btn is-ok">
+              <Icon name="check" size="sm" />
               Salvo
             </button>
             <Button variant="primary" disabled>
@@ -153,16 +158,10 @@ function Botoes() {
             <Button>Abrir ficha</Button>
             <Button className="is-hover">Hover</Button>
             <Button variant="ghost">Cancelar</Button>
-            <Button variant="danger">Remover</Button>
-            {/* Ícone provisório: a #6 traz o de engrenagem. */}
-            <Button
-              icon={
-                <svg className="ic" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" fill="none" />
-                </svg>
-              }
-              aria-label="Configurações"
-            />
+            <Button variant="danger" icon={<Icon name="trash" size="sm" />}>
+              Remover
+            </Button>
+            <Button icon={<Icon name="gear" />} aria-label="Configurações" />
             <Button size="sm">Pequeno</Button>
           </div>
           <span className="small muted">
@@ -204,7 +203,7 @@ function Campos() {
             value={rolagem}
             onChange={setRolagem}
             options={[
-              { value: 'virtual', label: 'Dados virtuais' },
+              { value: 'virtual', label: 'Dados virtuais', icon: <Icon name="dice" size="sm" /> },
               { value: 'fisico', label: 'Dados físicos' },
             ]}
           />
@@ -325,6 +324,31 @@ function Recursos() {
   );
 }
 
+function Icones() {
+  return (
+    <Secao titulo="Ícones">
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))',
+          gap: 16,
+        }}
+      >
+        {NOMES_DOS_ICONES.map((nome) => (
+          <div key={nome} className="col" style={{ alignItems: 'center', gap: 6 }}>
+            <Icon name={nome} size="lg" />
+            <span className="small muted">{nome}</span>
+          </div>
+        ))}
+      </div>
+      <p className="small muted" style={{ marginTop: 16 }}>
+        Traço de 2 px, herda a cor do texto. Decorativo por padrão; só leva rótulo quando nenhum
+        texto ao lado diz o que ele significa.
+      </p>
+    </Secao>
+  );
+}
+
 function Avisos() {
   return (
     <Secao titulo="Avisos e estados">
@@ -340,9 +364,10 @@ function Avisos() {
       </div>
       <div className="g3" style={{ marginTop: 24 }}>
         <EmptyState
+          icon={<Icon name="users" size="xl" />}
           title="Nenhum sobrevivente"
           action={
-            <Button variant="primary" size="sm">
+            <Button variant="primary" size="sm" icon={<Icon name="plus" size="sm" />}>
               Criar personagem
             </Button>
           }
@@ -360,7 +385,11 @@ function Avisos() {
           </span>
         </Card>
         <div className="col" style={{ gap: 10 }}>
-          <Banner tone="err" action={<Button size="sm">Tentar agora</Button>}>
+          <Banner
+            tone="err"
+            icon={<Icon name="wifioff" />}
+            action={<Button size="sm">Tentar agora</Button>}
+          >
             Conexão perdida. Suas ações ficam guardadas.
           </Banner>
           <Banner tone="warn">Mapa acima de 20 MB. Reduza para 4096 px.</Banner>
@@ -496,6 +525,7 @@ export default function Componentes() {
       <Campos />
       <Etiquetas />
       <Recursos />
+      <Icones />
       <Avisos />
       <Interativos />
     </main>

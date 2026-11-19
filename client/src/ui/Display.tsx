@@ -1,5 +1,6 @@
 import type { HTMLAttributes, ReactNode } from 'react';
 import { cx } from './cx.ts';
+import { Icon } from './Icon.tsx';
 
 /* ---------- Etiqueta e chip ---------- */
 
@@ -199,6 +200,8 @@ export function Note({ className, ...props }: HTMLAttributes<HTMLParagraphElemen
 
 /* ---------- Avisos fixos e estados ---------- */
 
+const ICONE_DO_BANNER = { ok: 'check', warn: 'alert', err: 'alert', info: 'info' } as const;
+
 export function Banner({
   tone,
   icon,
@@ -206,13 +209,14 @@ export function Banner({
   children,
 }: {
   tone?: 'ok' | 'warn' | 'err';
+  /** Troca o ícone padrão do tom; `null` tira o ícone. */
   icon?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className={cx('banner', tone)} role={tone === 'err' ? 'alert' : 'status'}>
-      {icon}
+      {icon === undefined ? <Icon name={ICONE_DO_BANNER[tone ?? 'info']} /> : icon}
       <span className="grow">{children}</span>
       {action}
     </div>

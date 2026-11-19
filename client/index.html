@@ -5,12 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <title>LIMIAR</title>
-    <!-- Provisório: a #6 troca o Google Fonts por fontes servidas pelo próprio app. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- As duas fontes de toda tela chegam antes; as do mundo do jogo, só quando usadas. -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Oranienbaum&family=Mulish:wght@400;500;600;700;800;900&family=Special+Elite&family=Courier+Prime:wght@400;700&display=swap"
+      rel="preload"
+      href="/fonts/mulish-variavel.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/oranienbaum-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
   </head>
   <body>

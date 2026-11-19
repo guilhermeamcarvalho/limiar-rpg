@@ -13,15 +13,9 @@ import {
 import { createPortal } from 'react-dom';
 import { Button } from './Button.tsx';
 import { cx } from './cx.ts';
+import { Icon, type NomeDoIcone } from './Icon.tsx';
 
-/* Provisório: a #6 troca por <Icon name="x" />. */
-function IconeFechar() {
-  return (
-    <svg className="ic" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" fill="none" />
-    </svg>
-  );
-}
+const IconeFechar = () => <Icon name="close" />;
 
 /* ---------- Foco preso (Modal e Sheet) ---------- */
 
@@ -212,8 +206,16 @@ export interface AvisoNovo {
   type?: TipoDeAviso;
   title: ReactNode;
   text?: ReactNode;
+  /** Troca o ícone padrão do tipo; `null` tira o ícone. */
   icon?: ReactNode;
 }
+
+const ICONE_DO_AVISO: Record<TipoDeAviso, NomeDoIcone> = {
+  ok: 'check',
+  warn: 'alert',
+  err: 'alert',
+  info: 'info',
+};
 
 interface Aviso extends AvisoNovo {
   id: number;
@@ -231,7 +233,7 @@ export function Toast({
       className={cx('toast', type !== 'info' && type)}
       role={type === 'err' ? 'alert' : 'status'}
     >
-      {icon}
+      {icon === undefined ? <Icon name={ICONE_DO_AVISO[type]} /> : icon}
       <div>
         <b>{title}</b>
         {text}
