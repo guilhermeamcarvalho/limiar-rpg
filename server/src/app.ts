@@ -10,6 +10,8 @@ import type { Config } from './config.ts';
 import type { Banco } from './db/index.ts';
 import { NAO_ENCONTRADO, registrarTratadorDeErros } from './http/erros.ts';
 import { rotas as rotasDeAuth } from './http/auth/index.ts';
+import type { ClienteDiscord } from './http/auth/discord.ts';
+import { registrarSessao } from './http/auth/sessao.ts';
 import { rotas as rotasDeCampanhas } from './http/campanhas/index.ts';
 import { rotas as rotasDePersonagens } from './http/personagens/index.ts';
 import { rotas as rotasDeUploads } from './http/uploads/index.ts';
@@ -56,12 +58,14 @@ export function opcoesDoLogger(config: Config): NonNullable<FastifyServerOptions
 export interface DependenciasDoApp {
   config: Config;
   db: Banco;
+  /** Troca o cliente do Discord (os testes passam um falso; `null` desliga). */
+  discord?: ClienteDiscord | null;
   /** Sobrescreve o logger padrão (os testes passam `false`). */
   logger?: FastifyServerOptions['logger'];
 }
 
 /** Monta o app sem abrir porta, para os testes usarem `app.inject`. */
-export async function criarApp({ config, db, logger }: DependenciasDoApp) {
+export async function criarApp({ config, db, logger, discord }: DependenciasDoApp) {
   const opcoes: FastifyServerOptions = {
     logger: logger ?? opcoesDoLogger(config),
     // Atrás do Caddy: o IP real vem no X-Forwarded-For.
@@ -77,10 +81,11 @@ export async function criarApp({ config, db, logger }: DependenciasDoApp) {
   await app.register(cookie, { secret: config.SESSION_SECRET });
   // Limite geral contra abuso; o login tem um limite próprio, bem mais curto (#14).
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
+  registrarSessao(app);
 
   app.get('/health', () => ({ ok: true, versao: pacote.version }));
 
-  await app.register(rotasDeAuth, { prefix: '/api/auth' });
+  await app.register(rotasDeAuth, { prefix: '/api', ...(discord !== undefined && { discord }) });
   await app.register(rotasDeCampanhas, { prefix: '/api/campanhas' });
   await app.register(rotasDePersonagens, { prefix: '/api/personagens' });
   await app.register(rotasDeUploads, { prefix: '/api/uploads' });

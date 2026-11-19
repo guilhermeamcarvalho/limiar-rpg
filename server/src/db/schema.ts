@@ -43,6 +43,26 @@ export const identities = sqliteTable(
   ],
 );
 
+/**
+ * Sessões de login. O cookie leva um token aleatório de 32 bytes; aqui fica só o SHA-256 dele,
+ * então quem ler o banco não consegue entrar como ninguém.
+ */
+export const sessions = sqliteTable(
+  'sessions',
+  {
+    /** SHA-256 (hex) do token que está no cookie. */
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expiraEm: integer('expira_em', { mode: 'timestamp_ms' }).notNull(),
+    /** "Manter conectado": cookie de 30 dias, renovado com o uso. */
+    manter: integer('manter', { mode: 'boolean' }).notNull().default(false),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index('sessions_user').on(t.userId)],
+);
+
 /** Ordem Paranormal II e cada RPG inventado do grupo. O config é validado pelo schema do shared. */
 export const gameSystems = sqliteTable(
   'game_systems',
