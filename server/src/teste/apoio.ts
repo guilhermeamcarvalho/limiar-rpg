@@ -3,6 +3,7 @@ import { criarApp } from '../app.ts';
 import { carregarConfig } from '../config.ts';
 import { abrirBanco, migrar } from '../db/index.ts';
 import { semear } from '../db/seed.ts';
+import type { ClienteDiscord } from '../http/auth/discord.ts';
 
 export const ENV_DE_TESTE = {
   NODE_ENV: 'test',
@@ -17,9 +18,16 @@ export function bancoDeTeste() {
   return banco;
 }
 
-export async function appDeTeste() {
+export async function appDeTeste(
+  opcoes: { discord?: ClienteDiscord | null; env?: NodeJS.ProcessEnv } = {},
+) {
   const { db, sqlite } = bancoDeTeste();
-  const app = await criarApp({ config: carregarConfig(ENV_DE_TESTE), db });
+  const app = await criarApp({
+    config: carregarConfig({ ...ENV_DE_TESTE, ...opcoes.env }),
+    db,
+    logger: false,
+    ...(opcoes.discord !== undefined && { discord: opcoes.discord }),
+  });
   app.addHook('onClose', () => {
     sqlite.close();
   });
