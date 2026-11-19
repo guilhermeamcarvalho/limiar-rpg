@@ -1,0 +1,18 @@
+# Dependências e saídas de build
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Banco e uploads: nunca vão para o Git
+data/
+
+# Segredos locais
+.env
+.env.*
+!.env.example
+
+# Logs e sistema
+*.log
+.DS_Store
+Thumbs.db
