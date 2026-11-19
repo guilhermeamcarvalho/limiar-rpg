@@ -1,0 +1,141 @@
+/*
+ * LIMIAR · tokens
+ * Fonte única de cores, fontes, espaçamentos e camadas. Vem de design/fonte/lm.css.
+ * Este é o ÚNICO arquivo do client com cores escritas à mão: o resto usa var(--…).
+ *
+ * Como usar cada cor:
+ * - Fundos (--bg … --panel-4): do mais fundo para o mais alto. Página em --bg, cartões em
+ *   --panel, coisas sobre cartões em --panel-2 e acima. Campos de texto em --field.
+ * - Linhas (--line, --line-2, --line-3): bordas e divisórias, da mais discreta à mais forte.
+ * - Texto: --text para o principal, --muted para legendas e rótulos, --muted-2 só para o que
+ *   é decorativo (nunca para texto que a pessoa precisa ler).
+ * - Vermelho: SÓ para ação principal, item ativo/selecionado e falha. Não é enfeite.
+ *   --red é o fundo do botão principal, --red-hi a borda de foco e hover, --red-soft o texto
+ *   vermelho sobre fundo escuro, --red-dark a borda de ações perigosas.
+ * - Dourado: crítico, bônus e tudo o que é do mestre.
+ * - Verde: sucesso e confirmação. Azul: informação e jogadores aliados.
+ * - Papel e tinta (--paper…, --ink…): SÓ para coisas do mundo do jogo (fichas, pistas,
+ *   documentos). A interface do app nunca usa papel.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* Fundos */
+  --bg: #0a0909;
+  --bg-2: #070606;
+  --field: #0d0b0b;
+  --panel: #0f0d0d;
+  --panel-2: #141111;
+  --panel-3: #1c1917;
+  --panel-4: #241f1d;
+  --panel-glass: rgba(15, 13, 13, 0.94); /* controles flutuando sobre o mapa */
+
+  /* Linhas */
+  --line: #2a2523;
+  --line-2: #3a322e;
+  --line-3: #4a403b;
+
+  /* Texto */
+  --text: #ece6df;
+  --muted: #a59c93;
+  --muted-2: #8f8984;
+  --placeholder: #7c746d;
+  --white: #fff; /* texto sobre vermelho/verde e hover máximo */
+  --black: #000;
+
+  /* Vermelho: ação, ativo, falha */
+  --red: #c2412b;
+  --red-hover: #d24a32;
+  --red-hi: #e0563c;
+  --red-dark: #7a2a1e;
+  --red-soft: #f07a62;
+  --red-pale: #fbe3dd; /* texto sobre opção vermelha */
+  --red-a08: rgba(194, 65, 43, 0.08); /* fundo de erro e de ação perigosa */
+  --red-a10: rgba(194, 65, 43, 0.1);
+  --red-a12: rgba(194, 65, 43, 0.12);
+  --red-a18: rgba(194, 65, 43, 0.18);
+  --red-a35: rgba(194, 65, 43, 0.35); /* brilho sob o cabeçalho */
+  --red-a40: rgba(194, 65, 43, 0.4);
+  --focus-ring: rgba(224, 86, 60, 0.35);
+
+  /* Dourado: crítico, bônus, mestre */
+  --gold: #e9b949;
+  --gold-dark: #6b5520;
+  --gold-a08: rgba(233, 185, 73, 0.08);
+
+  /* Verde: sucesso */
+  --green: #4e9a3c;
+  --green-hi: #7fbf6a;
+  --green-mid: #3c7a2e;
+  --green-dark: #2e5a24;
+  --green-a10: rgba(78, 154, 60, 0.1);
+  --green-a50: rgba(78, 154, 60, 0.5);
+
+  /* Azul: informação */
+  --blue: #2f79c4;
+  --blue-hi: #6aa8e6;
+
+  /* Avatares: fundo escuro de cada cor de jogador */
+  --av-red: #6b2a20;
+  --av-blue: #1e3550;
+  --av-green: #24401d;
+  --av-gold: #4a3a12;
+  --av-npc: #2b2421;
+  --npc: #8c7f77;
+
+  /* Papel e tinta: só mundo do jogo */
+  --paper: #e7e3dc;
+  --paper-2: #f2eee8;
+  --paper-line: #cfc8bf;
+  --ink: #1a1715;
+  --ink-2: #4a4440;
+  --ink-3: #6a645e;
+  --typed: #d9d2ca; /* texto datilografado sobre fundo escuro */
+
+  /* Mapa */
+  --map-glow: #1a0f0c;
+  --map-floor: #16110f;
+  --map-wall: #2a2220;
+  --map-room: #3a2e2a;
+  --map-room-fill: rgba(40, 30, 27, 0.6);
+  --map-prop: #2a211e;
+  --map-prop-line: #4a3b35;
+  --map-grid: rgba(236, 230, 223, 0.05);
+  --map-fog: #000;
+
+  /* Sombras e véus */
+  --scrim: rgba(5, 4, 4, 0.78); /* atrás de modais */
+  --veil: rgba(0, 0, 0, 0.55); /* faixa escura sobre imagem */
+  --white-a35: rgba(255, 255, 255, 0.35); /* trilho do indicador de carregamento */
+  --red-hi-a60: rgba(224, 86, 60, 0.6); /* contorno tracejado de alvo */
+  --red-hi-a70: rgba(224, 86, 60, 0.7); /* brilho de token selecionado */
+  --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.6); /* fichas e tokens */
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.6); /* menus e avisos */
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.6); /* painéis flutuantes */
+  --shadow-xl: 0 30px 80px rgba(0, 0, 0, 0.8); /* modais */
+  --shadow-up: 0 -20px 40px rgba(0, 0, 0, 0.7); /* folha que sobe do rodapé no celular */
+
+  /* Fontes */
+  --f-disp: 'Oranienbaum', Georgia, serif; /* títulos */
+  --f-ui: 'Mulish', system-ui, sans-serif; /* interface */
+  --f-type: 'Special Elite', 'Courier New', monospace; /* mundo do jogo: máquina de escrever */
+  --f-doc: 'Courier Prime', 'Courier New', monospace; /* mundo do jogo: documentos */
+
+  /* Espaçamento e raio */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+  --r: 2px;
+
+  /* Camadas, de baixo para cima */
+  --z-panel: 10; /* cabeçalho fixo, painéis e controles sobre o mapa */
+  --z-res: 20; /* resultado de rolagem e folha de baixo no celular */
+  --z-modal: 40; /* véu e janela modal */
+  --z-toast: 50; /* avisos, sempre por cima de tudo */
+}
