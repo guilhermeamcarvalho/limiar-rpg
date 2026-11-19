@@ -8,3 +8,6 @@ export function tituloDaPagina(pagina?: string): string {
 }
 
 export * from './sistemas.ts';
+export * from './senha.ts';
+export * from './conta.ts';
+export * from './permissoes.ts';

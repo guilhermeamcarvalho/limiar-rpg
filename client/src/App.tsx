@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import { ExigirLogin } from './auth/ExigirLogin.tsx';
 import { SessaoProvider } from './auth/sessao.tsx';
 import { Central } from './pages/Central.tsx';
+import { CriarConta } from './pages/CriarConta.tsx';
 import { Entrar } from './pages/Entrar.tsx';
 
 // Só existe no `pnpm dev`: o build de produção nem inclui esta página.
@@ -13,6 +14,7 @@ export function Rotas() {
   return (
     <Routes>
       <Route path="/entrar" element={<Entrar />} />
+      <Route path="/criar-conta" element={<CriarConta />} />
       {Componentes && (
         <Route
           path="/dev/componentes"

@@ -8,6 +8,7 @@
     "start": "node --env-file-if-exists=.env src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env src/db/migrar.ts",
+    "reset-senha": "node --env-file-if-exists=.env src/scripts/reset-senha.ts",
     "typecheck": "tsc -p ."
   },
   "dependencies": {

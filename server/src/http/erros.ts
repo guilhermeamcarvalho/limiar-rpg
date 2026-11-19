@@ -1,8 +1,12 @@
-// Um formato só para todo erro da API: { erro: { codigo, mensagem } }, com mensagem em português.
+// Um formato só para todo erro da API: { erro: { codigo, mensagem, campos? } }, em português.
 import type { FastifyError, FastifyInstance } from 'fastify';
+import type { z } from 'zod';
+
+/** Mensagem por campo do formulário, para a tela mostrar o erro no lugar certo. */
+export type ErrosPorCampo = Record<string, string>;
 
 export interface RespostaDeErro {
-  erro: { codigo: string; mensagem: string };
+  erro: { codigo: string; mensagem: string; campos?: ErrosPorCampo };
 }
 
 /** Erro esperado, que a rota lança de propósito: vira resposta com este status e esta mensagem. */
@@ -10,12 +14,26 @@ export class ErroDaApi extends Error {
   override name = 'ErroDaApi';
   readonly status: number;
   readonly codigo: string;
+  readonly campos: ErrosPorCampo | undefined;
 
-  constructor(status: number, codigo: string, mensagem: string) {
+  constructor(status: number, codigo: string, mensagem: string, campos?: ErrosPorCampo) {
     super(mensagem);
     this.status = status;
     this.codigo = codigo;
+    this.campos = campos;
   }
+}
+
+/** Valida o corpo com Zod; se falhar, 400 com a mensagem de cada campo. */
+export function validar<T>(esquema: z.ZodType<T>, dados: unknown): T {
+  const resultado = esquema.safeParse(dados);
+  if (resultado.success) return resultado.data;
+  const campos: ErrosPorCampo = {};
+  for (const problema of resultado.error.issues) {
+    const campo = problema.path.join('.') || '_';
+    campos[campo] ??= problema.message;
+  }
+  throw new ErroDaApi(400, 'DADOS_INVALIDOS', 'Confira os campos destacados.', campos);
 }
 
 const PADRAO_POR_STATUS: Record<number, [string, string]> = {
@@ -32,14 +50,14 @@ const ERRO_INTERNO: RespostaDeErro = {
   erro: { codigo: 'ERRO_INTERNO', mensagem: 'Algo deu errado do nosso lado. Tente de novo.' },
 };
 
-function resposta(codigo: string, mensagem: string): RespostaDeErro {
-  return { erro: { codigo, mensagem } };
+function resposta(codigo: string, mensagem: string, campos?: ErrosPorCampo): RespostaDeErro {
+  return { erro: { codigo, mensagem, ...(campos && { campos }) } };
 }
 
 export function registrarTratadorDeErros(app: FastifyInstance) {
   app.setErrorHandler((erro: FastifyError | ErroDaApi, request, reply) => {
     if (erro instanceof ErroDaApi) {
-      return reply.status(erro.status).send(resposta(erro.codigo, erro.message));
+      return reply.status(erro.status).send(resposta(erro.codigo, erro.message, erro.campos));
     }
 
     if (erro.validation) {

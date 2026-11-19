@@ -4,6 +4,7 @@ import './ui.css';
 export { Button, DURACAO_SUCESSO_MS, type ButtonProps } from './Button.tsx';
 export { Field, Input, Select, Textarea, type FieldProps } from './Field.tsx';
 export { Icon, NOMES_DOS_ICONES, type IconProps, type NomeDoIcone } from './Icon.tsx';
+export { Marca } from './Marca.tsx';
 export { Checkbox, Segmented, Switch, TabPanel, Tabs, type TabItem } from './Choice.tsx';
 export {
   Avatar,

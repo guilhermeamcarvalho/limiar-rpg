@@ -76,6 +76,13 @@
   --blue: #2f79c4;
   --blue-hi: #6aa8e6;
 
+  /* Marca do Discord: só no botão "Entrar com Discord" */
+  --discord: #5865f2;
+  --discord-hover: #4752c4;
+
+  /* Fundo de ambientação das telas de acesso (o brilho avermelhado atrás do título) */
+  --ambiente: #2a120d;
+
   /* Avatares: fundo escuro de cada cor de jogador */
   --av-red: #6b2a20;
   --av-blue: #1e3550;

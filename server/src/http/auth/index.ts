@@ -1,6 +1,7 @@
-// Login (Discord e, na #12, e-mail), sessão e conta. Registrado com o prefixo /api.
+// Login (Discord e e-mail), sessão e conta. Registrado com o prefixo /api.
 import type { FastifyPluginAsync } from 'fastify';
 import { clienteDiscordReal, rotasDoDiscord, type ClienteDiscord } from './discord.ts';
+import { rotasDeEmail } from './email.ts';
 import { apagarSessao, COOKIE_DA_SESSAO, exigirLogin, limparCookie } from './sessao.ts';
 
 export interface OpcoesDeAuth {
@@ -21,6 +22,7 @@ export const rotas: FastifyPluginAsync<OpcoesDeAuth> = (app, opcoes) => {
   app.get('/auth/opcoes', () => ({ discord: discord !== null }));
 
   rotasDoDiscord(app, config, discord);
+  rotasDeEmail(app);
 
   app.get('/me', { preHandler: exigirLogin }, (request) => ({ usuario: request.usuario }));
 
