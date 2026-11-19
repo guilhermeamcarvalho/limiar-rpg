@@ -1,0 +1,44 @@
+{
+  "plugins": ["stylelint-declaration-strict-value"],
+  "rules": {
+    "color-no-hex": true,
+    "color-named": "never",
+    "function-disallowed-list": [
+      "rgb",
+      "rgba",
+      "hsl",
+      "hsla",
+      "hwb",
+      "lab",
+      "lch",
+      "oklab",
+      "oklch"
+    ],
+    "scale-unlimited/declaration-strict-value": [
+      ["/color$/", "background", "fill", "stroke"],
+      {
+        "ignoreValues": [
+          "transparent",
+          "currentColor",
+          "currentcolor",
+          "inherit",
+          "initial",
+          "unset",
+          "none"
+        ],
+        "message": "Cor só por token: use var(--…) de client/src/styles/tokens.css (\"${property}: ${value}\")."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["client/src/styles/tokens.css"],
+      "rules": {
+        "color-no-hex": null,
+        "color-named": null,
+        "function-disallowed-list": null,
+        "scale-unlimited/declaration-strict-value": null
+      }
+    }
+  ]
+}
