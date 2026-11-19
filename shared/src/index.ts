@@ -6,3 +6,6 @@ export const NOME_DO_APP = 'LIMIAR';
 export function tituloDaPagina(pagina?: string): string {
   return pagina ? `${pagina} · ${NOME_DO_APP}` : NOME_DO_APP;
 }
+
+// Erro de tipo proposital: esta PR existe só para provar que o CI fica vermelho.
+export const erroProposital: number = 'não é número';
