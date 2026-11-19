@@ -6,3 +6,4 @@ data/
 # Arquivos exportados ou gerados: reformatar só criaria diferenças sem sentido
 design/
 docs/
+server/src/db/migrations/

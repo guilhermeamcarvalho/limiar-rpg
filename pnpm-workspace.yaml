@@ -2,3 +2,8 @@ packages:
   - client
   - server
   - shared
+
+# O pnpm só roda scripts de instalação de pacotes aprovados aqui.
+# esbuild (vem com o drizzle-kit): o script só confere o binário, que já chega pelo pacote opcional.
+allowBuilds:
+  esbuild: false

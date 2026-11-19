@@ -2,6 +2,22 @@
 
 Plataforma para jogar RPG de mesa de horror investigativo com um grupo de amigos.
 
+## Rodar na sua máquina
+
+Precisa do Node 26 e do pnpm. No PowerShell com scripts bloqueados, use `pnpm.cmd` no lugar de `pnpm`.
+
+```powershell
+pnpm install
+copy server\.env.example server\.env   # e preencha SESSION_SECRET (o arquivo explica como gerar)
+pnpm db:migrate                         # cria data/limiar.db e cadastra Ordem Paranormal II
+pnpm dev                                # client em http://localhost:5173, API em :3000
+```
+
+- `pnpm test`, `pnpm lint`, `pnpm typecheck`: o mesmo que o CI roda em cada PR.
+- `pnpm db:generate`: depois de mudar `server/src/db/schema.ts`, gera a migração. Versione no Git; nunca altere o banco à mão.
+- `http://localhost:3000/health`: responde `{ "ok": true, "versao": "…" }` quando o servidor está de pé.
+- `http://localhost:5173/dev/componentes`: todos os componentes da interface, só no `pnpm dev`.
+
 ## Documentação
 
 Em [`docs/`](docs/), exportada da "Documentação do Sistema LIMIAR" em 19/11/2026:
