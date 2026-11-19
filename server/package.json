@@ -1,0 +1,15 @@
+{
+  "name": "@limiar/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.ts",
+    "start": "node src/index.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@limiar/shared": "workspace:*",
+    "fastify": "^5.12.8"
+  }
+}

@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+**/dist/
+coverage/
+data/
+
+# Arquivos exportados ou gerados: reformatar só criaria diferenças sem sentido
+design/
+docs/
