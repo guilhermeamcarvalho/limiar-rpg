@@ -4,16 +4,19 @@ export class ErroDaApi extends Error {
   override name = 'ErroDaApi';
   readonly status: number;
   readonly codigo: string;
+  /** Mensagem por campo do formulário, quando o servidor diz qual campo está errado. */
+  readonly campos: Record<string, string> | undefined;
 
-  constructor(status: number, codigo: string, mensagem: string) {
+  constructor(status: number, codigo: string, mensagem: string, campos?: Record<string, string>) {
     super(mensagem);
     this.status = status;
     this.codigo = codigo;
+    this.campos = campos;
   }
 }
 
 interface CorpoDeErro {
-  erro?: { codigo?: string; mensagem?: string };
+  erro?: { codigo?: string; mensagem?: string; campos?: Record<string, string> };
 }
 
 /** GET ou POST na API. Erro vira `ErroDaApi` com o código e a mensagem que o servidor mandou. */
@@ -30,6 +33,7 @@ export async function pedir<T>(caminho: string, init: RequestInit = {}): Promise
       resposta.status,
       erro?.codigo ?? 'ERRO',
       erro?.mensagem ?? 'Não deu para falar com o servidor. Tente de novo.',
+      erro?.campos,
     );
   }
   return corpo as T;

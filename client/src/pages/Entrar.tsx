@@ -1,78 +1,206 @@
-// Tela de entrar. PROVISÓRIA: só o Discord. O e-mail entra na #12 e o visual final na #16.
-import { useEffect, useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router';
+// Entrar: artboards "01 · Entrar" e "Celular · 01 · Entrar".
+import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
+import { Link, Navigate, useSearchParams } from 'react-router';
 import { tituloDaPagina } from '@limiar/shared';
 import { pedir } from '../auth/api.ts';
 import { useMe } from '../auth/sessao.tsx';
-import { Banner, Card, Checkbox, Icon } from '../ui/index.ts';
+import { Banner, Button, Checkbox, Field, Icon, Input, Marca, Note } from '../ui/index.ts';
+import {
+  BotaoDiscord,
+  CampoSenha,
+  caminhoSeguro,
+  interpretarFalha,
+  linkDoDiscord,
+  Ou,
+  TelaDeAcesso,
+  useDiscordLigado,
+  type Falha,
+} from './acesso/comum.tsx';
 
-const ERROS: Record<string, string> = {
+/** Erros que o login pelo Discord manda de volta em ?erro=. */
+const ERROS_DO_DISCORD: Record<string, string> = {
   'estado-invalido': 'O login expirou ou veio de outra aba. Tente de novo.',
   'discord-cancelado': 'Você cancelou no Discord. Tudo bem, é só tentar de novo.',
   'discord-falhou': 'O Discord não respondeu como esperado. Tente de novo em instantes.',
   'discord-indisponivel': 'O login com Discord não está configurado neste servidor.',
 };
 
-/** Só caminhos deste site, como no servidor: nada de mandar para outro endereço. */
-function caminhoSeguro(voltar: string | null): string {
-  return voltar && /^\/(?![/\\])/.test(voltar) ? voltar : '/';
-}
-
 export function Entrar() {
-  const { sessao } = useMe();
+  const { sessao, recarregar } = useMe();
   const [params] = useSearchParams();
-  const [manter, setManter] = useState(true);
-  const [discordLigado, setDiscordLigado] = useState<boolean | null>(null);
   const voltar = caminhoSeguro(params.get('voltar'));
-  const erro = params.get('erro');
+  const erroDoDiscord = params.get('erro');
+  const discord = useDiscordLigado();
+
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [manter, setManter] = useState(true);
+  const [enviando, setEnviando] = useState(false);
+  const [falha, setFalha] = useState<Falha | null>(null);
+  const [esqueci, setEsqueci] = useState(false);
+  const primeiroCampo = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.title = tituloDaPagina('Entrar');
-    pedir<{ discord: boolean }>('/api/auth/opcoes')
-      .then((opcoes) => {
-        setDiscordLigado(opcoes.discord);
-      })
-      .catch(() => {
-        setDiscordLigado(false);
-      });
+    primeiroCampo.current?.focus();
   }, []);
 
   if (sessao.estado === 'logado') return <Navigate to={voltar} replace />;
 
-  const href = `/api/auth/discord?${new URLSearchParams({
-    ...(manter && { manter: '1' }),
-    voltar,
-  }).toString()}`;
+  async function enviar(evento?: SyntheticEvent) {
+    evento?.preventDefault();
+    setEnviando(true);
+    setFalha(null);
+    try {
+      await pedir('/api/auth/entrar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, senha, manter }),
+      });
+      await recarregar(); // a sessão vira "logado" e o <Navigate> acima leva à página pedida
+    } catch (erro) {
+      setFalha(interpretarFalha(erro));
+      setEnviando(false);
+    }
+  }
+
+  const camposComErro = falha?.tipo === 'campos' ? falha.campos : {};
 
   return (
-    <main className="wrap" style={{ paddingTop: 64, maxWidth: 480 }}>
-      <Card pad className="col" style={{ gap: 20 }}>
-        <span className="eyebrow">LIMIAR</span>
-        <h1 className="h2">Entrar</h1>
-        {erro && <Banner tone="err">{ERROS[erro] ?? 'Não deu para entrar. Tente de novo.'}</Banner>}
-        {discordLigado === false && !erro && (
-          <Banner tone="warn">O login com Discord não está configurado neste servidor.</Banner>
-        )}
-        <a
-          className="btn red wide"
-          href={href}
-          aria-disabled={discordLigado === false || undefined}
-          onClick={(e) => {
-            if (discordLigado === false) e.preventDefault();
-          }}
+    <TelaDeAcesso
+      ambiente={
+        <>
+          <span className="eyebrow">Mesa online para investigação paranormal</span>
+          <p className="h1">A porta do Estúdio B continua trancada.</p>
+          <p className="type">
+            Entre para voltar aos seus casos, como jogador ou como mestre. Uma conta só serve para
+            os dois.
+          </p>
+        </>
+      }
+    >
+      <div className="so-cel">
+        <Marca />
+      </div>
+      <div className="col acesso-titulo" style={{ gap: 6 }}>
+        <h1 className="h1">Entrar</h1>
+        <p className="muted so-pc">Bem-vindo de volta à LIMIAR.</p>
+        <p className="small muted so-cel">Uma conta serve para jogar e para mestrar.</p>
+      </div>
+
+      {erroDoDiscord && (
+        <Banner tone="err">
+          {ERROS_DO_DISCORD[erroDoDiscord] ?? 'Não deu para entrar. Tente de novo.'}
+        </Banner>
+      )}
+
+      {discord !== false && (
+        <>
+          <BotaoDiscord href={linkDoDiscord(manter, voltar)}>Entrar com Discord</BotaoDiscord>
+          <Ou />
+        </>
+      )}
+
+      <form noValidate onSubmit={(e) => void enviar(e)}>
+        <Field label="E-mail" error={camposComErro['email']}>
+          <Input
+            ref={primeiroCampo}
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+            }}
+          />
+        </Field>
+        <div className="col" style={{ gap: 10 }}>
+          <Field
+            label="Senha"
+            error={camposComErro['senha']}
+            labelExtra={
+              <button
+                type="button"
+                className="acesso-link"
+                aria-expanded={esqueci}
+                onClick={() => {
+                  setEsqueci(!esqueci);
+                }}
+              >
+                <span className="so-pc">Esqueci a senha</span>
+                <span className="so-cel">Esqueci</span>
+              </button>
+            }
+          >
+            <CampoSenha
+              autoComplete="current-password"
+              value={senha}
+              onChange={(e) => {
+                setSenha(e.target.value);
+              }}
+            />
+          </Field>
+          {esqueci && (
+            <Note>
+              Peça ao mestre do seu grupo para redefinir sua senha. Ele recebe uma senha provisória
+              para mandar a você.
+            </Note>
+          )}
+        </div>
+        <div className="so-pc">
+          <Checkbox
+            label="Manter conectado neste aparelho"
+            checked={manter}
+            onChange={(e) => {
+              setManter(e.target.checked);
+            }}
+          />
+        </div>
+        <Button type="submit" variant="primary" wide loading={enviando} className="grande">
+          Entrar
+        </Button>
+      </form>
+
+      {falha?.tipo === 'recusa' && (
+        <Banner tone="err" icon={<Icon name="alert" size="sm" />}>
+          <span className="small">
+            {falha.mensagem}
+            {falha.mensagem.includes('não conferem') && ' Depois de 5 tentativas, espere 1 minuto.'}
+          </span>
+        </Banner>
+      )}
+      {falha?.tipo === 'rede' && (
+        <Banner
+          tone="err"
+          icon={<Icon name="wifioff" size="sm" />}
+          action={
+            <Button size="sm" onClick={() => void enviar()}>
+              Tentar de novo
+            </Button>
+          }
         >
-          <Icon name="chat" size="sm" />
-          Entrar com Discord
-        </a>
-        <Checkbox
-          label="Manter conectado por 30 dias"
-          checked={manter}
-          onChange={(e) => {
-            setManter(e.target.checked);
-          }}
-        />
-        <p className="small muted">Entrar com e-mail e senha chega em breve.</p>
-      </Card>
-    </main>
+          <span className="small">Sem conexão com o servidor. Confira a internet.</span>
+        </Banner>
+      )}
+
+      <hr className="hr so-pc" />
+      <div className="rodape">
+        <p>
+          <span className="so-pc">Ainda não tem conta? </span>
+          <span className="so-cel">Não tem conta? </span>
+          <Link to={`/criar-conta${voltar === '/' ? '' : `?voltar=${encodeURIComponent(voltar)}`}`}>
+            Criar conta
+          </Link>
+        </p>
+        <p className="small muted">
+          <span className="so-pc">Recebeu um convite? Abra o link do convite ou </span>
+          <span className="so-cel">Tem convite? </span>
+          <Link to="/convite">
+            <span className="so-pc">digite o código</span>
+            <span className="so-cel">Digite o código</span>
+          </Link>
+          <span className="so-pc">.</span>
+        </p>
+      </div>
+    </TelaDeAcesso>
   );
 }

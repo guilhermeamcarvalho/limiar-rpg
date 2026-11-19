@@ -27,12 +27,22 @@ export interface FieldProps {
   error?: ReactNode;
   /** Aviso que não impede salvar, como "fora da regra". */
   warning?: ReactNode;
+  /** Algo na mesma linha do rótulo, à direita, como o link "Esqueci a senha". */
+  labelExtra?: ReactNode;
   className?: string;
   /** Um `Input`, `Textarea` ou `Select`: eles se ligam ao rótulo e às mensagens sozinhos. */
   children: ReactNode;
 }
 
-export function Field({ label, help, error, warning, className, children }: FieldProps) {
+export function Field({
+  label,
+  help,
+  error,
+  warning,
+  labelExtra,
+  className,
+  children,
+}: FieldProps) {
   const id = useId();
   const idHelp = `${id}-ajuda`;
   const idErro = `${id}-erro`;
@@ -45,7 +55,16 @@ export function Field({ label, help, error, warning, className, children }: Fiel
 
   return (
     <div className={cx('field', className)}>
-      <label htmlFor={id}>{label}</label>
+      {labelExtra ? (
+        <div className="row between">
+          <label htmlFor={id} className="flabel">
+            {label}
+          </label>
+          {labelExtra}
+        </div>
+      ) : (
+        <label htmlFor={id}>{label}</label>
+      )}
       <CampoContexto value={{ id, describedBy, invalid: Boolean(error) }}>{children}</CampoContexto>
       {mostrarHelp && (
         <span id={idHelp} className="help">

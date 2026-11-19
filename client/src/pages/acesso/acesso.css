@@ -1,0 +1,149 @@
+/* Telas de acesso: Entrar e Criar conta. Artboards 01, 01c, Celular · 01 e Celular · 01c. */
+
+.acesso {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* Lado de ambientação (só no computador) */
+.acesso-ambiente {
+  flex: 1 1 560px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--s7) var(--s8);
+  background: radial-gradient(ellipse at 30% 60%, var(--ambiente) 0, var(--bg-2) 65%);
+  border-right: 1px solid var(--line);
+}
+.acesso-chamada {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 560px;
+}
+.acesso-chamada .h1 {
+  font-size: 76px;
+}
+.acesso-chamada .type {
+  font-size: 17px;
+  color: var(--typed);
+}
+.acesso-papeis b {
+  color: var(--text);
+}
+
+/* Lado do formulário */
+.acesso-form {
+  flex: 1 1 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s7) var(--s6);
+}
+.acesso-coluna {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.acesso-coluna form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+.acesso-titulo .h1 {
+  font-size: 52px;
+}
+.acesso .btn.grande {
+  min-height: 52px;
+}
+.acesso .rodape {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.acesso .rodape a {
+  color: var(--text);
+  font-weight: 800;
+}
+.acesso-link {
+  color: var(--text);
+  font-weight: 600;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12.5px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.acesso .hr {
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--line);
+}
+
+/* Barra do topo, só na Criar conta do celular */
+.acesso-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 14px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 0 var(--red-a35);
+}
+.acesso-topo b {
+  font: 400 22px/1 var(--f-disp);
+  text-transform: uppercase;
+}
+
+@media (min-width: 901px) {
+  .so-cel {
+    display: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .so-pc,
+  .acesso-ambiente {
+    display: none !important;
+  }
+  .acesso-form {
+    justify-content: flex-start;
+    padding: 28px 20px;
+    background: radial-gradient(ellipse at 50% 0, var(--ambiente) 0, var(--bg) 55%);
+  }
+  .acesso-form.com-topo {
+    padding: 0 0 20px;
+    background: var(--bg);
+  }
+  .acesso-form.com-topo .acesso-coluna {
+    padding: 20px 20px 0;
+  }
+  .acesso-coluna {
+    flex: 1;
+    max-width: none;
+    gap: 18px;
+  }
+  .acesso-titulo .h1 {
+    font-size: 44px;
+  }
+  /* No celular, os links de rodapé descem para o fim da tela. */
+  .acesso .rodape {
+    margin-top: auto;
+    text-align: center;
+  }
+}
+
+/* Caixa de aceite com texto de duas linhas: a caixa fica no alto. */
+.check.check-topo {
+  align-items: flex-start;
+}
+.check.check-topo input {
+  margin-top: 2px;
+}
