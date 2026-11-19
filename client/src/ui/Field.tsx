@@ -9,6 +9,7 @@ import {
   type TextareaHTMLAttributes,
 } from 'react';
 import { cx } from './cx.ts';
+import { Icon } from './Icon.tsx';
 
 interface CampoAtual {
   id: string;
@@ -53,11 +54,13 @@ export function Field({ label, help, error, warning, className, children }: Fiel
       )}
       {error && (
         <span id={idErro} className="ferr">
+          <Icon name="alert" size="sm" />
           {error}
         </span>
       )}
       {warning && (
         <span id={idAviso} className="fwarn">
+          <Icon name="alert" size="sm" />
           {warning}
         </span>
       )}

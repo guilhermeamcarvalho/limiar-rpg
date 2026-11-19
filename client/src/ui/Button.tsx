@@ -1,5 +1,6 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode, type Ref } from 'react';
 import { cx } from './cx.ts';
+import { Icon } from './Icon.tsx';
 
 const VARIANTES = {
   primary: 'red',
@@ -40,7 +41,7 @@ export function Button({
   loading = false,
   success = false,
   successLabel = 'Salvo',
-  successIcon,
+  successIcon = <Icon name="check" size="sm" />,
   icon,
   wide = false,
   className,

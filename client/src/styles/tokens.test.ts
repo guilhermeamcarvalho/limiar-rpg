@@ -58,11 +58,41 @@ describe('tokens.css', () => {
   ])('--%s sobre --%s passa 4,5:1', (frente, fundo) => {
     expect(contraste(token(frente), token(fundo))).toBeGreaterThanOrEqual(4.5);
   });
+});
 
-  it('carrega as quatro fontes com font-display: swap', () => {
-    for (const familia of ['Oranienbaum', 'Mulish', 'Special+Elite', 'Courier+Prime']) {
-      expect(indexHtml).toContain(`family=${familia}`);
+describe('fontes', () => {
+  const fontsCss = ler('styles/fonts.css');
+  const faces = [...fontsCss.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, corpo = '']) => corpo);
+
+  it('declara as quatro famílias, todas com font-display: swap', () => {
+    const familias = faces.map((corpo) => /font-family:\s*'([^']+)'/.exec(corpo)?.[1]);
+    expect(new Set(familias)).toEqual(
+      new Set(['Oranienbaum', 'Mulish', 'Special Elite', 'Courier Prime']),
+    );
+    for (const corpo of faces) expect(corpo).toContain('font-display: swap');
+  });
+
+  it('cada arquivo de fonte existe em public/fonts', () => {
+    const arquivos = faces.map((corpo) => /url\('\/fonts\/([^']+)'\)/.exec(corpo)?.[1] ?? '');
+    for (const arquivo of arquivos) {
+      expect(() => readFileSync(join(SRC, '../public/fonts', arquivo))).not.toThrow();
     }
-    expect(indexHtml).toContain('display=swap');
+  });
+
+  it('não depende do Google: nenhuma chamada a fonts.googleapis ou gstatic', () => {
+    const comGoogle = Object.entries({ 'index.html': indexHtml, ...fontes })
+      .filter(([arquivo]) => !arquivo.endsWith('.test.ts'))
+      .filter(([, texto]) => /fonts\.(googleapis|gstatic)\.com/.test(texto))
+      .map(([arquivo]) => arquivo);
+    expect(comGoogle).toEqual([]);
+  });
+});
+
+describe('ícones', () => {
+  it('nenhum emoji no client: ícone é sempre <Icon />', () => {
+    const comEmoji = Object.entries(fontes)
+      .filter(([, texto]) => /\p{Extended_Pictographic}/u.test(texto))
+      .map(([arquivo]) => arquivo);
+    expect(comEmoji).toEqual([]);
   });
 });

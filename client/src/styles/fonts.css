@@ -1,0 +1,49 @@
+/*
+ * LIMIAR · fontes servidas pelo próprio app (client/public/fonts), sem Google Fonts.
+ * Só o subconjunto latino: cobre o português inteiro (acentos, ç, aspas curvas, travessão).
+ * Licenças ao lado dos arquivos, em client/public/fonts/LICENCA-*.txt:
+ * - Oranienbaum, Mulish e Courier Prime: SIL Open Font License 1.1
+ * - Special Elite (Astigmatic): Apache 2.0
+ * `swap`: o texto aparece na hora com a fonte de reserva e troca quando a fonte chega.
+ */
+
+@font-face {
+  font-family: 'Oranienbaum';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/oranienbaum-400.woff2') format('woff2');
+}
+
+/* Mulish é variável: um arquivo só cobre do 400 ao 900. */
+@font-face {
+  font-family: 'Mulish';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('/fonts/mulish-variavel.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Special Elite';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/special-elite-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/courier-prime-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/courier-prime-700.woff2') format('woff2');
+}
