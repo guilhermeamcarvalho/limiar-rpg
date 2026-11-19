@@ -6,3 +6,5 @@ export const NOME_DO_APP = 'LIMIAR';
 export function tituloDaPagina(pagina?: string): string {
   return pagina ? `${pagina} · ${NOME_DO_APP}` : NOME_DO_APP;
 }
+
+export * from './sistemas.ts';

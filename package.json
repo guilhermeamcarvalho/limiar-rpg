@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "pnpm --parallel --filter ./client --filter ./server dev",
     "build": "pnpm -r --if-present build",
+    "db:generate": "pnpm --filter @limiar/server db:generate",
+    "db:migrate": "pnpm --filter @limiar/server db:migrate",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . && stylelint \"**/*.css\"",
     "format": "prettier --write .",
