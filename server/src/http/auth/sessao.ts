@@ -117,3 +117,11 @@ export function exigirLogin(request: FastifyRequest) {
   }
   return Promise.resolve();
 }
+
+/** O usuário logado, em rota que já passou pelo `exigirLogin`. */
+export function usuarioLogado(request: FastifyRequest): Usuario {
+  if (!request.usuario) {
+    throw new ErroDaApi(401, 'NAO_AUTENTICADO', 'Entre na sua conta para continuar.');
+  }
+  return request.usuario;
+}

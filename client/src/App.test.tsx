@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, useLocation } from 'react-router';
 import { Rotas } from './App.tsx';
 import { SessaoProvider } from './auth/sessao.tsx';
+import { ToastProvider } from './ui/index.ts';
 
 const MARTA = { id: 'usr_1', nome: 'Marta', email: 'marta@exemplo.com' };
 
@@ -33,12 +34,14 @@ function Endereco() {
 
 function abrir(caminho: string) {
   render(
-    <SessaoProvider>
-      <MemoryRouter initialEntries={[caminho]}>
-        <Rotas />
-        <Endereco />
-      </MemoryRouter>
-    </SessaoProvider>,
+    <ToastProvider>
+      <SessaoProvider>
+        <MemoryRouter initialEntries={[caminho]}>
+          <Rotas />
+          <Endereco />
+        </MemoryRouter>
+      </SessaoProvider>
+    </ToastProvider>,
   );
 }
 

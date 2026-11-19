@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router';
 import { ExigirLogin } from './auth/ExigirLogin.tsx';
 import { SessaoProvider } from './auth/sessao.tsx';
 import { Central } from './pages/Central.tsx';
+import { Convite } from './pages/Convite.tsx';
 import { CriarConta } from './pages/CriarConta.tsx';
 import { Entrar } from './pages/Entrar.tsx';
 
@@ -15,6 +16,8 @@ export function Rotas() {
     <Routes>
       <Route path="/entrar" element={<Entrar />} />
       <Route path="/criar-conta" element={<CriarConta />} />
+      <Route path="/c/:codigo" element={<Convite />} />
+      <Route path="/convite" element={<Convite />} />
       {Componentes && (
         <Route
           path="/dev/componentes"

@@ -13,6 +13,7 @@ import { rotas as rotasDeAuth } from './http/auth/index.ts';
 import type { ClienteDiscord } from './http/auth/discord.ts';
 import { registrarSessao } from './http/auth/sessao.ts';
 import { rotas as rotasDeCampanhas } from './http/campanhas/index.ts';
+import { rotas as rotasDeConvites } from './http/convites/index.ts';
 import { rotas as rotasDePersonagens } from './http/personagens/index.ts';
 import { rotas as rotasDeUploads } from './http/uploads/index.ts';
 
@@ -87,6 +88,7 @@ export async function criarApp({ config, db, logger, discord }: DependenciasDoAp
 
   await app.register(rotasDeAuth, { prefix: '/api', ...(discord !== undefined && { discord }) });
   await app.register(rotasDeCampanhas, { prefix: '/api/campanhas' });
+  await app.register(rotasDeConvites, { prefix: '/api' });
   await app.register(rotasDePersonagens, { prefix: '/api/personagens' });
   await app.register(rotasDeUploads, { prefix: '/api/uploads' });
 

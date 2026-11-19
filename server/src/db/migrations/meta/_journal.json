@@ -15,6 +15,13 @@
       "when": 1795113982747,
       "tag": "0001_sessoes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795117745792,
+      "tag": "0002_convites",
+      "breakpoints": true
     }
   ]
 }

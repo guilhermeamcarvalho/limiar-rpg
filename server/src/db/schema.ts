@@ -86,11 +86,15 @@ export const campaigns = sqliteTable(
     systemId: text('system_id')
       .notNull()
       .references(() => gameSystems.id),
+    /** "Caso nº 017": sequência do servidor inteiro, dada na criação. */
+    numero: integer('numero').unique(),
     nome: text('nome').notNull(),
     /** A frase que abre o caso, mostrada no cartão. */
     gancho: text('gancho'),
     /** Mesa em rodadas: uma ação por vez. */
     rodadas: integer('rodadas', { mode: 'boolean' }).notNull().default(true),
+    /** Data e hora da próxima sessão, se já marcada. */
+    proximaSessao: integer('proxima_sessao', { mode: 'timestamp_ms' }),
     criadoPor: text('criado_por')
       .notNull()
       .references(() => users.id),
@@ -112,10 +116,39 @@ export const memberships = sqliteTable(
     papel: text('papel', { enum: ['mestre', 'jogador'] }).notNull(),
     /** Personagem que a pessoa usa nesta campanha. A tabela de personagens vem na Fase 1. */
     characterId: text('character_id'),
+    /** Convite usado para entrar (nulo para o mestre): o mestre vê quem ocupou cada vaga. */
+    inviteId: text('invite_id').references(() => invites.id, { onDelete: 'set null' }),
+    entrouEm: integer('entrou_em', { mode: 'timestamp_ms' }),
   },
   (t) => [
     primaryKey({ columns: [t.campaignId, t.userId] }),
     index('memberships_user').on(t.userId),
     check('memberships_papel', sql`${t.papel} in ('mestre', 'jogador')`),
+  ],
+);
+
+/** Convite para entrar como jogador: link /c/ERMIDA-3H33 ou só o código. */
+export const invites = sqliteTable(
+  'invites',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('inv')),
+    /** Palavra do nome do caso + 4 caracteres, em maiúsculas: ERMIDA-3H33. */
+    codigo: text('codigo').notNull().unique(),
+    campaignId: text('campaign_id')
+      .notNull()
+      .references(() => campaigns.id, { onDelete: 'cascade' }),
+    vagas: integer('vagas').notNull(),
+    usados: integer('usados').notNull().default(0),
+    expiraEm: integer('expira_em', { mode: 'timestamp_ms' }).notNull(),
+    criadoPor: text('criado_por')
+      .notNull()
+      .references(() => users.id),
+    criadoEm: criadoEm(),
+  },
+  (t) => [
+    index('invites_campaign').on(t.campaignId),
+    check('invites_vagas', sql`${t.usados} >= 0 and ${t.usados} <= ${t.vagas}`),
   ],
 );

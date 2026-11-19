@@ -147,3 +147,40 @@
 .check.check-topo input {
   margin-top: 2px;
 }
+
+/* Convite: cartão de papel, levemente torto, como um bilhete deixado na mesa */
+.cartao-convite {
+  padding: 22px 24px;
+  transform: rotate(-1deg);
+}
+.cartao-titulo {
+  margin-top: 10px;
+  color: var(--ink);
+}
+.cartao-texto {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.cartao-mestre {
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.caixa-codigo.card.pad {
+  padding: 16px 18px;
+}
+.campo-codigo {
+  letter-spacing: 0.12em;
+}
+
+@media (max-width: 900px) {
+  .titulo-convite-cel {
+    font-size: 40px;
+  }
+  .cartao-convite {
+    padding: 16px 18px;
+  }
+  .cartao-titulo {
+    font-size: 26px;
+  }
+}

@@ -1,8 +1,9 @@
 // Peças comuns às telas Entrar e Criar conta.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode, type SyntheticEvent } from 'react';
 import { forcaDaSenha, MIN_SENHA } from '@limiar/shared';
 import { ErroDaApi, pedir } from '../../auth/api.ts';
-import { Button, cx, Icon, Input, Marca } from '../../ui/index.ts';
+import { useMe } from '../../auth/sessao.tsx';
+import { Banner, Button, cx, Icon, Input, Marca } from '../../ui/index.ts';
 import './acesso.css';
 
 /** Só caminhos deste site, como no servidor: nada de mandar para outro endereço. */
@@ -137,4 +138,75 @@ export function ForcaDaSenha({ senha }: { senha: string }) {
       )}
     </>
   );
+}
+
+/** Estado e envio do formulário de e-mail e senha (Entrar e Convite usam o mesmo). */
+export function useEntrarPorEmail(manter: boolean) {
+  const { recarregar } = useMe();
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [falha, setFalha] = useState<Falha | null>(null);
+
+  /** Entra e recarrega a sessão. Devolve se deu certo. */
+  async function enviar(evento?: SyntheticEvent): Promise<boolean> {
+    evento?.preventDefault();
+    setEnviando(true);
+    setFalha(null);
+    try {
+      await pedir('/api/auth/entrar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, senha, manter }),
+      });
+      await recarregar();
+      return true;
+    } catch (erro) {
+      setFalha(interpretarFalha(erro));
+      setEnviando(false);
+      return false;
+    }
+  }
+
+  const camposComErro = falha?.tipo === 'campos' ? falha.campos : {};
+  return { email, setEmail, senha, setSenha, enviando, falha, enviar, camposComErro };
+}
+
+/** Aviso de falha ao enviar: recusa do servidor ou falta de rede, com "tentar de novo". */
+export function AvisoDeFalha({
+  falha,
+  tentarDeNovo,
+  extra,
+}: {
+  falha: Falha | null;
+  tentarDeNovo: () => void;
+  /** Texto a mais depois da mensagem de recusa. */
+  extra?: (mensagem: string) => string;
+}) {
+  if (falha?.tipo === 'recusa') {
+    return (
+      <Banner tone="err" icon={<Icon name="alert" size="sm" />}>
+        <span className="small">
+          {falha.mensagem}
+          {extra?.(falha.mensagem)}
+        </span>
+      </Banner>
+    );
+  }
+  if (falha?.tipo === 'rede') {
+    return (
+      <Banner
+        tone="err"
+        icon={<Icon name="wifioff" size="sm" />}
+        action={
+          <Button size="sm" onClick={tentarDeNovo}>
+            Tentar de novo
+          </Button>
+        }
+      >
+        <span className="small">Sem conexão com o servidor. Confira a internet.</span>
+      </Banner>
+    );
+  }
+  return null;
 }
