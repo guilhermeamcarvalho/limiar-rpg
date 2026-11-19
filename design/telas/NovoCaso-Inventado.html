@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 · Novo caso · RPG inventado · LIMIAR</title>
+<!-- Gerado por design/gerar.ps1 a partir de design/fonte/NovoCaso-Inventado.dc.html. Não edite à mão. -->
+<link rel="stylesheet" href="../fonte/lm.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oranienbaum&amp;family=Mulish:wght@400;500;600;700;800;900&amp;family=Special+Elite&amp;family=Courier+Prime:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0A0909}
+</style>
+</head>
+<body>
+<div class="app" style="width: 100%; min-height: 1250px">
+<header class="top"><a class="brand" href="Central.html" aria-label="LIMIAR, ir para a Central"><svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#C2412B" stroke-width="1.6"></circle><path d="M20 5C27 13 27 27 20 35 13 27 13 13 20 5Z" fill="none" stroke="#ECE6DF" stroke-width="1.4"></path><circle cx="20" cy="20" r="3.2" fill="#C2412B"></circle></svg><span><b>LIMIAR</b><small>HORROR INVESTIGATIVO</small></span></a><div class="crumb"><a href="Casos.html">Casos</a><span class="ic sm i-next" aria-hidden="true"></span><b style="color: var(--text)">Abrir novo caso</b></div><div class="end"><span class="small muted">Rascunho salvo há 4 s</span><a class="btn ghost" href="Casos.html"><span class="ic sm i-close" aria-hidden="true"></span>Cancelar</a></div></header>
+<main class="wrap" style="padding-top: 40px; padding-bottom: 64px">
+<div class="split" style="gap: 40px">
+<nav class="steps" aria-label="Passos" style="flex: 0 1 240px; min-width: 220px">
+<a class="step done" href="NovoCaso.html"><span class="n"><span class="ic sm i-check" aria-hidden="true"></span></span><span><b>Premissa</b><small>As Cinzas de Vel’Kar</small></span></a>
+<a class="step on" href="NovoCaso-Inventado.html" aria-current="step"><span class="n">2</span><span><b>Regras</b><small>Sistema da casa</small></span></a>
+<a class="step" href="NovoCaso.html"><span class="n">3</span><span><b>Agenda</b><small>Quando a mesa se reúne</small></span></a>
+<a class="step" href="M-NovoCaso.html"><span class="n">4</span><span><b>Convites</b><small>Link e código</small></span></a>
+<a class="step" href="NovoCaso.html"><span class="n">5</span><span><b>Revisão</b><small>Confirme e abra</small></span></a>
+</nav>
+<section class="main col" style="flex: 999 1 560px; gap: 24px">
+<div class="col" style="gap: 6px"><span class="eyebrow">Passo 2 de 5 · RPG inventado</span><h1 class="h1">As regras da casa</h1><p class="muted">A ficha, a criação de personagem e os testes da mesa são montados a partir daqui. Mudar depois da primeira sessão pede confirmação.</p></div>
+<div class="g2">
+<div class="field"><label for="sn">Nome do sistema</label><input id="sn" class="fld" value="Cinzas d20"></div>
+<div class="field"><label for="dp">Dado principal</label><select id="dp" class="fld"><option>1d20 + modificador contra DT</option><option>2d6 + modificador contra DT</option><option>1d100 abaixo do valor</option><option>Parada de d6 · 5 e 6 são sucesso</option></select></div>
+</div>
+<div class="field"><label for="at">Atributos · separados por vírgula</label><input id="at" class="fld" value="Força, Astúcia, Espírito"><div class="row" style="gap: 6px"><span class="tag">Força</span><span class="tag">Astúcia</span><span class="tag">Espírito</span></div></div>
+<div class="field"><label for="pe">Perícias · com o atributo entre parênteses</label><textarea id="pe" class="fld is-error" aria-invalid="true" aria-describedby="pe-e">Lâmina (Força), Furtividade (Astúcia), Vontade (Espírito), Rastreio (Percepção)</textarea><span id="pe-e" class="err"><span class="ic sm i-alert" aria-hidden="true"></span>“Rastreio” usa “Percepção”, que não está entre os atributos.</span></div>
+<div class="field"><span class="flabel">Recursos com valor máximo</span>
+<div class="card">
+<div class="li"><input class="fld" value="Vida" aria-label="Nome do recurso" style="flex: 1"><input class="fld" value="12" aria-label="Máximo de Vida" style="width: 90px; text-align: center"><select class="fld" aria-label="Cor de Vida" style="width: 150px"><option>Vermelho</option></select><button class="btn icon sm ghost" aria-label="Remover Vida"><span class="ic sm i-trash" aria-hidden="true"></span></button></div>
+<div class="li"><input class="fld" value="Memória" aria-label="Nome do recurso" style="flex: 1"><input class="fld" value="10" aria-label="Máximo de Memória" style="width: 90px; text-align: center"><select class="fld" aria-label="Cor de Memória" style="width: 150px"><option>Azul</option></select><button class="btn icon sm ghost" aria-label="Remover Memória"><span class="ic sm i-trash" aria-hidden="true"></span></button></div>
+<div class="li"><button class="btn ghost sm"><span class="ic sm i-plus" aria-hidden="true"></span>Adicionar recurso</button></div>
+</div></div>
+<div class="field"><label for="rc">Regras da casa · o que o grupo precisa lembrar</label><textarea id="rc" class="fld" style="min-height: 80px">Magia custa 1 de Memória por círculo. Abaixo de 3 de Memória, o personagem esquece um nome.</textarea></div>
+<div class="g2">
+<div class="card" style="padding: 14px 16px; display: flex; gap: 12px; align-items: center"><span class="switch on" role="img" aria-label="Ligado"></span><div><b>Uma ação por rodada</b><div class="small muted">Investigar gasta a ação do jogador</div></div></div>
+<div class="card" style="padding: 14px 16px; display: flex; gap: 12px; align-items: center"><span class="switch on" role="img" aria-label="Ligado"></span><div><b>Permitir dados físicos</b><div class="small muted">O jogador informa os valores</div></div></div>
+</div>
+<div class="row between" style="padding-top: 12px; border-top: 1px solid var(--line)"><a class="btn ghost" href="NovoCaso.html"><span class="ic sm i-back" aria-hidden="true"></span>Voltar</a><button class="btn red" disabled>Corrija 1 erro para continuar</button></div>
+</section>
+<aside class="col" style="flex: 1 1 300px; min-width: 280px; gap: 12px">
+<span class="lab">Prévia da ficha</span>
+<div class="card col" style="gap: 14px; padding: 18px">
+<div class="row"><span class="av y">K</span><div><b class="h3">Novo personagem</b><div class="small muted">Cinzas d20</div></div></div>
+<div class="row" style="gap: 18px"><span class="disp" style="font-size: 18px">FOR <span class="tag red" style="font-size: 11px">+0</span></span><span class="disp" style="font-size: 18px">AST <span class="tag red" style="font-size: 11px">+0</span></span><span class="disp" style="font-size: 18px">ESP <span class="tag red" style="font-size: 11px">+0</span></span></div>
+<div class="res-row"><span class="lab red">Vida</span><div class="boxes"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><b>12</b></div>
+<div class="res-row"><span class="lab" style="color: var(--blue-hi)">Mem.</span><div class="boxes pd"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><b>10</b></div>
+<hr class="hr">
+<span class="lab">Exemplo de teste</span>
+<div class="row"><span class="dz lg d20">14</span><b style="font-size: 20px">+ 3 = 17</b><span class="grow"></span><span class="verdict green">Passa DT 12</span></div>
+<span class="small muted">1d20 + modificador do atributo da perícia, contra a DT que o mestre pedir.</span>
+</div>
+</aside>
+</div>
+</main>
+
+</div>
+</body>
+</html>

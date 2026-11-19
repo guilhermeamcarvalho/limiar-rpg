@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>15 · Perfil e preferências</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oranienbaum&amp;family=Mulish:wght@400;500;600;700;800;900&amp;family=Special+Elite&amp;family=Courier+Prime:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0A0909}
+</style>
+</helmet>
+<div class="app" style="width: 100%; min-height: 1050px">
+<header class="top"><a class="brand" href="Central.dc.html" aria-label="LIMIAR, ir para a Central"><svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#C2412B" stroke-width="1.6"></circle><path d="M20 5C27 13 27 27 20 35 13 27 13 13 20 5Z" fill="none" stroke="#ECE6DF" stroke-width="1.4"></path><circle cx="20" cy="20" r="3.2" fill="#C2412B"></circle></svg><span><b>LIMIAR</b><small>HORROR INVESTIGATIVO</small></span></a><nav class="nav" aria-label="Principal"><a href="Central.dc.html" class=""><span class="ic i-home" aria-hidden="true"></span>Central</a><a href="Casos.dc.html" class=""><span class="ic i-folder" aria-hidden="true"></span>Casos</a><a href="Personagens.dc.html" class=""><span class="ic i-users" aria-hidden="true"></span>Personagens</a><a href="Arquivo.dc.html" class=""><span class="ic i-book" aria-hidden="true"></span>Arquivo</a></nav><div class="end"><a class="btn sm" href="Entrar.dc.html"><span class="ic sm i-key" aria-hidden="true"></span>Entrar com código</a><button class="btn icon ghost" aria-label="Notificações, 2 novas" style="position: relative"><span class="ic i-bell" aria-hidden="true"></span><span class="badge"></span></button><a class="av sm" href="Perfil.dc.html" aria-label="Perfil de Guilherme">G</a></div></header>
+<main class="wrap" style="padding-top: 40px; padding-bottom: 64px; display: flex; flex-direction: column; gap: 28px; max-width: 1080px">
+<section class="row wrapx" style="gap: 24px">
+<span class="av xl n" style="background: #3A1A14; color: #fff">G</span>
+<div class="col grow" style="gap: 4px"><span class="lab">Perfil</span><h1 class="h1">Guilherme</h1><span class="muted">Conectado com Discord · guilherme#0421 · desde nov 2026</span></div>
+<button class="btn ghost"><span class="ic sm i-logout" aria-hidden="true"></span>Sair</button>
+</section>
+<div class="split" style="gap: 32px">
+<nav class="steps" aria-label="Seções do perfil" style="flex: 0 1 220px; min-width: 200px">
+<a class="step on" href="Perfil.dc.html" aria-current="page"><span class="n"><span class="ic sm i-user" aria-hidden="true"></span></span><b>Conta</b></a>
+<a class="step" href="Perfil.dc.html"><span class="n"><span class="ic sm i-dice" aria-hidden="true"></span></span><b>Dados e mesa</b></a>
+<a class="step" href="Perfil.dc.html"><span class="n"><span class="ic sm i-volume" aria-hidden="true"></span></span><b>Som</b></a>
+<a class="step" href="Perfil.dc.html"><span class="n"><span class="ic sm i-bell" aria-hidden="true"></span></span><b>Avisos</b></a>
+<a class="step" href="Perfil.dc.html"><span class="n"><span class="ic sm i-lock" aria-hidden="true"></span></span><b>Privacidade</b></a>
+</nav>
+<section class="col" style="flex: 999 1 520px; gap: 20px">
+<div class="card"><div class="card-h"><b class="h3">Conta</b></div><div class="card-b col" style="gap: 16px">
+<div class="g2"><div class="field"><label for="pn">Nome que aparece na mesa</label><input id="pn" class="fld" value="Guilherme"></div><div class="field"><label for="pe2">E-mail para avisos</label><input id="pe2" class="fld" type="email" value="guilherme@exemplo.com"></div></div>
+<div class="row between"><div><b>Fuso horário</b><div class="small muted">Usado na agenda e nos horários das sessões</div></div><select class="fld" aria-label="Fuso horário" style="width: 260px"><option>São Paulo (UTC−3)</option></select></div>
+</div></div>
+<div class="card"><div class="card-h"><b class="h3">Dados e mesa</b></div><div class="card-b col" style="gap: 16px">
+<div class="row between wrapx"><div><b>Modo de dados padrão</b><div class="small muted">Vale para personagens novos; cada ficha pode mudar</div></div><div class="seg" role="group" aria-label="Modo de dados padrão" style="width: 320px"><button class="on" aria-pressed="true">Dados virtuais</button><button aria-pressed="false">Dados físicos</button></div></div>
+<div class="row between"><div><b>Animação dos dados</b><div class="small muted">Desliga sozinha se o sistema pedir menos movimento</div></div><span class="switch on" role="img" aria-label="Ligado"></span></div>
+<div class="row between"><div><b>Abrir o celular direto na mesa</b><div class="small muted">Quando houver sessão aberta</div></div><span class="switch on" role="img" aria-label="Ligado"></span></div>
+</div></div>
+<div class="card"><div class="card-h"><b class="h3">Som</b></div><div class="card-b col" style="gap: 16px">
+<div class="row between"><div><b>Volume da trilha</b><div class="small muted">Só para você; o mestre controla o volume geral</div></div><input type="range" aria-label="Volume da trilha" value="60" style="width: 260px; accent-color: var(--red)"></div>
+<div class="row between"><div><b>Som dos dados e avisos</b></div><span class="switch" role="img" aria-label="Desligado"></span></div>
+</div></div>
+<div class="card"><div class="card-h"><b class="h3">Privacidade</b></div><div class="card-b col" style="gap: 16px">
+<div class="row between"><div><b>Outros jogadores podem ver minhas fichas</b><div class="small muted">O mestre sempre vê</div></div><span class="switch on" role="img" aria-label="Ligado"></span></div>
+<div class="row between"><div><b>Baixar meus dados</b><div class="small muted">Fichas, diários e anotações em um arquivo</div></div><button class="btn sm">Baixar</button></div>
+<div class="row between"><div><b class="red">Excluir conta</b><div class="small muted">Suas fichas somem; os casos de outros mestres mantêm o histórico</div></div><button class="btn danger sm">Excluir conta</button></div>
+</div></div>
+</section>
+</div>
+</main>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 1050}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

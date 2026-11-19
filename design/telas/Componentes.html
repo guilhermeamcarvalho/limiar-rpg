@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>00 · Componentes e estados · LIMIAR</title>
+<!-- Gerado por design/gerar.ps1 a partir de design/fonte/Componentes.dc.html. Não edite à mão. -->
+<link rel="stylesheet" href="../fonte/lm.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oranienbaum&amp;family=Mulish:wght@400;500;600;700;800;900&amp;family=Special+Elite&amp;family=Courier+Prime:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0A0909}
+</style>
+</head>
+<body>
+<div class="app" style="width: 100%; min-height: 1900px">
+<header class="top"><a class="brand" href="Central.html" aria-label="LIMIAR, ir para a Central"><svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#C2412B" stroke-width="1.6"></circle><path d="M20 5C27 13 27 27 20 35 13 27 13 13 20 5Z" fill="none" stroke="#ECE6DF" stroke-width="1.4"></path><circle cx="20" cy="20" r="3.2" fill="#C2412B"></circle></svg><span><b>LIMIAR</b><small>HORROR INVESTIGATIVO</small></span></a><span class="ctx">Sistema visual · referência para <b>client/src/styles</b></span></header>
+<main class="wrap" style="padding-top: 48px; padding-bottom: 64px; display: flex; flex-direction: column; gap: 48px">
+<section class="col" style="gap: 8px">
+<span class="eyebrow">LIMIAR · componentes</span>
+<h1 class="h1">Tokens, componentes e estados</h1>
+<p class="muted" style="max-width: 760px">Todas as telas usam só o que está aqui. Cor nova entra primeiro como token. Cada componente mostra os estados que a implementação precisa cobrir: padrão, hover, foco, carregando, sucesso, erro e desabilitado.</p>
+</section>
+
+<section>
+<div class="sect-h"><h2 class="h3">Cores</h2></div>
+<div class="g4">
+<div class="col" style="gap: 8px"><span class="lab">Fundos</span>
+<div class="row" style="gap: 0"><div style="flex: 1; height: 56px; background: var(--bg-2)"></div><div style="flex: 1; height: 56px; background: var(--bg)"></div><div style="flex: 1; height: 56px; background: var(--panel)"></div><div style="flex: 1; height: 56px; background: var(--panel-2)"></div><div style="flex: 1; height: 56px; background: var(--panel-3)"></div><div style="flex: 1; height: 56px; background: var(--panel-4)"></div></div>
+<span class="small muted">bg-2 · bg · panel · panel-2 · panel-3 · panel-4. Do mais escuro (mesa) ao mais claro (destaque).</span></div>
+<div class="col" style="gap: 8px"><span class="lab">Ação e destaque</span>
+<div class="row" style="gap: 0"><div style="flex: 1; height: 56px; background: var(--red)"></div><div style="flex: 1; height: 56px; background: var(--red-hi)"></div><div style="flex: 1; height: 56px; background: var(--red-dark)"></div><div style="flex: 1; height: 56px; background: var(--red-soft)"></div></div>
+<span class="small muted">Vermelho só para ação principal, item ativo e falha. Nunca para texto longo.</span></div>
+<div class="col" style="gap: 8px"><span class="lab">Significado</span>
+<div class="row" style="gap: 0"><div style="flex: 1; height: 56px; background: var(--gold)"></div><div style="flex: 1; height: 56px; background: var(--green)"></div><div style="flex: 1; height: 56px; background: var(--blue)"></div><div style="flex: 1; height: 56px; background: var(--muted)"></div></div>
+<span class="small muted">Dourado: crítico, bônus, mestre. Verde: sucesso. Azul: PD e informação. Cinza: secundário.</span></div>
+<div class="col" style="gap: 8px"><span class="lab">Papel e tinta</span>
+<div class="row" style="gap: 0"><div style="flex: 1; height: 56px; background: var(--paper)"></div><div style="flex: 1; height: 56px; background: var(--paper-2)"></div><div style="flex: 1; height: 56px; background: var(--ink-2)"></div><div style="flex: 1; height: 56px; background: var(--ink)"></div></div>
+<span class="small muted">Papel só para o que existe no mundo do jogo: pistas, notas, dossiê, diário.</span></div>
+</div>
+</section>
+
+<section>
+<div class="sect-h"><h2 class="h3">Tipografia</h2></div>
+<div class="g3">
+<div class="card pad col"><span class="lab">Oranienbaum · títulos</span><span class="h1">O sinal</span><span class="h2">Santa Ermida</span><span class="h3">Estúdio B</span><span class="small muted">Sempre em caixa alta. 56 / 34 / 24 px.</span></div>
+<div class="card pad col"><span class="lab">Mulish · interface</span><p style="font-size: 15px; font-weight: 600">Texto de interface, rótulos e botões. 14–15 px no corpo.</p><span class="lab">Rótulo de seção · 11 px · 800</span><span class="small muted">Nunca abaixo de 11 px. Contraste mínimo 4,5:1.</span></div>
+<div class="card pad col"><span class="lab">Special Elite e Courier Prime · mundo do jogo</span><p class="type" style="font-size: 16px">A rádio voltou a transmitir às 3h33.</p><p class="note">Nota do mestre: Anselmo nunca saiu do prédio.</p><span class="small muted">Só para narração, pistas e documentos do caso.</span></div>
+</div>
+</section>
+
+<section>
+<div class="sect-h"><h2 class="h3">Botões</h2></div>
+<div class="g2">
+<div class="card pad col" style="gap: 16px"><span class="lab">Principal</span>
+<div class="row wrapx"><button class="btn red"><span class="ic sm i-plus" aria-hidden="true"></span>Abrir caso</button><button class="btn red is-hover">Hover</button><button class="btn red is-focus">Foco</button><button class="btn red is-loading" aria-busy="true">Salvando</button><button class="btn is-ok"><span class="ic sm i-check" aria-hidden="true"></span>Salvo</button><button class="btn red" disabled>Desabilitado</button></div>
+<span class="small muted">Um botão principal por área. Carregando trava o clique duplo. Sucesso volta ao normal em 2 s.</span></div>
+<div class="card pad col" style="gap: 16px"><span class="lab">Secundário, fantasma, perigo e ícone</span>
+<div class="row wrapx"><button class="btn">Abrir ficha</button><button class="btn is-hover">Hover</button><button class="btn ghost">Cancelar</button><button class="btn danger"><span class="ic sm i-trash" aria-hidden="true"></span>Remover</button><button class="btn icon" aria-label="Configurações"><span class="ic i-gear" aria-hidden="true"></span></button><button class="btn sm">Pequeno</button></div>
+<span class="small muted">Alvo mínimo 44 px (36 px só em barras densas do computador). Ícone sozinho sempre com rótulo para leitor de tela.</span></div>
+</div>
+</section>
+
+<section>
+<div class="sect-h"><h2 class="h3">Campos e seletores</h2></div>
+<div class="g4">
+<div class="field"><label for="c1">Nome do caso</label><input id="c1" class="fld" value="O Sinal de Santa Ermida"><span class="help">Até 60 caracteres.</span></div>
+<div class="field"><label for="c2">Foco</label><input id="c2" class="fld is-focus" value="Maré de Concr"></div>
+<div class="field"><label for="c3">Erro</label><input id="c3" class="fld is-error" value="" aria-invalid="true"><span class="err"><span class="ic sm i-alert" aria-hidden="true"></span>Dê um nome ao sistema.</span></div>
+<div class="field"><label for="c4">Desabilitado</label><input id="c4" class="fld" value="Ordem Paranormal II" disabled></div>
+</div>
+<div class="g3" style="margin-top: 24px">
+<div class="col"><span class="flabel">Seletor segmentado</span><div class="seg" role="group" aria-label="Como rolar os dados"><button class="on" aria-pressed="true"><span class="ic sm i-dice" aria-hidden="true"></span>Dados virtuais</button><button aria-pressed="false">Dados físicos</button></div></div>
+<div class="col"><span class="flabel">Abas com contador</span><div class="tabs" role="tablist"><button class="on" role="tab" aria-selected="true">Pistas <span class="cnt new">2</span></button><button role="tab" aria-selected="false">Inventário <span class="cnt">5</span></button><button role="tab" aria-selected="false">Chat</button></div></div>
+<div class="col"><span class="flabel">Alternar e marcar</span><div class="row"><span class="switch on" role="img" aria-label="Ligado"></span><span>Uma ação por rodada</span></div><label class="check"><input type="checkbox" checked> Lembrar no próximo caso</label></div>
+</div>
+</section>
+
+<section>
+<div class="sect-h"><h2 class="h3">Etiquetas, avatares e dados</h2></div>
+<div class="g3">
+<div class="card pad col"><span class="lab">Etiquetas</span><div class="row wrapx"><span class="tag red">Executor</span><span class="tag blue">Analista</span><span class="tag green">Vigilante</span><span class="tag gold">Mestre</span><span class="tag">Ordem Paranormal II</span><span class="tag ink">Em curso</span></div><div class="row wrapx"><span class="chip"><span class="dot g"></span>Online</span><span class="chip"><span class="dot y"></span>Ausente</span><span class="chip"><span class="dot m"></span>Fora</span></div></div>
+<div class="card pad col"><span class="lab">Avatares · cor do perfil</span><div class="row"><span class="av">DR</span><span class="av b">MQ</span><span class="av g">IN</span><span class="av y">HD</span><span class="av n">?</span></div><span class="small muted">O anel diz o perfil; a pessoa sempre aparece também pelo nome.</span></div>
+<div class="card pad col"><span class="lab">Dados · a forma diz o tipo</span><div class="row wrapx" style="gap: 14px"><span class="dz lg d4">4</span><span class="dz lg d6">6</span><span class="dz lg d8">8</span><span class="dz lg d10">10</span><span class="dz lg d12">12</span><span class="dz lg d20">20</span></div><div class="row" style="gap: 14px"><span class="dz lg d8">7</span><span class="dz lg w d10">9</span><span class="dz lg y d4">3</span><span class="dz lg d6 off">1</span></div><span class="small muted">Vermelho: atributo. Branco: perícia. Dourado: bônus. Apagado: descartado da soma.</span></div>
+</div>
+</section>
+
+<section>
+<div class="sect-h"><h2 class="h3">Recursos e resultado de teste</h2></div>
+<div class="g2">
+<div class="card pad col" style="gap: 14px">
+<div class="res-row"><span class="lab red">PV</span><div class="boxes"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="o"></i><i class="o"></i><i class="o"></i></div><b>9/12</b></div>
+<div class="res-row"><span class="lab" style="color: var(--blue-hi)">PD</span><div class="boxes pd"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="o"></i><i class="o"></i></div><b>10/12</b></div>
+<div class="res-row"><span class="lab gold">Ímpeto</span><div class="boxes imp"><i></i><i></i><i class="o"></i></div><b>2/3</b></div>
+<span class="small muted">Até 20 caixas por linha; acima disso a barra vira medidor contínuo com o número ao lado.</span>
+</div>
+<div class="col" style="gap: 12px">
+<div class="result ok"><div class="result-h"><span>Teste de Percepção · Mente</span><span>Dados virtuais</span></div><div class="result-b"><div class="row" style="gap: 12px"><span class="die"><span class="dz lg d8">7</span>Mente</span><span class="die"><span class="dz lg w d6">5</span>Percepção</span><span class="die"><span class="dz lg y d4">3</span>Ímpeto</span></div><div style="margin-left: auto; text-align: right"><span class="num green">15</span><span class="verdict green">Sucesso · DT 10</span></div></div></div>
+<div class="row" style="gap: 12px"><div class="result ko grow"><div class="result-b"><span class="num red">6</span><span class="verdict red">Falha · DT 10</span></div></div><div class="result crit grow"><div class="result-b"><span class="num gold">20</span><span class="verdict gold">Sucesso crítico</span></div></div></div>
+</div>
+</div>
+</section>
+
+<section>
+<div class="sect-h"><h2 class="h3">Avisos e estados</h2></div>
+<div class="g4">
+<div class="toast ok" role="status"><span class="ic i-check" aria-hidden="true"></span><div><b>Ficha salva</b>Davi agora tem 12 PV.</div></div>
+<div class="toast warn" role="status"><span class="ic i-alert" aria-hidden="true"></span><div><b>Fora da regra</b>Mente d10 passa do limite do nível 1.</div></div>
+<div class="toast err" role="alert"><span class="ic i-alert" aria-hidden="true"></span><div><b>Não deu para salvar</b>Sem conexão. Tentaremos de novo em 5 s.</div></div>
+<div class="toast" role="status"><span class="ic i-info" aria-hidden="true"></span><div><b>Rodada 4</b>É a vez de Marta.</div></div>
+</div>
+<div class="g3" style="margin-top: 24px">
+<div class="empty"><span class="ic xl i-users" aria-hidden="true"></span><b class="h3">Nenhum sobrevivente</b><p class="muted small">Crie um personagem para entrar num caso.</p><button class="btn red sm"><span class="ic sm i-plus" aria-hidden="true"></span>Criar personagem</button></div>
+<div class="card pad col" aria-busy="true"><span class="lab">Carregando</span><div class="skel h" style="width: 60%"></div><div class="skel t"></div><div class="skel t" style="width: 80%"></div><div class="skel t" style="width: 45%"></div><span class="small muted">Esqueleto no formato do conteúdo; nunca tela em branco.</span></div>
+<div class="col" style="gap: 10px"><div class="banner err" role="alert"><span class="ic i-wifioff" aria-hidden="true"></span><span class="grow">Conexão perdida. Suas ações ficam guardadas.</span><button class="btn sm">Tentar agora</button></div><div class="banner warn"><span class="ic i-alert" aria-hidden="true"></span><span>Mapa acima de 20 MB. Reduza para 4096 px.</span></div><div class="banner ok"><span class="ic i-check" aria-hidden="true"></span><span>Convite aceito. Bem-vinda à mesa, Marta.</span></div></div>
+</div>
+</section>
+</main>
+
+</div>
+</body>
+</html>

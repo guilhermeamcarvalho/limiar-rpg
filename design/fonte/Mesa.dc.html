@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>10 · Mesa · jogador</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oranienbaum&amp;family=Mulish:wght@400;500;600;700;800;900&amp;family=Special+Elite&amp;family=Courier+Prime:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0A0909}
+</style>
+</helmet>
+<div class="app" style="width: 100%; min-height: 900px">
+<div class="mesa" style="height: 100vh; min-height: 900px">
+<header class="mesa-top">
+<a class="brand" href="Central.dc.html" aria-label="LIMIAR, voltar à Central"><svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#C2412B" stroke-width="1.6"></circle><path d="M20 5C27 13 27 27 20 35 13 27 13 13 20 5Z" fill="none" stroke="#ECE6DF" stroke-width="1.4"></path><circle cx="20" cy="20" r="3.2" fill="#C2412B"></circle></svg></a>
+<div class="col" style="gap: 0; min-width: 0"><b class="disp" style="font-size: 22px">O Sinal de Santa Ermida</b><span class="small muted"><span class="dot"></span> Rodada 3 · <b style="color: var(--text)">sua vez</b></span></div>
+<div class="row" style="gap: 6px; margin-left: 12px" aria-label="Grupo"><span class="av sm" title="Davi, você">DR</span><span class="av sm b" title="Marta">MQ</span><span class="av sm g" title="Iara">IN</span><span class="av sm g" title="Téo, ausente" style="opacity: .45">TS</span><span class="av sm y" title="Helena, mestre">HD</span></div>
+<div class="row" style="margin-left: auto; gap: 8px">
+<div class="row" style="gap: 8px; padding: 0 12px; border: 1px solid var(--line-2); min-height: 40px"><span class="ic sm i-music" aria-hidden="true"></span><span class="small"><b>Estática da madrugada</b></span><span class="ic sm i-volume" aria-hidden="true"></span><input type="range" aria-label="Seu volume" value="60" style="width: 90px; accent-color: var(--red)"></div>
+<div class="seg" role="group" aria-label="Como rolar os dados" style="width: 260px"><button class="on" aria-pressed="true" style="min-height: 40px">Dados virtuais</button><button aria-pressed="false" style="min-height: 40px">Dados físicos</button></div>
+<a class="btn sm" href="Ficha.dc.html"><span class="ic sm i-user" aria-hidden="true"></span>Ficha de Davi</a>
+<button class="btn icon sm ghost" aria-label="Mais opções da mesa"><span class="ic i-more" aria-hidden="true"></span></button>
+</div>
+</header>
+<div class="mesa-body">
+<aside class="pnl" aria-label="Você e o grupo">
+<div class="pnl-h"><span class="lab">Você</span><button class="btn icon sm ghost" aria-label="Recolher painel"><span class="ic sm i-back" aria-hidden="true"></span></button></div>
+<div class="pnl-b">
+<div class="row"><span class="av lg">DR</span><div><b class="h3" style="color: var(--red-soft)">Davi</b><div class="small muted">Executor · nível 2</div></div></div>
+<div class="res-row" style="grid-template-columns: 30px minmax(0,1fr) auto"><span class="lab red">PV</span><div class="boxes" style="grid-template-columns: repeat(12, minmax(0, 1fr))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="o"></i><i class="o"></i></div><b class="small">10/12</b></div>
+<div class="res-row" style="grid-template-columns: 30px minmax(0,1fr) auto"><span class="lab" style="color: var(--blue-hi)">PD</span><div class="boxes pd" style="grid-template-columns: repeat(12, minmax(0, 1fr))"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="o"></i><i class="o"></i><i class="o"></i></div><b class="small">9/12</b></div>
+<div class="row between"><span class="lab gold">Ímpeto 2/3</span><button class="btn sm">Gastar 1 · +d4</button></div>
+<hr class="hr">
+<span class="lab">Testes rápidos</span>
+<div class="col" style="gap: 6px"><button class="sk" style="border: 1px solid var(--line)"><span>Percepção</span><span class="row" style="gap: 6px"><span class="dz d6">6</span><span class="dz w d6">6</span></span><span></span></button><button class="sk" style="border: 1px solid var(--line)"><span>Máquinas</span><span class="row" style="gap: 6px"><span class="dz d6">6</span><span class="dz w d10">10</span></span><span></span></button><button class="sk" style="border: 1px solid var(--line)"><span>Luta</span><span class="row" style="gap: 6px"><span class="dz d8">8</span><span class="dz w d8">8</span></span><span></span></button></div>
+<button class="btn sm"><span class="ic sm i-dice" aria-hidden="true"></span>Teste livre ou dados avulsos</button>
+<hr class="hr">
+<span class="lab">Ordem da rodada</span>
+<div class="list">
+<div class="li on" style="min-height: 40px; padding: 6px 10px"><span class="av sm">DR</span><b class="grow small">Davi</b><span class="tag red" style="font-size: 9.5px">Agindo</span></div>
+<div class="li" style="min-height: 40px; padding: 6px 10px"><span class="av sm b">MQ</span><span class="grow small">Marta</span><span class="ic sm i-check" aria-hidden="true"></span></div>
+<div class="li" style="min-height: 40px; padding: 6px 10px"><span class="av sm g">IN</span><span class="grow small">Iara</span><span class="small muted">aguardando</span></div>
+<div class="li" style="min-height: 40px; padding: 6px 10px; opacity: .55"><span class="av sm g">TS</span><span class="grow small">Téo</span><span class="small muted">ausente</span></div>
+</div>
+</div>
+</aside>
+
+<section class="stage" aria-label="Mapa: Rádio Santa Ermida, 2º andar">
+<div class="scene"><span class="tag red">Cena · Rádio, 2º andar</span></div>
+<div class="tool" role="toolbar" aria-label="Ferramentas do jogador">
+<button class="tbtn on" aria-label="Mover meu token" aria-pressed="true" title="Mover (V)"><span class="ic i-hand" aria-hidden="true"></span></button>
+<button class="tbtn" aria-label="Medir distância" title="Medir (M)"><span class="ic i-ruler" aria-hidden="true"></span></button>
+<button class="tbtn" aria-label="Marcar um ponto para todos" title="Marcar (P)"><span class="ic i-pin" aria-hidden="true"></span></button>
+<span class="sep" aria-hidden="true"></span>
+<button class="tbtn" aria-label="Rolar dados" title="Dados (D)"><span class="ic i-dice" aria-hidden="true"></span></button>
+</div>
+<div class="map" style="left: 30px; top: 86px; width: 720px; height: 480px">
+<div class="map-grid"></div>
+<div class="room" style="left: 20px; top: 20px; width: 220px; height: 170px"><b>RECEPÇÃO</b></div>
+<div class="room" style="left: 260px; top: 20px; width: 260px; height: 170px; background: radial-gradient(ellipse at 70% 40%, rgba(194,65,43,.28), rgba(40,30,27,.6) 70%)"><b>ESTÚDIO A</b></div>
+<div class="room" style="left: 20px; top: 210px; width: 500px; height: 70px"><b>CORREDOR</b></div>
+<div class="room" style="left: 20px; top: 300px; width: 240px; height: 160px"><b>ARQUIVO</b></div>
+<div class="prop" style="left: 50px; top: 60px; width: 90px; height: 34px"></div>
+<div class="prop" style="left: 390px; top: 44px; width: 110px; height: 40px"></div>
+<div class="prop" style="left: 40px; top: 340px; width: 24px; height: 100px"></div><div class="prop" style="left: 90px; top: 340px; width: 24px; height: 100px"></div>
+<div class="fog" style="left: 530px; top: 0; width: 190px; height: 480px"></div>
+<div class="fog" style="left: 270px; top: 290px; width: 260px; height: 190px"></div>
+<span class="poi done" style="left: 120px; top: 120px" aria-label="Ponto 1: Balcão, investigado">1</span>
+<span class="poi" style="left: 445px; top: 64px" aria-label="Ponto 2: Mesa de som">2</span>
+<span class="poi" style="left: 160px; top: 390px" aria-label="Ponto 3: Armário de fitas">3</span>
+<span class="clue" style="left: 330px; top: 150px" aria-label="Pista visível no chão"><span class="ic sm i-clue" aria-hidden="true"></span></span>
+<span class="tok me" style="left: 400px; top: 245px">DR</span>
+<span class="tok" style="left: 300px; top: 120px; background: #1E3550; --pc: var(--blue)">MQ</span>
+<span class="tok" style="left: 180px; top: 245px; background: #24401D; --pc: var(--green)">IN</span>
+<span class="tok" style="left: 90px; top: 280px; background: #24401D; --pc: var(--green); opacity: .5">TS</span>
+</div>
+<div class="card" role="dialog" aria-label="Ponto 2: Mesa de som" style="position: absolute; left: 490px; top: 160px; width: 330px; z-index: 8; box-shadow: 0 18px 40px rgba(0,0,0,.7)">
+<div style="display: flex; gap: 10px; padding: 12px 14px; background: var(--paper); color: var(--ink)"><span class="poi" style="position: static; margin: 0; box-shadow: none; background: var(--ink); color: var(--paper)">2</span><div class="grow"><b style="text-transform: uppercase; font-weight: 900">Mesa de som</b><p class="doc small" style="color: var(--ink-2)">Os faders estão todos no máximo. Um rolo gira sozinho.</p></div><button class="btn icon sm ghost" aria-label="Fechar" style="color: var(--ink-2)"><span class="ic sm i-close" aria-hidden="true"></span></button></div>
+<div class="col" style="gap: 8px; padding: 12px 14px">
+<button class="opt red"><b>Investigar</b><span>Percepção · DT 7 · gasta sua ação da rodada</span></button>
+<button class="opt"><b>Examinar</b><span>Máquinas · custa 1 PD se não houver nada novo</span></button>
+<button class="opt"><b>Interagir</b><span>Descreva a ação; o mestre decide o teste</span></button>
+<div class="row small muted"><span class="ic sm i-lock" aria-hidden="true"></span> 2 informações ainda escondidas aqui</div>
+</div>
+</div>
+<div class="result ok" style="position: absolute; left: 14px; bottom: 76px; width: 330px; z-index: 7"><div class="result-h"><span>Examinar · Balcão</span><span>Davi</span></div><div class="result-b"><span class="die"><span class="dz d6">5</span></span><span class="die"><span class="dz w d6">6</span></span><div style="margin-left: auto; text-align: right"><span class="num green" style="font-size: 34px">11</span><span class="verdict green" style="font-size: 11px">Sucesso · DT 7</span></div></div><p class="note" style="margin: 0 14px 14px; font-size: 12.5px"><b>Nova informação:</b> o livro de visitas tem o nome “A. Ventura” às 3h33.</p></div>
+<div class="legend"><span class="chip" style="background: var(--panel)"><span class="dot g"></span>Investigado</span><span class="chip" style="background: var(--panel)"><span class="dot" style="background: var(--paper)"></span>A investigar</span></div>
+<div class="zoom" role="group" aria-label="Zoom"><button class="tbtn" aria-label="Aproximar"><span class="ic i-plus" aria-hidden="true"></span></button><button class="tbtn" aria-label="Afastar">−</button><button class="tbtn" aria-label="Centralizar no meu token"><span class="ic i-target" aria-hidden="true"></span></button></div>
+</section>
+
+<aside class="pnl r" aria-label="Chat e registros">
+<div class="tabs tight" role="tablist" style="padding: 0 6px"><button class="on" role="tab" aria-selected="true">Chat</button><button role="tab" aria-selected="false" title="Acontecimentos da sessão">Registro</button><button role="tab" aria-selected="false">Pistas <span class="cnt new">1</span></button><button role="tab" aria-selected="false">Itens</button><button class="btn icon sm ghost" aria-label="Recolher painel" style="margin-left: auto; align-self: center; min-height: 36px"><span class="ic sm i-next" aria-hidden="true"></span></button></div>
+<div class="pnl-b" style="gap: 12px">
+<div class="narr">O ar do corredor esfria de repente. Do Estúdio B, alguém conta de trás para frente.</div>
+<div class="msg"><span class="av sm b">MQ</span><div><b>Marta</b> <span class="small muted">21:42</span><p>Eu não vou abrir aquela porta sozinha.</p></div></div>
+<div class="rmsg"><div class="row between"><b class="small">Marta · Persuasão</b><span class="verdict green" style="margin: 0; font-size: 11px">Sucesso</span></div><div class="row" style="gap: 6px; margin-top: 6px"><span class="dz d8">7</span><span class="dz w d6">4</span><span class="small muted">= 11 contra DT 10</span></div></div>
+<div class="rmsg ko"><div class="row between"><b class="small">Iara · Furtividade</b><span class="verdict red" style="margin: 0; font-size: 11px">Falha</span></div><div class="row" style="gap: 6px; margin-top: 6px"><span class="dz">2</span><span class="dz w d4">1</span><span class="small muted">= 3 contra DT 7 · dados físicos</span></div></div>
+<div class="msg" style="padding: 8px 10px; background: rgba(233,185,73,.08); border: 1px dashed #6B5520"><span class="av sm y">HD</span><div><b class="gold">Helena · só para você</b><p>Você ouve seu nome no meio da contagem.</p></div></div>
+<div class="msg"><span class="av sm g">IN</span><div><b>Iara</b> <span class="small muted">21:44</span><p>Davi, a mesa de som. Olha os faders.</p></div></div>
+<div style="flex: 1"></div>
+</div>
+<form class="row" style="gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line)"><label for="chat" style="position: absolute; left: -9999px">Mensagem</label><input id="chat" class="fld" placeholder="Fale como Davi… (/r para rolar)"><button class="btn red icon" aria-label="Enviar"><span class="ic i-send" aria-hidden="true"></span></button></form>
+</aside>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1440, "height": 900}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

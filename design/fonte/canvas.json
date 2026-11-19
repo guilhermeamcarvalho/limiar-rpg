@@ -1,0 +1,438 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-11-19T13:10:00Z"
+ },
+ "title": "LIMIAR — Telas finais",
+ "launch": {
+  "view": "canvas",
+  "page": "desk"
+ },
+ "pages": [
+  {
+   "id": "desk",
+   "name": "Computador"
+  },
+  {
+   "id": "cel",
+   "name": "Celular"
+  },
+  {
+   "id": "base",
+   "name": "Componentes"
+  }
+ ],
+ "boards": {
+  "Componentes.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1900,
+   "title": "00 · Componentes e estados",
+   "page": "base",
+   "expand": "fill"
+  },
+  "Entrar.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "01b · Entrar por convite",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Central.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1400,
+   "title": "02 · Central",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Casos.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 1350,
+   "title": "03 · Casos · dossiê",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "NovoCaso.dc.html": {
+   "x": 0,
+   "y": 1520,
+   "w": 1440,
+   "h": 1150,
+   "title": "04 · Novo caso · Ordem Paranormal",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "NovoCaso-Inventado.dc.html": {
+   "x": 1520,
+   "y": 1520,
+   "w": 1440,
+   "h": 1250,
+   "title": "05 · Novo caso · RPG inventado",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Personagens.dc.html": {
+   "x": 3040,
+   "y": 1520,
+   "w": 1440,
+   "h": 1150,
+   "title": "06 · Personagens",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Criar.dc.html": {
+   "x": 0,
+   "y": 2890,
+   "w": 1440,
+   "h": 1100,
+   "title": "07 · Criar personagem",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Ficha.dc.html": {
+   "x": 1520,
+   "y": 2890,
+   "w": 1440,
+   "h": 1250,
+   "title": "08 · Ficha · Ordem Paranormal",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Ficha-Inventado.dc.html": {
+   "x": 3040,
+   "y": 2890,
+   "w": 1440,
+   "h": 1150,
+   "title": "09 · Ficha · sistema próprio em edição",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Mesa.dc.html": {
+   "x": 0,
+   "y": 4260,
+   "w": 1440,
+   "h": 900,
+   "title": "10 · Mesa · jogador",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Mesa-Mestre.dc.html": {
+   "x": 1520,
+   "y": 4260,
+   "w": 1440,
+   "h": 900,
+   "title": "11 · Mesa · mestre",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Mesa-Teste.dc.html": {
+   "x": 3040,
+   "y": 4260,
+   "w": 1440,
+   "h": 900,
+   "title": "12 · Mesa · teste com dados físicos",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Mestre.dc.html": {
+   "x": 0,
+   "y": 5280,
+   "w": 1440,
+   "h": 1250,
+   "title": "13 · Sala do mestre",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Arquivo.dc.html": {
+   "x": 1520,
+   "y": 5280,
+   "w": 1440,
+   "h": 1100,
+   "title": "14 · Arquivo",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Perfil.dc.html": {
+   "x": 3040,
+   "y": 5280,
+   "w": 1440,
+   "h": 1050,
+   "title": "15 · Perfil e preferências",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Personagens-Vazio.dc.html": {
+   "x": 0,
+   "y": 6650,
+   "w": 1440,
+   "h": 800,
+   "title": "16 · Estado vazio · primeiro acesso",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Central-Carregando.dc.html": {
+   "x": 1520,
+   "y": 6650,
+   "w": 1440,
+   "h": 900,
+   "title": "17 · Estado carregando",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Mesa-Erro.dc.html": {
+   "x": 3040,
+   "y": 6650,
+   "w": 1440,
+   "h": 900,
+   "title": "18 · Estado de erro · conexão perdida",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "M-Entrar.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 01b · Entrar por convite",
+   "page": "cel"
+  },
+  "M-Central.dc.html": {
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 02 · Central",
+   "page": "cel"
+  },
+  "M-Casos.dc.html": {
+   "x": 940,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 03 · Casos",
+   "page": "cel"
+  },
+  "M-NovoCaso.dc.html": {
+   "x": 1410,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 04 · Novo caso",
+   "page": "cel"
+  },
+  "M-Personagens.dc.html": {
+   "x": 1880,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 06 · Personagens",
+   "page": "cel"
+  },
+  "M-Criar.dc.html": {
+   "x": 2350,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 07 · Criar personagem",
+   "page": "cel"
+  },
+  "M-Ficha.dc.html": {
+   "x": 2820,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 08 · Ficha",
+   "page": "cel"
+  },
+  "M-Mesa.dc.html": {
+   "x": 0,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 10 · Mesa · mapa",
+   "page": "cel"
+  },
+  "M-Mesa-Teste.dc.html": {
+   "x": 470,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 12 · Mesa · teste físico",
+   "page": "cel"
+  },
+  "M-Mesa-Pistas.dc.html": {
+   "x": 940,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 10b · Mesa · pistas",
+   "page": "cel"
+  },
+  "M-Mesa-Mestre.dc.html": {
+   "x": 1410,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 11 · Mesa · mestre",
+   "page": "cel"
+  },
+  "M-Mestre.dc.html": {
+   "x": 1880,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 13 · Sala do mestre",
+   "page": "cel"
+  },
+  "M-Arquivo.dc.html": {
+   "x": 2350,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 14 · Arquivo",
+   "page": "cel"
+  },
+  "M-Perfil.dc.html": {
+   "x": 2820,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 15 · Perfil",
+   "page": "cel"
+  },
+  "M-Personagens-Vazio.dc.html": {
+   "x": 0,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 16 · Estado vazio",
+   "page": "cel"
+  },
+  "M-Central-Carregando.dc.html": {
+   "x": 470,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 17 · Carregando",
+   "page": "cel"
+  },
+  "M-Mesa-Erro.dc.html": {
+   "x": 940,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 18 · Conexão perdida",
+   "page": "cel"
+  },
+  "Login.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "01 · Entrar",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "Cadastro.dc.html": {
+   "x": 4560,
+   "y": 1520,
+   "w": 1440,
+   "h": 1000,
+   "title": "01c · Criar conta",
+   "page": "desk",
+   "expand": "fill"
+  },
+  "M-Login.dc.html": {
+   "x": 1410,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 01 · Entrar",
+   "page": "cel"
+  },
+  "M-Cadastro.dc.html": {
+   "x": 1880,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "Celular · 01c · Criar conta",
+   "page": "cel"
+  }
+ },
+ "order": [
+  "Componentes.dc.html",
+  "Entrar.dc.html",
+  "Central.dc.html",
+  "Casos.dc.html",
+  "NovoCaso.dc.html",
+  "NovoCaso-Inventado.dc.html",
+  "Personagens.dc.html",
+  "Criar.dc.html",
+  "Ficha.dc.html",
+  "Ficha-Inventado.dc.html",
+  "Mesa.dc.html",
+  "Mesa-Mestre.dc.html",
+  "Mesa-Teste.dc.html",
+  "Mestre.dc.html",
+  "Arquivo.dc.html",
+  "Perfil.dc.html",
+  "Personagens-Vazio.dc.html",
+  "Central-Carregando.dc.html",
+  "Mesa-Erro.dc.html",
+  "M-Entrar.dc.html",
+  "M-Central.dc.html",
+  "M-Casos.dc.html",
+  "M-NovoCaso.dc.html",
+  "M-Personagens.dc.html",
+  "M-Criar.dc.html",
+  "M-Ficha.dc.html",
+  "M-Mesa.dc.html",
+  "M-Mesa-Teste.dc.html",
+  "M-Mesa-Pistas.dc.html",
+  "M-Mesa-Mestre.dc.html",
+  "M-Mestre.dc.html",
+  "M-Arquivo.dc.html",
+  "M-Perfil.dc.html",
+  "M-Personagens-Vazio.dc.html",
+  "M-Central-Carregando.dc.html",
+  "M-Mesa-Erro.dc.html",
+  "Login.dc.html",
+  "Cadastro.dc.html",
+  "M-Login.dc.html",
+  "M-Cadastro.dc.html"
+ ],
+ "notes": {
+  "t-base": {
+   "x": 0,
+   "y": -300,
+   "text": "Componentes, tokens e estados",
+   "kind": "title1",
+   "maxW": 1440,
+   "page": "base"
+  },
+  "t-desk": {
+   "x": 0,
+   "y": -300,
+   "text": "Telas no computador",
+   "kind": "title1",
+   "maxW": 6000,
+   "page": "desk"
+  },
+  "t-cel": {
+   "x": 0,
+   "y": -300,
+   "text": "Telas no celular",
+   "kind": "title1",
+   "maxW": 3200,
+   "page": "cel"
+  }
+ },
+ "designSystems": []
+}

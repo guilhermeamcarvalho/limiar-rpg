@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Celular · 01c · Criar conta</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oranienbaum&amp;family=Mulish:wght@400;500;600;700;800;900&amp;family=Special+Elite&amp;family=Courier+Prime:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0A0909}
+</style>
+</helmet>
+<div class="phone">
+<header class="m-top"><a class="btn icon ghost" href="M-Login.dc.html" aria-label="Voltar para entrar"><span class="ic i-back" aria-hidden="true"></span></a><div class="t"><b>Criar conta</b></div></header>
+<div class="m-body" style="gap: 14px; padding: 20px">
+<p class="small muted">Você será jogador nos casos em que entrar por convite e mestre nos casos que abrir.</p>
+<a class="btn wide" href="M-Personagens-Vazio.dc.html" style="min-height: 52px; background: #5865F2; border-color: #5865F2; color: #fff"><span class="ic i-chat" aria-hidden="true"></span>Continuar com Discord</a>
+<div class="row" style="gap: 12px"><span class="hr grow"></span><span class="lab">ou</span><span class="hr grow"></span></div>
+<div class="field"><label for="mcn">Nome na mesa</label><input id="mcn" class="fld" value="Marta Quintela" autocomplete="nickname"></div>
+<div class="field"><label for="mce">E-mail</label><input id="mce" class="fld" type="email" value="marta@exemplo.com" autocomplete="email"></div>
+<div class="field"><label for="mcp">Senha</label><input id="mcp" class="fld" type="password" value="maré7andar2026" autocomplete="new-password"><div class="row" style="gap: 4px"><i style="flex: 1; height: 4px; background: var(--green)"></i><i style="flex: 1; height: 4px; background: var(--green)"></i><i style="flex: 1; height: 4px; background: var(--green)"></i><i style="flex: 1; height: 4px; background: var(--line-2)"></i></div><span class="small green" style="font-weight: 700">Senha boa</span></div>
+<label class="check" style="align-items: flex-start"><input type="checkbox" checked style="margin-top: 2px"> <span class="small">Aceito como a LIMIAR guarda meus dados.</span></label>
+<button class="btn red wide" type="submit" style="min-height: 52px">Criar conta</button>
+<p style="text-align: center">Já tem conta? <a href="M-Login.dc.html"><b>Entrar</b></a></p>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

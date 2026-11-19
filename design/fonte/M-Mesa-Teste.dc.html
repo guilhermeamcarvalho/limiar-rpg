@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Celular · 12 · Mesa · teste físico</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lm.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oranienbaum&amp;family=Mulish:wght@400;500;600;700;800;900&amp;family=Special+Elite&amp;family=Courier+Prime:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0A0909}
+</style>
+</helmet>
+<div class="phone">
+<header class="m-top"><a class="brand" href="M-Central.dc.html" aria-label="LIMIAR, voltar à Central"><svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="#C2412B" stroke-width="1.6"></circle><path d="M20 5C27 13 27 27 20 35 13 27 13 13 20 5Z" fill="none" stroke="#ECE6DF" stroke-width="1.4"></path><circle cx="20" cy="20" r="3.2" fill="#C2412B"></circle></svg></a><div class="t"><b>O Sinal de Santa Ermida</b><span class="small muted"><span class="dot"></span> Rodada 3 · <b style="color: var(--text)">sua vez</b></span></div><button class="btn icon ghost" aria-label="Som da mesa"><span class="ic i-volume" aria-hidden="true"></span></button></header>
+<section class="stage" style="flex: 1">
+<div class="map" style="left: -40px; top: 40px; width: 560px; height: 420px"><div class="map-grid"></div><div class="room" style="left: 60px; top: 20px; width: 200px; height: 160px"><b>RECEPÇÃO</b></div><div class="room" style="left: 280px; top: 20px; width: 220px; height: 160px; background: radial-gradient(ellipse at 70% 40%, rgba(194,65,43,.28), rgba(40,30,27,.6) 70%)"><b>ESTÚDIO A</b></div><div class="room" style="left: 60px; top: 200px; width: 440px; height: 64px"><b>CORREDOR</b></div><div class="room" style="left: 60px; top: 284px; width: 200px; height: 120px"><b>ARQUIVO</b></div><div class="fog" style="left: 270px; top: 274px; width: 290px; height: 146px"></div><div class="fog" style="left: 510px; top: 0; width: 50px; height: 420px"></div><span class="poi done" style="left: 150px; top: 100px">1</span><span class="poi" style="left: 440px; top: 60px">2</span><span class="poi" style="left: 180px; top: 360px">3</span><span class="tok me" style="left: 380px; top: 232px">DR</span><span class="tok" style="left: 320px; top: 110px; background: #1E3550; --pc: var(--blue)">MQ</span><span class="tok" style="left: 200px; top: 232px; background: #24401D; --pc: var(--green)">IN</span></div>
+<div class="sheet" style="height: 650px">
+<div class="grab"><i></i></div>
+<div class="col" style="gap: 12px; padding: 0 16px">
+<div class="row between"><b class="h3">Teste</b><div class="seg" role="group" aria-label="Como rolar os dados" style="width: 220px"><button aria-pressed="false" style="min-height: 36px">Virtuais</button><button class="on" aria-pressed="true" style="min-height: 36px">Físicos</button></div></div>
+<div class="row" style="gap: 8px"><select class="fld" aria-label="Perícia"><option>Máquinas · Mente</option></select><select class="fld" aria-label="DT" style="width: 96px"><option>DT 7</option></select></div>
+<span class="chip" style="align-self: flex-start; border-color: #6B5520; color: var(--gold)">Ímpeto +d4 incluído</span>
+<div class="tabs" role="tablist"><button class="on" role="tab" aria-selected="true">Informar os dados</button><button role="tab" aria-selected="false">Só o resultado</button></div>
+<div class="row" style="justify-content: space-around; padding: 12px 6px; border: 1px solid var(--line); background: var(--bg)">
+<div class="col" style="align-items: center; gap: 6px"><span class="dz lg ph">d6</span><label class="lab" for="m1" style="font-size: 10px">Mente</label><input id="m1" class="dnum" value="5" inputmode="numeric"></div>
+<div class="col" style="align-items: center; gap: 6px"><span class="dz lg w d10 ph">d10</span><label class="lab" for="m2" style="font-size: 10px">Máquinas</label><input id="m2" class="dnum" value="9" inputmode="numeric"></div>
+<div class="col" style="align-items: center; gap: 6px"><span class="dz lg y d4 ph">d4</span><label class="lab" for="m3" style="font-size: 10px">Ímpeto</label><input id="m3" class="dnum" value="3" inputmode="numeric"></div>
+</div>
+<div class="row between" style="padding: 12px 14px; border: 1px solid var(--line); border-left: 4px solid var(--green); background: var(--bg)"><span class="small">5 + 9 + 3</span><b class="green" style="font-size: 18px">17 · Sucesso</b></div>
+<button class="btn red wide" style="min-height: 52px">Enviar resultado</button>
+<button class="btn ghost wide">Cancelar · nada é enviado</button>
+</div>
+</div>
+</section>
+<nav class="m-tabbar" aria-label="Mesa"><a href="M-Mesa.dc.html" class=""><span class="ic i-map" aria-hidden="true"></span>Mapa</a><a href="M-Ficha.dc.html" class=""><span class="ic i-user" aria-hidden="true"></span>Ficha</a><a href="M-Mesa-Teste.dc.html" class="on"><span class="ic i-dice" aria-hidden="true"></span>Teste</a><a href="M-Mesa-Pistas.dc.html" class=""><span class="ic i-clue" aria-hidden="true"></span>Pistas</a><a href="M-Mesa.dc.html" class=""><span class="ic i-chat" aria-hidden="true"></span>Chat</a></nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 390, "height": 844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
