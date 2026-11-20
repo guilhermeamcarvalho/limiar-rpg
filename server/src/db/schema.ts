@@ -2,7 +2,13 @@
 // Nunca altere o banco à mão.
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { ConfigDeSistema } from '@limiar/shared';
+import {
+  DT_PADRAO,
+  type Agenda,
+  type ConfigDeSistema,
+  type Formato,
+  type Tom,
+} from '@limiar/shared';
 import { novoId } from './ids.ts';
 
 const criadoEm = () =>
@@ -95,6 +101,18 @@ export const campaigns = sqliteTable(
     rodadas: integer('rodadas', { mode: 'boolean' }).notNull().default(true),
     /** Data e hora da próxima sessão, se já marcada. */
     proximaSessao: integer('proxima_sessao', { mode: 'timestamp_ms' }),
+    tom: text('tom').$type<Tom>().notNull().default('horror-investigativo'),
+    formato: text('formato').$type<Formato>().notNull().default('campanha-curta'),
+    nivelInicial: integer('nivel_inicial').notNull().default(1),
+    dtPadrao: integer('dt_padrao').notNull().default(DT_PADRAO),
+    /** O jogador pode rolar dados de verdade e informar o resultado. */
+    dadosFisicos: integer('dados_fisicos', { mode: 'boolean' }).notNull().default(true),
+    /** Os jogadores veem as fichas uns dos outros. */
+    fichasVisiveis: integer('fichas_visiveis', { mode: 'boolean' }).notNull().default(false),
+    /** Quando a mesa costuma se reunir ("toda sexta às 21h"); validado pelo schema do shared. */
+    agenda: text('agenda', { mode: 'json' }).$type<Agenda>(),
+    /** Preenchido quando o mestre encerra o caso. */
+    encerradoEm: integer('encerrado_em', { mode: 'timestamp_ms' }),
     criadoPor: text('criado_por')
       .notNull()
       .references(() => users.id),

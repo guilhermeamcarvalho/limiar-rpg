@@ -8,7 +8,7 @@ export const esquemaNovoConvite = z.object({
     .max(20, { error: 'No máximo 20 vagas.' })
     .default(4),
   expiraEmDias: z
-    .int()
+    .int({ error: 'Diga em quantos dias o convite expira.' })
     .min(1, { error: 'Pelo menos 1 dia.' })
     .max(30, { error: 'No máximo 30 dias.' })
     .default(7),

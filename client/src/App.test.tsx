@@ -113,7 +113,9 @@ describe('login', () => {
     servidor(true);
     abrir('/');
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Marta' })).toBeDefined();
+    expect(
+      await screen.findByRole('heading', { name: /^(Bom dia|Boa tarde|Boa noite), Marta\.$/ }),
+    ).toBeDefined();
     expect(document.title).toBe('Central · LIMIAR');
   });
 
@@ -126,9 +128,9 @@ describe('login', () => {
     });
   });
 
-  it('sair chama o servidor e volta para /entrar', async () => {
+  it('sair (no Perfil) chama o servidor e volta para /entrar', async () => {
     const chamadas = servidor(true);
-    abrir('/');
+    abrir('/perfil');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Sair' }));
 

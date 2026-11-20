@@ -14,3 +14,4 @@ export * from './permissoes.ts';
 export * from './schemas/campanha.ts';
 export * from './schemas/convite.ts';
 export * from './codigo.ts';
+export * from './agenda.ts';

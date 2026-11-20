@@ -1,0 +1,145 @@
+/* Novo caso: artboards "04 · Novo caso" e "Celular · 04". */
+
+.novo-caso {
+  padding-top: 40px;
+  padding-bottom: var(--s8);
+}
+.novo-caso > .split {
+  gap: 40px;
+}
+.novo-passos {
+  flex: 0 1 240px;
+  min-width: 220px;
+}
+.novo-corpo {
+  flex: 999 1 560px;
+  min-width: 0;
+  gap: 28px;
+}
+.novo-lado {
+  flex: 1 1 300px;
+  min-width: 280px;
+  gap: var(--s3);
+}
+.novo-sistemas {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  gap: 10px;
+}
+.novo-sistemas legend {
+  margin-bottom: 10px;
+}
+.novo-sistema {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  cursor: pointer;
+}
+.novo-sistema input {
+  width: 20px;
+  height: 20px;
+  margin-top: var(--s1);
+  accent-color: var(--red);
+  flex: none;
+}
+.novo-sistema.desligado {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.novo-nome {
+  font: 400 26px var(--f-disp);
+  text-transform: uppercase;
+}
+.novo-gancho {
+  min-height: 110px;
+}
+.novo-capa {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s4);
+  border: 1px dashed var(--line-3);
+}
+.novo-opcao {
+  padding: 14px var(--s4);
+}
+.novo-rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+}
+.novo-revisao {
+  margin: 0;
+}
+.novo-revisao > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s4);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.novo-revisao dt {
+  flex: 0 0 140px;
+  font: 800 11px var(--f-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.novo-revisao dd {
+  flex: 1 1 240px;
+  margin: 0;
+  min-width: 0;
+}
+.previa {
+  padding: 0;
+  overflow: hidden;
+  transform: rotate(1deg);
+}
+.previa-capa {
+  height: 150px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, var(--panel-4) 0, var(--bg-2) 100%);
+  color: var(--line-3);
+}
+.previa-corpo {
+  padding: 18px 20px;
+}
+.previa-corpo .lab {
+  color: var(--red);
+}
+.previa-corpo .h2 {
+  color: var(--ink);
+}
+.previa-corpo .doc {
+  color: var(--ink-2);
+}
+.previa-corpo .small {
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.novo-salvo {
+  min-height: 1.4em;
+}
+.novo-stepper {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .novo-caso {
+    padding-top: var(--s4);
+  }
+  .novo-passos,
+  .novo-lado {
+    display: none;
+  }
+  .novo-stepper {
+    display: flex;
+  }
+}

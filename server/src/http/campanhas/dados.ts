@@ -1,12 +1,14 @@
 // Consultas de campanha. As rotas decidem permissão com shared/permissoes.ts; aqui só se lê e grava.
-import { and, count, desc, eq, max, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, max, sql } from 'drizzle-orm';
 import type {
   CampanhaComMembros,
+  CampanhaDetalhe,
   CampanhaNaLista,
   ConviteDoMestre,
   Membro,
   Papel,
   Quem,
+  SituacaoDoCaso,
 } from '@limiar/shared';
 import { podeVerCampanha } from '@limiar/shared';
 import type { Banco } from '../../db/index.ts';
@@ -32,9 +34,24 @@ function contagemDeJogadores(db: Banco) {
     .as('contagem');
 }
 
+const situacao = (encerradoEm: Date | null): SituacaoDoCaso =>
+  encerradoEm ? 'encerrado' : 'em-curso';
+
+/** O mestre de cada campanha da lista, numa consulta só. */
+function mestresDe(db: Banco, ids: string[]) {
+  if (ids.length === 0) return new Map<string, { id: string; nome: string }>();
+  const linhas = db
+    .select({ campaignId: memberships.campaignId, id: users.id, nome: users.nome })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(and(inArray(memberships.campaignId, ids), eq(memberships.papel, 'mestre')))
+    .all();
+  return new Map(linhas.map(({ campaignId, ...mestre }) => [campaignId, mestre]));
+}
+
 export function listarDoUsuario(db: Banco, userId: string): CampanhaNaLista[] {
   const contagem = contagemDeJogadores(db);
-  return db
+  const linhas = db
     .select({
       id: campaigns.id,
       numero: campaigns.numero,
@@ -42,7 +59,9 @@ export function listarDoUsuario(db: Banco, userId: string): CampanhaNaLista[] {
       gancho: campaigns.gancho,
       papel: memberships.papel,
       sistema: { id: gameSystems.id, nome: gameSystems.nome, tipo: gameSystems.tipo },
+      agenda: campaigns.agenda,
       proximaSessao: campaigns.proximaSessao,
+      encerradoEm: campaigns.encerradoEm,
       jogadores: sql<number>`coalesce(${contagem.jogadores}, 0)`,
     })
     .from(memberships)
@@ -50,13 +69,19 @@ export function listarDoUsuario(db: Banco, userId: string): CampanhaNaLista[] {
     .innerJoin(gameSystems, eq(gameSystems.id, campaigns.systemId))
     .leftJoin(contagem, eq(contagem.campaignId, campaigns.id))
     .where(eq(memberships.userId, userId))
-    .orderBy(desc(campaigns.criadoEm))
-    .all()
-    .map(({ jogadores, proximaSessao, ...resto }) => ({
-      ...resto,
-      proximaSessao: iso(proximaSessao),
-      contagens: { jogadores },
-    }));
+    .orderBy(desc(campaigns.criadoEm), desc(campaigns.numero))
+    .all();
+  const mestres = mestresDe(
+    db,
+    linhas.map((l) => l.id),
+  );
+  return linhas.map(({ jogadores, proximaSessao, encerradoEm, ...resto }) => ({
+    ...resto,
+    mestre: mestres.get(resto.id) ?? null,
+    situacao: situacao(encerradoEm),
+    proximaSessao: iso(proximaSessao),
+    contagens: { jogadores },
+  }));
 }
 
 /** Os membros, no formato que as funções de permissão entendem. */
@@ -80,7 +105,7 @@ export function campanhaVisivel(db: Banco, id: string, quem: Quem) {
   return { campanha, comMembros };
 }
 
-export function detalhar(db: Banco, id: string, papel: Papel) {
+export function detalhar(db: Banco, id: string, papel: Papel): CampanhaDetalhe {
   const contagem = contagemDeJogadores(db);
   const linha = db
     .select({
@@ -88,9 +113,17 @@ export function detalhar(db: Banco, id: string, papel: Papel) {
       numero: campaigns.numero,
       nome: campaigns.nome,
       gancho: campaigns.gancho,
+      tom: campaigns.tom,
+      formato: campaigns.formato,
+      nivelInicial: campaigns.nivelInicial,
+      dtPadrao: campaigns.dtPadrao,
       rodadas: campaigns.rodadas,
+      dadosFisicos: campaigns.dadosFisicos,
+      fichasVisiveis: campaigns.fichasVisiveis,
       sistema: { id: gameSystems.id, nome: gameSystems.nome, tipo: gameSystems.tipo },
+      agenda: campaigns.agenda,
       proximaSessao: campaigns.proximaSessao,
+      encerradoEm: campaigns.encerradoEm,
       jogadores: sql<number>`coalesce(${contagem.jogadores}, 0)`,
     })
     .from(campaigns)
@@ -108,10 +141,13 @@ export function detalhar(db: Banco, id: string, papel: Papel) {
     .orderBy(sql`${memberships.papel} = 'jogador'`, users.nome)
     .all();
 
-  const { jogadores, proximaSessao, ...resto } = linha;
+  const { jogadores, proximaSessao, encerradoEm, ...resto } = linha;
+  const mestre = membros.find((m) => m.papel === 'mestre');
   return {
     ...resto,
     papel,
+    mestre: mestre ? { id: mestre.id, nome: mestre.nome } : null,
+    situacao: situacao(encerradoEm),
     proximaSessao: iso(proximaSessao),
     contagens: { jogadores },
     membros,

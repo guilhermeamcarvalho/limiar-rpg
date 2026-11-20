@@ -40,6 +40,8 @@ export function ExigirLogin() {
   }
 
   if (sessao.estado === 'anonimo') {
+    // Quem acabou de sair não quer voltar à mesma página no próximo login.
+    if (sessao.saiu) return <Navigate to="/entrar" replace />;
     const voltar = `${local.pathname}${local.search}`;
     const destino = voltar === '/' ? '/entrar' : `/entrar?voltar=${encodeURIComponent(voltar)}`;
     return <Navigate to={destino} replace />;
