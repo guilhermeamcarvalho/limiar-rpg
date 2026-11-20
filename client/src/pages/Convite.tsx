@@ -9,6 +9,7 @@ import {
   type ConvitePublico,
 } from '@limiar/shared';
 import { ErroDaApi, pedir } from '../auth/api.ts';
+import { esquecerConvitePendente, guardarConvitePendente } from '../convites/pendentes.ts';
 import { useMe } from '../auth/sessao.tsx';
 import {
   Avatar,
@@ -222,9 +223,13 @@ export function Convite() {
     let ativo = true;
     pedir<{ convite: ConvitePublico }>(`/api/convites/${codigo}`)
       .then((r) => {
+        // Visto e ainda não aceito: a Central lembra dele em "Convites".
+        if (r.convite.estado === 'valido' && !r.convite.jaParticipa) guardarConvitePendente(codigo);
+        else esquecerConvitePendente(codigo);
         if (ativo) setConvite(r.convite);
       })
       .catch((erro: unknown) => {
+        if (erro instanceof ErroDaApi && erro.status === 404) esquecerConvitePendente(codigo);
         if (ativo)
           setErroDoConvite(
             erro instanceof ErroDaApi ? erro.message : 'Sem conexão com o servidor.',
@@ -241,11 +246,13 @@ export function Convite() {
     setFalhaAoAceitar(null);
     try {
       await pedir(`/api/convites/${codigo}/aceitar`, { method: 'POST' });
+      esquecerConvitePendente(codigo);
       avisos.show({ type: 'ok', title: 'Você entrou no caso', text: convite.campanha.nome });
       await recarregar();
       setAceito(true);
     } catch (erro) {
       if (erro instanceof ErroDaApi && erro.codigo === 'JA_PARTICIPA') {
+        esquecerConvitePendente(codigo);
         setAceito(true);
         return;
       }

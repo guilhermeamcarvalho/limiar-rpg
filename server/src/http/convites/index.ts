@@ -2,7 +2,6 @@
 //   POST /api/campanhas/:id/convites      o mestre cria (vagas, validade)
 //   GET  /api/convites/:codigo            qualquer um com o código vê o cartão do convite
 //   POST /api/convites/:codigo/aceitar    quem está logado entra no caso como jogador
-import { randomInt } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import {
@@ -17,41 +16,9 @@ import { campaigns, gameSystems, invites, memberships, users } from '../../db/sc
 import { exigirLogin, usuarioLogado } from '../auth/sessao.ts';
 import { campanhaVisivel, convitesDoMestre } from '../campanhas/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
+import { inserirConvite } from './dados.ts';
 
-const DIA = 24 * 60 * 60 * 1000;
-
-/** Sem letras e números que se confundem (0/O, 1/I/L): a pessoa pode ditar o código. */
-const SUFIXO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const PALAVRAS_VAZIAS = new Set([
-  'DE',
-  'DA',
-  'DO',
-  'DAS',
-  'DOS',
-  'NO',
-  'NA',
-  'NOS',
-  'NAS',
-  'UM',
-  'UMA',
-]);
-
-/** A palavra mais longa do nome, sem acento: "O Sinal de Santa Ermida" → ERMIDA. */
-export function palavraDoNome(nome: string): string {
-  const palavras = nome
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toUpperCase()
-    .split(/[^A-Z]+/)
-    .filter((p) => p.length >= 2 && !PALAVRAS_VAZIAS.has(p));
-  const maior = palavras.reduce((a, b) => (b.length >= a.length ? b : a), '');
-  return (maior || 'CASO').slice(0, 8);
-}
-
-export function gerarCodigo(nome: string): string {
-  const sufixo = Array.from({ length: 4 }, () => SUFIXO[randomInt(SUFIXO.length)]).join('');
-  return `${palavraDoNome(nome)}-${sufixo}`;
-}
+export { gerarCodigo, palavraDoNome } from './dados.ts';
 
 const NAO_ENCONTRADO = new ErroDaApi(
   404,
@@ -123,24 +90,15 @@ export const rotas: FastifyPluginAsync = (app) => {
       }
       const dados = validar(esquemaNovoConvite, request.body ?? {});
 
-      // Código repetido é raríssimo, mas a coluna é única: tenta de novo com outro sufixo.
-      for (let tentativa = 0; tentativa < 5; tentativa++) {
-        const codigo = gerarCodigo(campanha.nome);
-        if (app.db.select().from(invites).where(eq(invites.codigo, codigo)).get()) continue;
-        app.db
-          .insert(invites)
-          .values({
-            codigo,
-            campaignId: campanha.id,
-            vagas: dados.vagas,
-            expiraEm: new Date(Date.now() + dados.expiraEmDias * DIA),
-            criadoPor: usuario.id,
-          })
-          .run();
-        const convite = convitesDoMestre(app.db, campanha.id).find((c) => c.codigo === codigo);
-        return reply.status(201).send({ convite, link: `${app.config.BASE_URL}/c/${codigo}` });
-      }
-      throw new Error('Não deu para gerar um código de convite único');
+      const codigo = inserirConvite(app.db, {
+        campaignId: campanha.id,
+        nomeDoCaso: campanha.nome,
+        vagas: dados.vagas,
+        expiraEmDias: dados.expiraEmDias,
+        criadoPor: usuario.id,
+      });
+      const convite = convitesDoMestre(app.db, campanha.id).find((c) => c.codigo === codigo);
+      return reply.status(201).send({ convite, link: `${app.config.BASE_URL}/c/${codigo}` });
     },
   );
 

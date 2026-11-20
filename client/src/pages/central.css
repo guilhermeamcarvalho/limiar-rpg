@@ -1,0 +1,70 @@
+/* Central: artboards 02 · Central, 17 · Central carregando e os de celular. */
+
+.central {
+  padding-top: 40px;
+  padding-bottom: var(--s8);
+  gap: 40px;
+}
+.central-continuar {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 80% 20%, var(--ambiente) 0, var(--panel) 60%);
+}
+.central-continuar .card-b {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px;
+}
+.central-continuar-titulo {
+  font-size: 64px;
+}
+.central-gancho {
+  max-width: 620px;
+  color: var(--typed);
+}
+.central-mesa {
+  min-height: 52px;
+  padding: 0 26px;
+}
+.central-caso {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+}
+.central-convite {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: 14px 18px;
+}
+.central-convite .type {
+  color: var(--typed);
+}
+.central-dia {
+  width: 44px;
+  flex: none;
+  gap: 0;
+  text-align: center;
+}
+.central-dia .lab {
+  font-size: 9.5px;
+}
+
+@media (max-width: 720px) {
+  .central {
+    padding-top: var(--s4);
+    gap: var(--s5);
+  }
+  .central-continuar .card-b {
+    padding: 18px;
+    gap: var(--s3);
+  }
+  .central-continuar-titulo {
+    font-size: 30px;
+  }
+  .central-continuar .central-mesa {
+    width: 100%;
+  }
+}

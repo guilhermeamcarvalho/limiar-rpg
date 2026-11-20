@@ -80,7 +80,9 @@ describe('Entrar', () => {
     digitar('Senha', 'mare-de-concreto');
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Marta' })).toBeDefined();
+    expect(
+      await screen.findByRole('heading', { name: /^(Bom dia|Boa tarde|Boa noite), Marta\.$/ }),
+    ).toBeDefined();
     expect(chamadas.find((c) => c.url === '/api/auth/entrar')?.corpo).toEqual({
       email: 'marta@exemplo.com',
       senha: 'mare-de-concreto',
@@ -119,7 +121,9 @@ describe('Entrar', () => {
     expect((await screen.findByRole('alert')).textContent).toContain('Sem conexão');
     fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Marta' })).toBeDefined();
+    expect(
+      await screen.findByRole('heading', { name: /^(Bom dia|Boa tarde|Boa noite), Marta\.$/ }),
+    ).toBeDefined();
   });
 
   it('mostrar senha troca o campo para texto', async () => {
@@ -225,7 +229,9 @@ describe('Criar conta', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
 
-    expect(await screen.findByRole('heading', { name: 'Olá, Marta' })).toBeDefined();
+    expect(
+      await screen.findByRole('heading', { name: /^(Bom dia|Boa tarde|Boa noite), Marta\.$/ }),
+    ).toBeDefined();
     expect(chamadas.find((c) => c.url === '/api/auth/cadastro')?.corpo).toMatchObject({
       nome: 'Marta Quintela',
       aceite: true,

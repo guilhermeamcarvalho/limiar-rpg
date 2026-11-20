@@ -243,3 +243,134 @@ describe('PATCH /api/campanhas/:id', () => {
     expect(r.statusCode).toBe(403);
   });
 });
+
+describe('detalhes do caso (assistente de novo caso)', () => {
+  const COMPLETO = {
+    nome: 'Maré de Concreto',
+    gancho: 'Um prédio afunda um andar por noite.',
+    tom: 'suspense',
+    formato: 'one-shot',
+    nivelInicial: 2,
+    dtPadrao: 9,
+    rodadas: false,
+    dadosFisicos: false,
+    fichasVisiveis: true,
+    agenda: { diaDaSemana: 5, horario: '21:00', frequencia: 'quinzenal' },
+    proximaSessao: '2026-11-20T21:00:00-03:00',
+    convite: { vagas: 3, expiraEmDias: 5 },
+  };
+
+  it('grava premissa, regras e agenda e já cria o primeiro convite', async () => {
+    const a = await montar();
+    const ana = pessoaLogada(a, 'Ana');
+
+    const { resposta, campanha } = await criar(a, ana, COMPLETO);
+
+    expect(resposta.statusCode).toBe(201);
+    expect(campanha).toMatchObject({
+      tom: 'suspense',
+      formato: 'one-shot',
+      nivelInicial: 2,
+      dtPadrao: 9,
+      rodadas: false,
+      dadosFisicos: false,
+      fichasVisiveis: true,
+      agenda: { diaDaSemana: 5, horario: '21:00', frequencia: 'quinzenal' },
+      mestre: { id: ana.id, nome: 'Ana' },
+      situacao: 'em-curso',
+    });
+    expect(campanha.convites).toHaveLength(1);
+    expect(campanha.convites?.[0]).toMatchObject({ vagas: 3, usados: 0, expirado: false });
+    expect(campanha.convites?.[0]?.codigo).toMatch(/^CONCRETO-/);
+  });
+
+  it('sem os campos novos, usa os padrões; sem convite, não cria nenhum', async () => {
+    const a = await montar();
+    const { campanha } = await criar(a, pessoaLogada(a, 'Ana'), { nome: 'O Sinal' });
+
+    expect(campanha).toMatchObject({
+      tom: 'horror-investigativo',
+      formato: 'campanha-curta',
+      nivelInicial: 1,
+      dtPadrao: 7,
+      rodadas: true,
+      dadosFisicos: true,
+      fichasVisiveis: false,
+      agenda: null,
+    });
+    expect(campanha.convites).toEqual([]);
+  });
+
+  it('convite inválido recusa tudo: nem o caso é criado', async () => {
+    const a = await montar();
+    const ana = pessoaLogada(a, 'Ana');
+
+    const { resposta } = await criar(a, ana, { ...COMPLETO, convite: { vagas: 0 } });
+
+    expect(resposta.statusCode).toBe(400);
+    expect(resposta.json()).toMatchObject({
+      erro: { campos: { 'convite.vagas': 'Pelo menos 1 vaga.' } },
+    });
+    expect(await lista(a, ana)).toEqual([]);
+  });
+
+  it('a lista traz o mestre, a situação e a agenda de cada caso', async () => {
+    const a = await montar();
+    const ana = pessoaLogada(a, 'Ana');
+    const bia = pessoaLogada(a, 'Bia');
+    const { campanha } = await criar(a, ana, COMPLETO);
+    await entrarComoJogador(a, ana, bia, campanha.id);
+
+    const [daBia] = await lista(a, bia);
+
+    expect(daBia).toMatchObject({
+      papel: 'jogador',
+      mestre: { id: ana.id, nome: 'Ana' },
+      situacao: 'em-curso',
+      agenda: { diaDaSemana: 5, horario: '21:00', frequencia: 'quinzenal' },
+    });
+  });
+
+  it('PATCH só com o nome não volta as outras opções ao padrão', async () => {
+    const a = await montar();
+    const ana = pessoaLogada(a, 'Ana');
+    const { campanha } = await criar(a, ana, COMPLETO);
+
+    const r = await a.inject({
+      method: 'PATCH',
+      url: `/api/campanhas/${campanha.id}`,
+      cookies: ana.cookies,
+      payload: { nome: 'Maré Alta' },
+    });
+
+    expect(r.json<{ campanha: CampanhaDetalhe }>().campanha).toMatchObject({
+      nome: 'Maré Alta',
+      tom: 'suspense',
+      rodadas: false,
+      dadosFisicos: false,
+      fichasVisiveis: true,
+      dtPadrao: 9,
+      agenda: { diaDaSemana: 5 },
+    });
+  });
+
+  it('o mestre encerra e reabre o caso', async () => {
+    const a = await montar();
+    const ana = pessoaLogada(a, 'Ana');
+    const { campanha } = await criar(a, ana, { nome: 'O Sinal' });
+    const mudar = (payload: object) =>
+      a.inject({
+        method: 'PATCH',
+        url: `/api/campanhas/${campanha.id}`,
+        cookies: ana.cookies,
+        payload,
+      });
+
+    await mudar({ encerrado: true });
+    const encerrado = (await lista(a, ana))[0]?.situacao;
+    await mudar({ encerrado: false });
+    const reaberto = (await lista(a, ana))[0]?.situacao;
+
+    expect([encerrado, reaberto]).toEqual(['encerrado', 'em-curso']);
+  });
+});

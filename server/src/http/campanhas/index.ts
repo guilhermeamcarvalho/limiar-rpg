@@ -11,6 +11,7 @@ import {
 import type { Banco } from '../../db/index.ts';
 import { campaigns, gameSystems, memberships } from '../../db/schema.ts';
 import { exigirLogin, usuarioLogado } from '../auth/sessao.ts';
+import { inserirConvite } from '../convites/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
 import {
   campanhaVisivel,
@@ -43,16 +44,24 @@ export const rotas: FastifyPluginAsync = (app) => {
     const dados = validar(esquemaNovaCampanha, request.body);
     exigirSistema(app.db, dados.sistemaId);
 
-    // Campanha e o papel de mestre nascem juntos: nunca existe caso sem mestre.
+    // Campanha, papel de mestre e primeiro convite nascem juntos: nunca existe caso sem mestre,
+    // e uma falha no meio não deixa caso pela metade.
     const id = app.db.transaction((tx) => {
       const criada = tx
         .insert(campaigns)
         .values({
           numero: proximoNumero(tx),
           nome: dados.nome,
-          gancho: dados.gancho ?? null,
+          gancho: dados.gancho || null,
           systemId: dados.sistemaId,
+          tom: dados.tom,
+          formato: dados.formato,
+          nivelInicial: dados.nivelInicial,
+          dtPadrao: dados.dtPadrao,
           rodadas: dados.rodadas,
+          dadosFisicos: dados.dadosFisicos,
+          fichasVisiveis: dados.fichasVisiveis,
+          agenda: dados.agenda ?? null,
           proximaSessao: dados.proximaSessao ?? null,
           criadoPor: usuario.id,
         })
@@ -66,10 +75,21 @@ export const rotas: FastifyPluginAsync = (app) => {
           entrouEm: new Date(),
         })
         .run();
+      if (dados.convite) {
+        inserirConvite(tx, {
+          campaignId: criada.id,
+          nomeDoCaso: dados.nome,
+          vagas: dados.convite.vagas,
+          expiraEmDias: dados.convite.expiraEmDias,
+          criadoPor: usuario.id,
+        });
+      }
       return criada.id;
     });
 
-    return reply.status(201).send({ campanha: detalhar(app.db, id, 'mestre') });
+    return reply.status(201).send({
+      campanha: { ...detalhar(app.db, id, 'mestre'), convites: convitesDoMestre(app.db, id) },
+    });
   });
 
   app.get<{ Params: { id: string } }>('/:id', (request) => {
@@ -91,18 +111,24 @@ export const rotas: FastifyPluginAsync = (app) => {
     const dados = validar(esquemaEdicaoDeCampanha, request.body);
     if (dados.sistemaId !== undefined) exigirSistema(app.db, dados.sistemaId);
 
+    // Só o que veio no pedido muda; o resto do caso fica como está.
+    const { sistemaId, gancho, encerrado, ...resto } = dados;
     app.db
       .update(campaigns)
       .set({
-        ...(dados.nome !== undefined && { nome: dados.nome }),
-        ...(dados.gancho !== undefined && { gancho: dados.gancho }),
-        ...(dados.sistemaId !== undefined && { systemId: dados.sistemaId }),
-        ...(dados.rodadas !== undefined && { rodadas: dados.rodadas }),
-        ...(dados.proximaSessao !== undefined && { proximaSessao: dados.proximaSessao }),
+        ...resto,
+        ...(gancho !== undefined && { gancho: gancho || null }),
+        ...(sistemaId !== undefined && { systemId: sistemaId }),
+        ...(encerrado !== undefined && { encerradoEm: encerrado ? new Date() : null }),
       })
       .where(eq(campaigns.id, request.params.id))
       .run();
-    return { campanha: detalhar(app.db, request.params.id, 'mestre') };
+    return {
+      campanha: {
+        ...detalhar(app.db, request.params.id, 'mestre'),
+        convites: convitesDoMestre(app.db, request.params.id),
+      },
+    };
   });
 
   return Promise.resolve();

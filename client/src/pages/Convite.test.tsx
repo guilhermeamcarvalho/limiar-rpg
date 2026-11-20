@@ -130,7 +130,10 @@ describe('com login', () => {
     });
     expect(chamadas).toContain('POST /api/convites/ERMIDA-3H33/aceitar');
     expect(await screen.findByText('Você entrou no caso')).toBeDefined();
-    expect(chamadas).toContain('GET /api/campanhas');
+    // A Central chega sob demanda (lazy) e então pede os casos.
+    await waitFor(() => {
+      expect(chamadas).toContain('GET /api/campanhas');
+    });
   });
 
   it('voltando do login com ?aceitar=1, aceita sozinho e uma vez só', async () => {

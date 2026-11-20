@@ -1,0 +1,170 @@
+/* Casos: artboards "03 · Casos" e "Celular · 03". */
+
+.casos {
+  padding-top: var(--s6);
+  padding-bottom: var(--s8);
+  gap: var(--s5);
+}
+.casos-busca {
+  position: relative;
+  width: 300px;
+  max-width: 100%;
+}
+.casos-busca .fld {
+  padding-left: 38px;
+}
+.casos-busca .ic {
+  position: absolute;
+  left: var(--s3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.casos-lado {
+  flex: 0 1 300px;
+  min-width: 260px;
+  gap: var(--s3);
+}
+.casos-lado .seg {
+  width: 100%;
+}
+.casos-lado .seg button {
+  flex: 1;
+}
+.casos-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+button.chip {
+  min-height: 32px;
+  background: transparent;
+  cursor: pointer;
+}
+button.chip:hover {
+  border-color: var(--line-3);
+  color: var(--text);
+}
+button.chip[aria-pressed='true'] {
+  border-color: var(--red);
+  background: var(--red-a18);
+  color: var(--white);
+}
+button.chip:focus-visible {
+  outline: 2px solid var(--red-hi);
+  outline-offset: 2px;
+}
+.casos-item {
+  padding: var(--s3) 14px;
+}
+.casos-item .lab {
+  font-size: 10px;
+}
+.casos-item .h3 {
+  display: block;
+  font-size: 20px;
+}
+.casos-item.encerrado {
+  opacity: 0.7;
+}
+.casos-dossie {
+  flex: 999 1 640px;
+  min-width: 0;
+  padding: var(--s6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+.dossie-lab {
+  color: var(--red);
+}
+.dossie-titulo {
+  color: var(--ink);
+  font-size: 52px;
+}
+.dossie-linha {
+  color: var(--ink-3);
+}
+.dossie-texto {
+  color: var(--ink-2);
+}
+.carimbo {
+  display: inline-block;
+  transform: rotate(4deg);
+}
+.carimbo .tag {
+  font-size: 13px;
+  padding: var(--s2) var(--s4);
+}
+.btn.tinta {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.btn.no-papel {
+  background: transparent;
+  color: var(--ink-2);
+  border-color: var(--paper-line);
+}
+.btn.tinta:hover,
+.btn.no-papel:hover {
+  border-color: var(--red);
+}
+.dossie-secao {
+  border-top: 1px solid var(--paper-line);
+  padding-top: var(--s4);
+  gap: 10px;
+}
+.dossie-secao .lab {
+  color: var(--ink-3);
+}
+.dossie-convite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) 0;
+  border-bottom: 1px dashed var(--paper-line);
+}
+.dossie-convite:last-child {
+  border-bottom: 0;
+}
+.dossie-codigo {
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+}
+.casos-voltar {
+  display: none;
+}
+
+/* No celular, ou a lista ou o dossiê: um de cada vez. */
+@media (max-width: 720px) {
+  .casos {
+    padding-top: var(--s4);
+  }
+  .casos-busca {
+    width: 100%;
+  }
+  .casos-cabeca > .row {
+    width: 100%;
+  }
+  .casos.tem-caso .casos-lado,
+  .casos.tem-caso .casos-cabeca,
+  .casos:not(.tem-caso) .casos-dossie {
+    display: none;
+  }
+  .casos-lado {
+    flex-basis: 100%;
+  }
+  .casos-dossie {
+    padding: 18px var(--s4);
+  }
+  .dossie-titulo {
+    font-size: 32px;
+  }
+  .casos-voltar {
+    display: inline-flex;
+  }
+}

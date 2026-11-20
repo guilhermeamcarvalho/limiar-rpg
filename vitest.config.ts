@@ -19,7 +19,14 @@ export default defineConfig({
       },
       {
         extends: './client/vite.config.ts',
-        test: { name: 'client', root: './client', environment: 'jsdom' },
+        test: {
+          name: 'client',
+          root: './client',
+          environment: 'jsdom',
+          setupFiles: ['./src/teste/setup.ts'],
+          // A primeira importação de cada página (lazy) é lenta: mais folga que os 5 s padrão.
+          testTimeout: 15000,
+        },
       },
     ],
   },

@@ -32,4 +32,7 @@ export {
   type AvisoNovo,
   type TipoDeAviso,
 } from './Overlay.tsx';
+export { Async, useCarga, type AsyncProps, type Carga, type UsoDaCarga } from './Async.tsx';
+export { ErrorBlock, valeTentarDeNovo, type ErrorBlockProps } from './ErrorBlock.tsx';
+export { useEnvio } from './useEnvio.ts';
 export { cx } from './cx.ts';

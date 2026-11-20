@@ -18,7 +18,8 @@ export interface Usuario {
 
 export type EstadoDaSessao =
   | { estado: 'carregando' }
-  | { estado: 'anonimo' }
+  /** `saiu`: a pessoa clicou em Sair agora (não é sessão expirada); não lembra a página. */
+  | { estado: 'anonimo'; saiu?: true }
   | { estado: 'logado'; usuario: Usuario }
   /** Servidor fora do ar ou sem rede: não dá para saber se há sessão. */
   | { estado: 'erro'; mensagem: string };
@@ -62,7 +63,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
 
   const sair = useCallback(async () => {
     await pedir('/api/auth/sair', { method: 'POST' });
-    setSessao({ estado: 'anonimo' });
+    setSessao({ estado: 'anonimo', saiu: true });
   }, []);
 
   const valor = useMemo(() => ({ sessao, recarregar, sair }), [sessao, recarregar, sair]);
