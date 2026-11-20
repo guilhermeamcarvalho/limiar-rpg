@@ -5,9 +5,49 @@ import { Link, Route, Routes } from 'react-router';
 import { ExigirLogin } from '../auth/ExigirLogin.tsx';
 import { AppLayout, CarregandoPagina } from './AppLayout.tsx';
 
+const RECARREGOU = 'limiar.recarregou-por-versao';
+
+/** Sem armazenamento (aba anônima, bloqueado), age como se nunca tivesse recarregado. */
+function marca(acao: 'ler' | 'marcar' | 'limpar'): boolean {
+  try {
+    if (acao === 'ler') return sessionStorage.getItem(RECARREGOU) !== null;
+    if (acao === 'marcar') sessionStorage.setItem(RECARREGOU, '1');
+    else sessionStorage.removeItem(RECARREGOU);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Carrega o código de uma página. Se falhar logo depois de um deploy (a aba aberta pede um
+ * arquivo da versão anterior, que não existe mais), recarrega a página uma vez para pegar a
+ * versão nova. Se falhar de novo, o erro segue para a tela de erro.
+ */
+export async function carregarModulo<M>(
+  carregar: () => Promise<M>,
+  recarregar: () => void = () => {
+    window.location.reload();
+  },
+): Promise<M> {
+  try {
+    const modulo = await carregar();
+    marca('limpar');
+    return modulo;
+  } catch (erro) {
+    // Só recarrega se der para lembrar que recarregou: sem isso, ficaria num laço.
+    if (!marca('ler') && marca('marcar')) {
+      recarregar();
+      // Espera o recarregamento sem mostrar erro nenhum.
+      return new Promise<M>(() => undefined);
+    }
+    throw erro;
+  }
+}
+
 /** `lazy` para um componente exportado com nome (as páginas não usam export default). */
 function pagina<M>(carregar: () => Promise<M>, nome: keyof M) {
-  return lazy(async () => ({ default: (await carregar())[nome] as ComponentType }));
+  return lazy(async () => ({ default: (await carregarModulo(carregar))[nome] as ComponentType }));
 }
 
 const Entrar = pagina(() => import('../pages/Entrar.tsx'), 'Entrar');
@@ -20,15 +60,15 @@ const Personagens = pagina(() => import('../pages/EmBreve.tsx'), 'Personagens');
 const Arquivo = pagina(() => import('../pages/EmBreve.tsx'), 'Arquivo');
 const Perfil = pagina(() => import('../pages/Perfil.tsx'), 'Perfil');
 const Mesa = lazy(async () => {
-  const { PaginaDaCampanhaEmBreve } = await import('../pages/EmBreve.tsx');
+  const { PaginaDaCampanhaEmBreve } = await carregarModulo(() => import('../pages/EmBreve.tsx'));
   return { default: () => <PaginaDaCampanhaEmBreve pagina="mesa" /> };
 });
 const Escudo = lazy(async () => {
-  const { PaginaDaCampanhaEmBreve } = await import('../pages/EmBreve.tsx');
+  const { PaginaDaCampanhaEmBreve } = await carregarModulo(() => import('../pages/EmBreve.tsx'));
   return { default: () => <PaginaDaCampanhaEmBreve pagina="escudo" /> };
 });
 const Ficha = lazy(async () => {
-  const { PaginaDaCampanhaEmBreve } = await import('../pages/EmBreve.tsx');
+  const { PaginaDaCampanhaEmBreve } = await carregarModulo(() => import('../pages/EmBreve.tsx'));
   return { default: () => <PaginaDaCampanhaEmBreve pagina="ficha" /> };
 });
 

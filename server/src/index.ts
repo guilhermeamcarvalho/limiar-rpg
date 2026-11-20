@@ -1,7 +1,8 @@
 // O Node 26 roda este arquivo direto: os tipos são removidos na carga, sem etapa de build.
-import { criarApp } from './app.ts';
+import { criarApp, versaoDoApp } from './app.ts';
 import { carregarConfig, ErroDeConfig } from './config.ts';
 import { abrirBanco } from './db/index.ts';
+import { encerrarObservabilidade, iniciarObservabilidade } from './observabilidade.ts';
 
 let config;
 try {
@@ -12,6 +13,12 @@ try {
   process.exit(1);
 }
 
+iniciarObservabilidade({
+  dsn: config.SENTRY_DSN,
+  versao: versaoDoApp(config),
+  ambiente: config.NODE_ENV,
+});
+
 const { db, sqlite } = abrirBanco(config.DATABASE_PATH);
 const app = await criarApp({ config, db });
 
@@ -19,9 +26,12 @@ const app = await criarApp({ config, db });
 for (const sinal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(sinal, () => {
     app.log.info(`${sinal} recebido, encerrando`);
-    void app.close().finally(() => {
-      sqlite.close();
-    });
+    void app
+      .close()
+      .then(encerrarObservabilidade)
+      .finally(() => {
+        sqlite.close();
+      });
   });
 }
 

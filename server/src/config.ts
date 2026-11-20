@@ -22,6 +22,12 @@ const esquema = z
     UPLOADS_DIR: z.string().min(1).default(join(RAIZ, 'data/uploads')),
     DISCORD_CLIENT_ID: z.string().min(1).optional(),
     DISCORD_CLIENT_SECRET: z.string().min(1).optional(),
+    /** Sem ela, nenhum erro sai do servidor (#29). */
+    SENTRY_DSN: z.url({ error: 'precisa ser a URL do DSN que o Sentry mostra' }).optional(),
+    /** DSN do projeto do navegador: entra no build e libera o envio na CSP (connect-src). */
+    SENTRY_DSN_CLIENT: z.url({ error: 'precisa ser a URL do DSN que o Sentry mostra' }).optional(),
+    /** Escrita pelo deploy (o commit publicado); sem ela, vale a versão do package.json. */
+    LIMIAR_VERSAO: z.string().min(1).optional(),
   })
   .refine((c) => Boolean(c.DISCORD_CLIENT_ID) === Boolean(c.DISCORD_CLIENT_SECRET), {
     error: 'DISCORD_CLIENT_ID e DISCORD_CLIENT_SECRET vão juntas: preencha as duas ou nenhuma',

@@ -65,6 +65,16 @@ export interface DependenciasDoApp {
   logger?: FastifyServerOptions['logger'];
 }
 
+/** A origem (https://host) do DSN do Sentry do navegador, se houver. */
+export function origemDoSentryDoClient(config: Pick<Config, 'SENTRY_DSN_CLIENT'>): string[] {
+  return config.SENTRY_DSN_CLIENT ? [new URL(config.SENTRY_DSN_CLIENT).origin] : [];
+}
+
+/** A versão publicada: o commit que o deploy escreveu ou, sem deploy, a do package.json. */
+export function versaoDoApp(config: Pick<Config, 'LIMIAR_VERSAO'>): string {
+  return config.LIMIAR_VERSAO ?? pacote.version;
+}
+
 /** Monta o app sem abrir porta, para os testes usarem `app.inject`. */
 export async function criarApp({ config, db, logger, discord }: DependenciasDoApp) {
   const opcoes: FastifyServerOptions = {
@@ -78,13 +88,18 @@ export async function criarApp({ config, db, logger, discord }: DependenciasDoAp
   app.decorate('db', db);
   registrarTratadorDeErros(app);
 
-  await app.register(helmet);
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      // O navegador só manda erros ao Sentry se a CSP deixar falar com o servidor dele.
+      directives: { connectSrc: ["'self'", ...origemDoSentryDoClient(config)] },
+    },
+  });
   await app.register(cookie, { secret: config.SESSION_SECRET });
   // Limite geral contra abuso; o login tem um limite próprio, bem mais curto (#14).
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
   registrarSessao(app);
 
-  app.get('/health', () => ({ ok: true, versao: pacote.version }));
+  app.get('/health', () => ({ ok: true, versao: versaoDoApp(config) }));
 
   await app.register(rotasDeAuth, { prefix: '/api', ...(discord !== undefined && { discord }) });
   await app.register(rotasDeCampanhas, { prefix: '/api/campanhas' });
@@ -97,7 +112,12 @@ export async function criarApp({ config, db, logger, discord }: DependenciasDoAp
 
   app.setNotFoundHandler((request, reply) => {
     // Rota do app (como /casos/123) recarregada no navegador: entrega o index.html e o React decide.
-    const ehPagina = request.method === 'GET' && !request.url.startsWith('/api/');
+    // Arquivo de /assets que não existe (de uma versão anterior, depois de um deploy) é 404 de
+    // verdade: devolver o HTML no lugar do JavaScript quebraria a página sem explicação.
+    const ehPagina =
+      request.method === 'GET' &&
+      !request.url.startsWith('/api/') &&
+      !request.url.startsWith('/assets/');
     if (servirClient && ehPagina) return reply.sendFile('index.html');
     return reply.status(404).send(NAO_ENCONTRADO);
   });

@@ -1,0 +1,44 @@
+name: Lembrete de testar o backup
+
+# Todo dia 1, às 9h de Brasília, abre uma issue para testar a restauração do backup (#28).
+# Backup que nunca foi restaurado não é backup. Pode ser disparado à mão em Actions.
+on:
+  schedule:
+    - cron: '0 12 1 * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  lembrar:
+    name: Abrir a issue do mês
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Abrir a issue (se ainda não existe)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mes=$(TZ=America/Sao_Paulo date +%m/%Y)
+          titulo="Testar a restauração do backup ($mes)"
+          existente=$(gh issue list --state all --search "\"$titulo\" in:title" --json title \
+            -q ".[] | select(.title == \"$titulo\") | .title")
+          if [ -n "$existente" ]; then
+            echo "Já existe: $titulo"
+            exit 0
+          fi
+          gh issue create --title "$titulo" --label infra --body "$(cat <<'FIM'
+          Teste mensal da restauração do backup. O passo a passo completo está em `docs/servidor.md`, seção "Testar a restauração".
+
+          - [ ] No servidor: `systemctl list-timers limiar-backup` mostra a última execução desta madrugada
+          - [ ] No PC, da raiz do repositório (Git Bash): `deploy/restaurar.sh --listar` mostra as cópias dos últimos dias
+          - [ ] `deploy/restaurar.sh` baixa a mais nova e passa na verificação de integridade
+          - [ ] O app abre com o banco restaurado e mostra os casos de ontem
+          - [ ] Apagar `data/restaurado/` depois do teste
+
+          Se algo falhar, conserte antes da próxima sessão de jogo.
+          FIM
+          )"
+          echo "Criada: $titulo"
