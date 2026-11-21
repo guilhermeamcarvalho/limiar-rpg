@@ -1,4 +1,4 @@
-# LIMIAR
+# MEMBRANA
 
 Plataforma para jogar RPG de mesa de horror investigativo com um grupo de amigos.
 
@@ -9,7 +9,7 @@ Precisa do Node 26 e do pnpm. No PowerShell com scripts bloqueados, use `pnpm.cm
 ```powershell
 pnpm install
 copy server\.env.example server\.env   # e preencha SESSION_SECRET (o arquivo explica como gerar)
-pnpm db:migrate                         # cria data/limiar.db e cadastra Ordem Paranormal II
+pnpm db:migrate                         # cria data/membrana.db e cadastra Ordem Paranormal II
 pnpm dev                                # client em http://localhost:5173, API em :3000
 ```
 
@@ -20,12 +20,12 @@ pnpm dev                                # client em http://localhost:5173, API e
 
 ## Documentação
 
-Em [`docs/`](docs/), exportada da "Documentação do Sistema LIMIAR" em 19/11/2026:
+Em [`docs/`](docs/), exportada da "Documentação do Sistema MEMBRANA" em 19/11/2026:
 
 - [Produto e funcionalidades](docs/produto-e-funcionalidades.md): o que o sistema faz, requisitos RF-01 a RF-87, permissões.
 - [Arquitetura técnica](docs/arquitetura-tecnica.md): pilha, estrutura do código, mesa ao vivo, modelo de dados, hospedagem.
 - [Regras do jogo](docs/regras-do-jogo.md): o que o motor de regras implementa.
-- [Servidor](docs/servidor.md): montar o VPS, publicar (`sudo limiar-deploy`), backup e restauração, Sentry e monitor de queda.
+- [Servidor](docs/servidor.md): montar o VPS, publicar (`sudo membrana-deploy`), backup e restauração, Sentry e monitor de queda.
 
 ## Design
 

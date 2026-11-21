@@ -1,12 +1,12 @@
 # Caddy na frente do app: HTTPS automático (Let's Encrypt), compressão e cabeçalhos.
-# Instalado em /etc/caddy/Caddyfile, com o domínio no lugar de limiar.exemplo.com
+# Instalado em /etc/caddy/Caddyfile, com o domínio no lugar de membrana.exemplo.com
 # (o preparar-servidor.sh faz a troca). Recarregar: sudo systemctl reload caddy
 {
 	# E-mail para avisos do Let's Encrypt (certificado perto de vencer, por exemplo).
-	email admin@limiar.exemplo.com
+	email admin@membrana.exemplo.com
 }
 
-limiar.exemplo.com {
+membrana.exemplo.com {
 	encode zstd gzip
 
 	# Mapas até 20 MB e músicas até 15 MB (arquitetura técnica): um pouco de folga.
@@ -26,7 +26,7 @@ limiar.exemplo.com {
 	}
 
 	log {
-		output file /var/log/caddy/limiar.log {
+		output file /var/log/caddy/membrana.log {
 			roll_size 10MiB
 			roll_keep 5
 		}

@@ -313,6 +313,30 @@ a.card:hover {
   background: var(--red);
 }
 
+/* Notebook pequeno: o cabeçalho aperta para o menu caber numa linha só. O botão de código fica
+   só com o ícone, e o texto continua lá para o leitor de tela. */
+@media (min-width: 721px) and (max-width: 1180px) {
+  .top {
+    gap: var(--s4);
+    padding: 0 var(--s5);
+  }
+  .nav a {
+    padding: 0 10px;
+  }
+  .top-codigo {
+    padding: 0 var(--s3);
+  }
+  .top-rotulo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* No celular, o menu de cima some e a barra de baixo aparece. */
 @media (max-width: 720px) {
   .top {

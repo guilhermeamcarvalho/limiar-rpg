@@ -1,10 +1,10 @@
 // Erros do navegador no Sentry (plano gratuito). O DSN e a versão entram no build
-// (VITE_SENTRY_DSN e VITE_LIMIAR_VERSAO, ver deploy/deploy.sh); sem DSN, nada é enviado,
+// (VITE_SENTRY_DSN e VITE_MEMBRANA_VERSAO, ver deploy/deploy.sh); sem DSN, nada é enviado,
 // como no `pnpm dev` e nos testes. Nunca vão dados pessoais: nem usuário, nem cookie,
 // nem o que a pessoa digitou, nem o código de convite da URL.
 import * as Sentry from '@sentry/react';
 import type { Breadcrumb, ErrorEvent } from '@sentry/react';
-import { anonimizarUrl } from '@limiar/shared';
+import { anonimizarUrl } from '@membrana/shared';
 
 /** Rastros que podem carregar o que a pessoa escreveu: ficam de fora. */
 const RASTROS_DESCARTADOS = new Set(['console', 'ui.input']);
@@ -42,12 +42,12 @@ export function limparEvento<E extends ErrorEvent>(evento: E): E {
 
 export function iniciarObservabilidade(
   dsn: string | undefined = import.meta.env.VITE_SENTRY_DSN,
-  versao: string = import.meta.env.VITE_LIMIAR_VERSAO ?? 'dev',
+  versao: string = import.meta.env.VITE_MEMBRANA_VERSAO ?? 'dev',
 ) {
   if (!dsn) return false;
   Sentry.init({
     dsn,
-    release: `limiar@${versao}`,
+    release: `membrana@${versao}`,
     environment: import.meta.env.MODE,
     dataCollection: {
       userInfo: false,

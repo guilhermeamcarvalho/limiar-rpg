@@ -116,7 +116,7 @@ describe('login', () => {
     expect(
       await screen.findByRole('heading', { name: /^(Bom dia|Boa tarde|Boa noite), Marta\.$/ }),
     ).toBeDefined();
-    expect(document.title).toBe('Central · LIMIAR');
+    expect(document.title).toBe('Central · MEMBRANA');
   });
 
   it('já logado, /entrar volta para a página pedida', async () => {

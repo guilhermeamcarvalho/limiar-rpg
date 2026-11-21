@@ -1,12 +1,12 @@
 import { Link } from 'react-router';
 
 /**
- * O olho da LIMIAR, com o nome e o "horror investigativo". Leva para a Central.
+ * O olho da MEMBRANA, com o nome e o "horror investigativo". Leva para a Central.
  * `compacta`: só o olho, para o cabeçalho do celular.
  */
 export function Marca({ compacta = false }: { compacta?: boolean }) {
   return (
-    <Link className="brand" to="/" aria-label="LIMIAR, ir para a Central">
+    <Link className="brand" to="/" aria-label="MEMBRANA, ir para a Central">
       <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
         <circle cx="20" cy="20" r="17" fill="none" strokeWidth="1.6" className="brand-aro" />
         <path
@@ -19,7 +19,7 @@ export function Marca({ compacta = false }: { compacta?: boolean }) {
       </svg>
       {!compacta && (
         <span>
-          <b>LIMIAR</b>
+          <b>MEMBRANA</b>
           <small>HORROR INVESTIGATIVO</small>
         </span>
       )}

@@ -2,9 +2,9 @@
 // Ficam só neste navegador: o servidor não tem convite "endereçado" a alguém, só o código.
 // Por isso a lista é só um lembrete. A Central confere cada código no servidor antes de mostrar.
 import { useSyncExternalStore } from 'react';
-import { codigoBemFormado, normalizarCodigo } from '@limiar/shared';
+import { codigoBemFormado, normalizarCodigo } from '@membrana/shared';
 
-const CHAVE = 'limiar.convites-pendentes.v1';
+const CHAVE = 'membrana.convites-pendentes.v1';
 const MAXIMO = 10;
 const VAZIA: readonly string[] = [];
 

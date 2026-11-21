@@ -1,6 +1,6 @@
 // Redefine a senha de alguém à mão, enquanto não existe "esqueci a senha" por e-mail (#13).
 //
-//   pnpm --filter @limiar/server reset-senha marta@exemplo.com
+//   pnpm --filter @membrana/server reset-senha marta@exemplo.com
 //
 // Gera uma senha provisória, mostra na tela e encerra todas as sessões da pessoa.
 // Mande a senha por um canal privado; ela pode trocá-la depois, no Perfil.
@@ -49,7 +49,7 @@ export async function redefinirSenha(db: Banco, emailBruto: string, senha: strin
 if (import.meta.main) {
   const email = process.argv[2];
   if (!email) {
-    console.error('Uso: pnpm --filter @limiar/server reset-senha <e-mail>');
+    console.error('Uso: pnpm --filter @membrana/server reset-senha <e-mail>');
     process.exit(1);
   }
   const { db, sqlite } = abrirBanco(caminhoDoBanco());

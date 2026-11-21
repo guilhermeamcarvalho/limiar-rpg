@@ -1,7 +1,7 @@
-# O app como serviço do systemd. Instalado em /etc/systemd/system/limiar.service.
-# Logs: journalctl -u limiar -f
+# O app como serviço do systemd. Instalado em /etc/systemd/system/membrana.service.
+# Logs: sudo journalctl -u membrana -f
 [Unit]
-Description=LIMIAR (app e API)
+Description=MEMBRANA (app e API)
 Documentation=https://github.com/guilhermeamcarvalho/limiar-rpg/blob/main/docs/servidor.md
 After=network-online.target
 Wants=network-online.target
@@ -11,26 +11,26 @@ StartLimitBurst=10
 
 [Service]
 Type=simple
-User=limiar
-Group=limiar
+User=membrana
+Group=membrana
 # "current" aponta para a versão publicada; o deploy troca o link e reinicia.
-WorkingDirectory=/srv/limiar/current/server
-EnvironmentFile=/etc/limiar.env
-# Escrito pelo deploy: LIMIAR_VERSAO=<versão>+<commit>. O "-" aceita se não existir.
-EnvironmentFile=-/srv/limiar/current/VERSAO.env
+WorkingDirectory=/srv/membrana/current/server
+EnvironmentFile=/etc/membrana.env
+# Escrito pelo deploy: MEMBRANA_VERSAO=<versão>+<commit>. O "-" aceita se não existir.
+EnvironmentFile=-/srv/membrana/current/VERSAO.env
 ExecStart=/usr/bin/node src/index.ts
 Restart=always
 RestartSec=2
 # O app termina as requisições e fecha o banco ao receber SIGTERM.
 TimeoutStopSec=15
 
-# Endurecimento: o processo só escreve em /srv/limiar/data e não ganha privilégios.
+# Endurecimento: o processo só escreve em /srv/membrana/data e não ganha privilégios.
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/srv/limiar/data
+ReadWritePaths=/srv/membrana/data
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectKernelLogs=true

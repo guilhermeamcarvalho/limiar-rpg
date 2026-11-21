@@ -1,4 +1,4 @@
-// `pnpm --filter @limiar/server sentry:teste`: manda um erro forçado ao Sentry e diz o id do evento.
+// `pnpm --filter @membrana/server sentry:teste`: manda um erro forçado ao Sentry e diz o id do evento.
 // Serve para conferir o DSN e a versão (release) depois de configurar o servidor (#29).
 // Em produção, veja docs/servidor.md, seção "Sentry".
 import * as Sentry from '@sentry/node';
@@ -26,5 +26,5 @@ const id = Sentry.captureException(
 );
 await encerrarObservabilidade();
 console.log(
-  `Erro de teste enviado. Evento ${id}, versão limiar@${versao}, ambiente ${config.NODE_ENV}.`,
+  `Erro de teste enviado. Evento ${id}, versão membrana@${versao}, ambiente ${config.NODE_ENV}.`,
 );

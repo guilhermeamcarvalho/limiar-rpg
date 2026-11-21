@@ -1,6 +1,6 @@
 // Perfil. Por enquanto só quem entrou e o "Sair"; as preferências chegam na Fase 4.
 import { useEffect } from 'react';
-import { tituloDaPagina } from '@limiar/shared';
+import { tituloDaPagina } from '@membrana/shared';
 import { useMe } from '../auth/sessao.tsx';
 import { iniciais } from '../casos/formatos.ts';
 import { Avatar, Button, Card, Icon, useEnvio, useToast } from '../ui/index.ts';

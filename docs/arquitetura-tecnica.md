@@ -4,7 +4,7 @@ Nov 18, 2026 · @Guilherme
 
 ## Visão geral
 
-A LIMIAR roda como um único app Node com banco SQLite num servidor pequeno, feito para um grupo de amigos jogar RPG de mesa online, começando por Ordem Paranormal II.
+A MEMBRANA roda como um único app Node com banco SQLite num servidor pequeno, feito para um grupo de amigos jogar RPG de mesa online, começando por Ordem Paranormal II.
 
 Premissas:
 
@@ -67,7 +67,7 @@ A mesa ao vivo é a peça central: é ela que valida cada ação e esconde o que
 Um repositório com três pastas (pnpm workspaces): o cliente, o servidor e o código que os dois compartilham.
 
 ```text
-limiar/
+membrana/
   client/              React + Vite, PWA
     src/pages/         Central, Casos, NovoCaso, Criar, Ficha, Mesa, Mestre, Arquivo, Perfil
     src/mesa/          mapa com Konva: camadas de mapa, grade, props, salas, névoa, pistas, tokens
@@ -81,7 +81,7 @@ limiar/
     regras/inventado/  sistemas da casa resolvidos por configuração
     schemas/           Zod: comandos, eventos, ficha, pista, prop
     permissoes.ts      quem pode o quê
-  data/                limiar.db e uploads/ (fora do Git)
+  data/                membrana.db e uploads/ (fora do Git)
 ```
 
 Organize o servidor por assunto (campanhas, personagens, mesa, caso), não por tipo de arquivo. Mesmo num app pequeno, isso evita que tudo acabe numa pasta `utils` e deixa fácil achar onde mexer.
@@ -361,17 +361,17 @@ Decidido em 19/11/2026: um VPS pequeno com Ubuntu LTS, onde o app roda como serv
 
 1. Criar o servidor com uma distribuição Linux de longo suporte, um usuário sem root e login SSH só por chave.
 2. Ligar o firewall com as portas 22, 80 e 443, e as atualizações automáticas de segurança.
-3. Instalar o Node LTS e criar o serviço `limiar.service` no systemd, com reinício automático.
+3. Instalar o Node LTS e criar o serviço `membrana.service` no systemd, com reinício automático.
 4. Instalar o Caddy apontando o domínio para `localhost:3000`; ele cuida do HTTPS.
-5. Agendar o backup: um timer do systemd (ou cron) roda `sqlite3 limiar.db ".backup"` e o `rclone` envia o banco e os uploads para o Google Drive todo dia, mantendo 14 cópias.
+5. Agendar o backup: um timer do systemd (ou cron) roda `sqlite3 membrana.db ".backup"` e o `rclone` envia o banco e os uploads para o Google Drive todo dia, mantendo 14 cópias.
 
 ### Deploy
 
-Um script `deploy.sh` busca o código, instala, faz o build, copia o banco, roda as migrações e reinicia o serviço. Cada versão vive na própria pasta (`/srv/limiar/releases/<commit>`) e um link `current` aponta para a publicada: se o build ou uma migração falhar, nada muda no ar; se a versão nova não responder no `/health`, o link volta para a anterior. Um GitHub Actions pode chamar o script por SSH a cada push na `main` (desligado até ser configurado).
+Um script `deploy.sh` busca o código, instala, faz o build, copia o banco, roda as migrações e reinicia o serviço. Cada versão vive na própria pasta (`/srv/membrana/releases/<commit>`) e um link `current` aponta para a publicada: se o build ou uma migração falhar, nada muda no ar; se a versão nova não responder no `/health`, o link volta para a anterior. Um GitHub Actions pode chamar o script por SSH a cada push na `main` (desligado até ser configurado).
 
 ### Acompanhamento
 
-- **Logs:** `journalctl -u limiar` mostra tudo o que o app escreveu.
+- **Logs:** `sudo journalctl -u membrana` mostra tudo o que o app escreveu.
 - **Erros:** o plano gratuito do Sentry avisa quando algo quebra durante a sessão, no servidor e no navegador, com a versão publicada. Nenhum dado pessoal vai junto.
 - **Fora do ar:** um monitor gratuito (UptimeRobot ou similar) manda alerta se o site cair.
 - **Teste do backup:** uma vez por mês, restaure o backup numa máquina local para garantir que ele funciona.

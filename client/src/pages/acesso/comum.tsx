@@ -1,6 +1,6 @@
 // Peças comuns às telas Entrar e Criar conta.
 import { useEffect, useState, type ReactNode, type SyntheticEvent } from 'react';
-import { forcaDaSenha, MIN_SENHA } from '@limiar/shared';
+import { forcaDaSenha, MIN_SENHA } from '@membrana/shared';
 import { ErroDaApi, pedir } from '../../auth/api.ts';
 import { useMe } from '../../auth/sessao.tsx';
 import { Banner, Button, cx, Icon, Input, Marca } from '../../ui/index.ts';

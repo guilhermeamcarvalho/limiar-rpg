@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import type { CampanhaDetalhe, CampanhaNaLista } from '@limiar/shared';
+import type { CampanhaDetalhe, CampanhaNaLista } from '@membrana/shared';
 import { appDeTeste, pessoaLogada } from '../../teste/apoio.ts';
 
 let app: FastifyInstance | undefined;

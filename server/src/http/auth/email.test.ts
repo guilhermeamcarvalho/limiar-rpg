@@ -40,7 +40,7 @@ function entrar(a: FastifyInstance, email: string, senha: string, ip = '10.0.0.1
 }
 
 const sessao = (r: { cookies: { name: string; value: string }[] }) =>
-  r.cookies.find((c) => c.name === 'limiar_sessao')?.value;
+  r.cookies.find((c) => c.name === 'membrana_sessao')?.value;
 
 describe('senha', () => {
   it('gera Argon2id no formato padrão e confere', async () => {
@@ -79,7 +79,7 @@ describe('POST /api/auth/cadastro', () => {
     const eu = await a.inject({
       method: 'GET',
       url: '/api/me',
-      cookies: { limiar_sessao: sessao(resposta) ?? '' },
+      cookies: { membrana_sessao: sessao(resposta) ?? '' },
     });
     expect(eu.statusCode).toBe(200);
   });
@@ -215,7 +215,7 @@ describe('reset-senha', () => {
     const comAntiga = await a.inject({
       method: 'GET',
       url: '/api/me',
-      cookies: { limiar_sessao: antiga },
+      cookies: { membrana_sessao: antiga },
     });
     expect(comAntiga.statusCode).toBe(401);
     expect((await entrar(a, MARTA.email, MARTA.senha)).statusCode).toBe(401);

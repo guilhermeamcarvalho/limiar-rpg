@@ -1,7 +1,7 @@
 // Criar conta: artboards "01c · Criar conta" e "Celular · 01c".
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router';
-import { senhaValida, tituloDaPagina } from '@limiar/shared';
+import { senhaValida, tituloDaPagina } from '@membrana/shared';
 import { pedir } from '../auth/api.ts';
 import { useMe } from '../auth/sessao.tsx';
 import { Banner, Button, Checkbox, Field, Icon, Input } from '../ui/index.ts';
@@ -156,10 +156,10 @@ export function CriarConta() {
           label={
             <span className="small">
               <span className="so-pc">
-                Li e aceito como a LIMIAR guarda meus dados: só neste servidor, sem venda a
+                Li e aceito como a MEMBRANA guarda meus dados: só neste servidor, sem venda a
                 terceiros.
               </span>
-              <span className="so-cel">Aceito como a LIMIAR guarda meus dados.</span>
+              <span className="so-cel">Aceito como a MEMBRANA guarda meus dados.</span>
             </span>
           }
         />

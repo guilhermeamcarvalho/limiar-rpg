@@ -3,7 +3,7 @@
 // Cada bloco carrega e falha sozinho: se a agenda cair, o resto da página continua de pé.
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
-import { tituloDaPagina, type CampanhaNaLista, type ConvitePublico } from '@limiar/shared';
+import { tituloDaPagina, type CampanhaNaLista, type ConvitePublico } from '@membrana/shared';
 import { ErroDaApi, pedir } from '../auth/api.ts';
 import { useMe } from '../auth/sessao.tsx';
 import {

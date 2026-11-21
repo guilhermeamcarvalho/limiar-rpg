@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Publica uma versão nova da LIMIAR no servidor. Instalado como /usr/local/sbin/limiar-deploy.
+# Publica uma versão nova da MEMBRANA no servidor. Instalado como /usr/local/sbin/membrana-deploy.
 #
-#   sudo limiar-deploy           publica o último commit da main
-#   sudo limiar-deploy <commit>  publica um commit (ou branch, ou tag) específico
+#   sudo membrana-deploy           publica o último commit da main
+#   sudo membrana-deploy <commit>  publica um commit (ou branch, ou tag) específico
 #
-# Cada versão vive na própria pasta (/srv/limiar/releases/<commit>) e "current" aponta para a
+# Cada versão vive na própria pasta (/srv/membrana/releases/<commit>) e "current" aponta para a
 # publicada. A ordem garante que o serviço no ar só muda se tudo der certo:
 #   1. busca o código e monta a pasta nova     4. backup rápido do banco
 #   2. instala as dependências                 5. migrações (numa transação: erro não deixa nada)
@@ -15,10 +15,10 @@
 # shellcheck disable=SC2016
 set -Eeuo pipefail
 
-RAIZ=${LIMIAR_RAIZ:-/srv/limiar}
-USUARIO=${LIMIAR_USUARIO:-limiar}
-SERVICO=${LIMIAR_SERVICO:-limiar}
-AMBIENTE=${LIMIAR_AMBIENTE:-/etc/limiar.env}
+RAIZ=${MEMBRANA_RAIZ:-/srv/membrana}
+USUARIO=${MEMBRANA_USUARIO:-membrana}
+SERVICO=${MEMBRANA_SERVICO:-membrana}
+AMBIENTE=${MEMBRANA_AMBIENTE:-/etc/membrana.env}
 MANTER_VERSOES=5
 MANTER_BACKUPS=10
 ESPERA_HEALTH_S=40
@@ -41,12 +41,12 @@ ler_var() { { grep -E "^$1=" "$AMBIENTE" || true; } | tail -n 1 | cut -d= -f2-; 
 
 trap 'falha "a etapa \"$ETAPA\" falhou. Nada foi trocado: o serviço continua na versão anterior."' ERR
 
-[[ $EUID -eq 0 ]] || falha "rode com sudo: sudo limiar-deploy"
+[[ $EUID -eq 0 ]] || falha "rode com sudo: sudo membrana-deploy"
 [[ -r $AMBIENTE ]] || falha "não encontrei $AMBIENTE (veja docs/servidor.md)"
 [[ -d $RAIZ/repo.git ]] || falha "não encontrei $RAIZ/repo.git (veja docs/servidor.md)"
 
 # Um deploy por vez.
-exec 9> /run/lock/limiar-deploy.lock
+exec 9> /run/lock/membrana-deploy.lock
 flock -n 9 || falha "já tem um deploy rodando"
 
 PORTA=$(ler_var PORT)
@@ -66,7 +66,7 @@ NOVA="$RAIZ/releases/$SHA"
 ANTERIOR=$(readlink -f "$RAIZ/current" || true)
 
 if [[ $ANTERIOR == "$NOVA" && ${FORCAR:-0} != 1 ]]; then
-  echo "A versão $VERSAO já está publicada. Para refazer: sudo FORCAR=1 limiar-deploy $REF"
+  echo "A versão $VERSAO já está publicada. Para refazer: sudo FORCAR=1 membrana-deploy $REF"
   exit 0
 fi
 echo "Publicando $VERSAO ($(como_app git -C "$RAIZ/repo.git" log -1 --format=%s "$SHA"))"
@@ -76,13 +76,13 @@ passo "Montando $NOVA"
 if [[ -e $NOVA && $NOVA != "$ANTERIOR" ]]; then rm -rf -- "$NOVA"; fi
 como_app mkdir -p "$NOVA"
 como_app bash -c 'git -C "$1" archive "$2" | tar -x -C "$3"' _ "$RAIZ/repo.git" "$SHA" "$NOVA"
-como_app bash -c 'printf "LIMIAR_VERSAO=%s\n" "$1" > "$2/VERSAO.env"' _ "$VERSAO" "$NOVA"
+como_app bash -c 'printf "MEMBRANA_VERSAO=%s\n" "$1" > "$2/VERSAO.env"' _ "$VERSAO" "$NOVA"
 
 passo "Instalando dependências"
 como_app bash -c 'cd "$1" && pnpm install --frozen-lockfile --prefer-offline' _ "$NOVA"
 
 passo "Build"
-como_app env VITE_LIMIAR_VERSAO="$VERSAO" VITE_SENTRY_DSN="$(ler_var SENTRY_DSN_CLIENT)" \
+como_app env VITE_MEMBRANA_VERSAO="$VERSAO" VITE_SENTRY_DSN="$(ler_var SENTRY_DSN_CLIENT)" \
   bash -c 'cd "$1" && pnpm build' _ "$NOVA"
 
 passo "Backup rápido do banco"
@@ -119,7 +119,7 @@ esperar_health() {
 
 voltar() {
   printf '\n\033[31m%s\033[0m\n' "$1" >&2
-  echo "Veja o que aconteceu: journalctl -u $SERVICO -n 50 --no-pager" >&2
+  echo "Veja o que aconteceu: sudo journalctl -u $SERVICO -n 50 --no-pager" >&2
   if [[ -z $ANTERIOR || ! -d $ANTERIOR ]]; then
     echo "Não há versão anterior para voltar: o serviço está fora do ar." >&2
     exit 1
@@ -161,7 +161,7 @@ find "$RAIZ/releases" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort 
 # O próprio script instalado é uma cópia: avisa se a versão nova trouxe mudanças nele.
 if ! cmp -s "$0" "$NOVA/deploy/deploy.sh"; then
   printf '\nAviso: deploy/deploy.sh mudou nesta versão. Atualize o instalado com:\n'
-  printf '  sudo install -m 755 %s /usr/local/sbin/limiar-deploy\n' "$NOVA/deploy/deploy.sh"
+  printf '  sudo install -m 755 %s /usr/local/sbin/membrana-deploy\n' "$NOVA/deploy/deploy.sh"
 fi
 
 printf '\n\033[32mPublicado: %s\033[0m\n' "$VERSAO"

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Prepara um VPS novo (Ubuntu LTS ou Debian estável) para a LIMIAR. Rode como root, uma vez,
+# Prepara um VPS novo (Ubuntu LTS ou Debian estável) para a MEMBRANA. Rode como root, uma vez,
 # de dentro de um clone do repositório (passo a passo em docs/servidor.md):
 #
-#   bash deploy/preparar-servidor.sh --admin guilherme --dominio limiar.exemplo.com \
+#   bash deploy/preparar-servidor.sh --admin guilherme --dominio membrana.exemplo.com \
 #     --email voce@exemplo.com
 #
 # O que faz (pode rodar de novo sem estragar nada):
@@ -10,8 +10,8 @@
 #   2. usuário administrador com sudo e a chave SSH do root; SSH só por chave, sem root
 #   3. firewall liberando só 22, 80 e 443; atualizações de segurança automáticas
 #   4. Node (versão do .nvmrc) e pnpm (versão do package.json)
-#   5. Caddy, usuário "limiar", pastas em /srv/limiar, /etc/limiar.env e os serviços do systemd
-# Não publica o app: depois dele, configure /etc/limiar.env e rode sudo limiar-deploy.
+#   5. Caddy, usuário "membrana", pastas em /srv/membrana, /etc/membrana.env e os serviços do systemd
+# Não publica o app: depois dele, configure /etc/membrana.env e rode sudo membrana-deploy.
 set -Eeuo pipefail
 
 ADMIN=''
@@ -58,7 +58,7 @@ trap 'falha "a etapa \"$ETAPA\" falhou. Corrija e rode de novo: o script pode se
 
 AQUI=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$AQUI/.." && pwd)
-[[ -f $REPO/.nvmrc && -f $REPO/deploy/limiar.service ]] ||
+[[ -f $REPO/.nvmrc && -f $REPO/deploy/membrana.service ]] ||
   falha "rode de dentro de um clone do repositório (não achei .nvmrc e deploy/)."
 NODE_MAIOR=$(tr -dc '0-9' < "$REPO/.nvmrc")
 PNPM_VERSAO=$(sed -n 's/.*"packageManager": *"pnpm@\([^"]*\)".*/\1/p' "$REPO/package.json")
@@ -99,8 +99,8 @@ if passwd -S "$ADMIN" | awk '{exit !($2 == "L" || $2 == "NP")}'; then
   passwd "$ADMIN"
 fi
 # "00-" vem antes dos arquivos da nuvem (como 50-cloud-init.conf): no sshd, vale o primeiro.
-cat > /etc/ssh/sshd_config.d/00-limiar.conf << 'FIM'
-# LIMIAR: login só por chave, nunca como root. Ver docs/servidor.md.
+cat > /etc/ssh/sshd_config.d/00-membrana.conf << 'FIM'
+# MEMBRANA: login só por chave, nunca como root. Ver docs/servidor.md.
 PermitRootLogin no
 PasswordAuthentication no
 KbdInteractiveAuthentication no
@@ -126,7 +126,7 @@ APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 APT::Periodic::AutocleanInterval "7";
 FIM
-cat > /etc/apt/apt.conf.d/52limiar-unattended << 'FIM'
+cat > /etc/apt/apt.conf.d/52membrana-unattended << 'FIM'
 // Reinicia sozinho quando uma atualização pede, às 5h (longe das sessões de jogo).
 Unattended-Upgrade::Automatic-Reboot "true";
 Unattended-Upgrade::Automatic-Reboot-Time "05:00";
@@ -155,7 +155,7 @@ if ! command -v caddy > /dev/null; then
   apt-get update -q
   apt-get -y -q install caddy
 fi
-sed -e "s/limiar\.exemplo\.com/$DOMINIO/g" -e "s/admin@$DOMINIO/$EMAIL/" \
+sed -e "s/membrana\.exemplo\.com/$DOMINIO/g" -e "s/admin@$DOMINIO/$EMAIL/" \
   "$REPO/deploy/Caddyfile" > /etc/caddy/Caddyfile
 # O log é do usuário caddy, que roda o serviço. O chown conserta um log criado por root
 # (como faz um "caddy validate" rodado como root), e a validação já roda como caddy.
@@ -165,34 +165,34 @@ sudo -u caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 systemctl enable caddy
 systemctl reload caddy 2> /dev/null || systemctl restart caddy
 
-passo "6. Usuário limiar, pastas e configuração"
-if ! id limiar > /dev/null 2>&1; then
-  useradd --system --home-dir /srv/limiar --create-home --shell /usr/sbin/nologin limiar
+passo "6. Usuário membrana, pastas e configuração"
+if ! id membrana > /dev/null 2>&1; then
+  useradd --system --home-dir /srv/membrana --create-home --shell /usr/sbin/nologin membrana
 fi
-install -d -m 750 -o limiar -g limiar /srv/limiar /srv/limiar/releases /srv/limiar/data \
-  /srv/limiar/data/uploads /srv/limiar/backups
-if [[ ! -d /srv/limiar/repo.git ]]; then
-  sudo -u limiar -H git clone --quiet --mirror "$REPO_URL" /srv/limiar/repo.git
+install -d -m 750 -o membrana -g membrana /srv/membrana /srv/membrana/releases /srv/membrana/data \
+  /srv/membrana/data/uploads /srv/membrana/backups
+if [[ ! -d /srv/membrana/repo.git ]]; then
+  sudo -u membrana -H git clone --quiet --mirror "$REPO_URL" /srv/membrana/repo.git
 fi
-if [[ ! -f /etc/limiar.env ]]; then
+if [[ ! -f /etc/membrana.env ]]; then
   sed -e "s#^BASE_URL=.*#BASE_URL=https://$DOMINIO#" \
     -e "s#^SESSION_SECRET=.*#SESSION_SECRET=$(openssl rand -hex 32)#" \
-    "$REPO/deploy/limiar.env.example" > /etc/limiar.env
-  echo "Criado /etc/limiar.env (com SESSION_SECRET novo). Revise: sudo nano /etc/limiar.env"
+    "$REPO/deploy/membrana.env.example" > /etc/membrana.env
+  echo "Criado /etc/membrana.env (com SESSION_SECRET novo). Revise: sudo nano /etc/membrana.env"
 else
-  echo "/etc/limiar.env já existe: não mexi."
+  echo "/etc/membrana.env já existe: não mexi."
 fi
-chown root:limiar /etc/limiar.env
-chmod 640 /etc/limiar.env
+chown root:membrana /etc/membrana.env
+chmod 640 /etc/membrana.env
 
 passo "7. Serviços do systemd e comando de deploy"
-install -m 644 "$REPO/deploy/limiar.service" /etc/systemd/system/limiar.service
-install -m 644 "$REPO/deploy/backup.service" /etc/systemd/system/limiar-backup.service
-install -m 644 "$REPO/deploy/backup.timer" /etc/systemd/system/limiar-backup.timer
-install -m 755 "$REPO/deploy/deploy.sh" /usr/local/sbin/limiar-deploy
+install -m 644 "$REPO/deploy/membrana.service" /etc/systemd/system/membrana.service
+install -m 644 "$REPO/deploy/backup.service" /etc/systemd/system/membrana-backup.service
+install -m 644 "$REPO/deploy/backup.timer" /etc/systemd/system/membrana-backup.timer
+install -m 755 "$REPO/deploy/deploy.sh" /usr/local/sbin/membrana-deploy
 systemctl daemon-reload
-systemctl enable limiar.service limiar-backup.timer
-systemctl start limiar-backup.timer
+systemctl enable membrana.service membrana-backup.timer
+systemctl start membrana-backup.timer
 
 cat << FIM
 
@@ -202,8 +202,8 @@ Antes de fechar esta sessão, abra OUTRO terminal no seu PC e confirme que entra
 e que "sudo -v" aceita a senha. Só depois feche a sessão do root.
 
 Próximos passos (docs/servidor.md):
-  1. sudo nano /etc/limiar.env          Discord e Sentry, se for usar
-  2. configurar o rclone (backup)       sudo -u limiar -H rclone config
-  3. sudo limiar-deploy                  publica a main
+  1. sudo nano /etc/membrana.env          Discord e Sentry, se for usar
+  2. configurar o rclone (backup)       sudo -u membrana -H rclone config
+  3. sudo membrana-deploy                  publica a main
   4. https://$DOMINIO/health             deve responder {"ok":true,...}
 FIM

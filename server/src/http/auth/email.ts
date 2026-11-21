@@ -1,7 +1,7 @@
 // Cadastro e entrada por e-mail e senha. A sessão é a mesma do Discord (sessao.ts).
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { esquemaCadastro, esquemaEntrar } from '@limiar/shared';
+import { esquemaCadastro, esquemaEntrar } from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
 import { identities, users } from '../../db/schema.ts';
 import { ErroDaApi, validar } from '../erros.ts';

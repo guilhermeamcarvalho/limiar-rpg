@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 15
     environment: producao
     steps:
-      - name: Rodar o limiar-deploy por SSH
+      - name: Rodar o membrana-deploy por SSH
         env:
           CHAVE: ${{ secrets.DEPLOY_SSH_KEY }}
           HOSTS_CONHECIDOS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
@@ -45,4 +45,4 @@ jobs:
           # O commit é só hexadecimal; mesmo assim, confere antes de mandar ao servidor.
           [[ $COMMIT =~ ^[0-9a-f]{40}$ ]] || { echo "commit inválido: $COMMIT"; exit 1; }
           ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
-            "$USUARIO@$SERVIDOR" "sudo /usr/local/sbin/limiar-deploy $COMMIT"
+            "$USUARIO@$SERVIDOR" "sudo /usr/local/sbin/membrana-deploy $COMMIT"

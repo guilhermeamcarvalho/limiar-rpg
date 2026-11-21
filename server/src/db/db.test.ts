@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CONFIG_OP2, esquemaConfigOp2, ID_OP2 } from '@limiar/shared';
+import { CONFIG_OP2, esquemaConfigOp2, ID_OP2 } from '@membrana/shared';
 import { bancoDeTeste } from '../teste/apoio.ts';
 import { abrirBanco, migrar, schema } from './index.ts';
 import { semear } from './seed.ts';
@@ -19,9 +19,9 @@ afterEach(() => {
 });
 
 function bancoEmArquivo() {
-  const pasta = mkdtempSync(join(tmpdir(), 'limiar-'));
+  const pasta = mkdtempSync(join(tmpdir(), 'membrana-'));
   pastas.push(pasta);
-  const caminho = join(pasta, 'sub', 'limiar.db');
+  const caminho = join(pasta, 'sub', 'membrana.db');
   const banco = abrirBanco(caminho);
   abertos.push(banco.sqlite);
   return { ...banco, caminho };

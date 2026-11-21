@@ -1,5 +1,5 @@
 {
-  "name": "@limiar/client",
+  "name": "@membrana/client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "@limiar/shared": "workspace:*",
+    "@membrana/shared": "workspace:*",
     "@sentry/react": "^11.15.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

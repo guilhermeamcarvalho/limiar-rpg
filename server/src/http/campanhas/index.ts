@@ -7,7 +7,7 @@ import {
   esquemaNovaCampanha,
   papelNa,
   podeEditarCampanha,
-} from '@limiar/shared';
+} from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
 import { campaigns, gameSystems, memberships } from '../../db/schema.ts';
 import { exigirLogin, usuarioLogado } from '../auth/sessao.ts';

@@ -12,7 +12,7 @@ import {
   type CampanhaNaLista,
   type ConviteDoMestre,
   type SituacaoDoCaso,
-} from '@limiar/shared';
+} from '@membrana/shared';
 import { ErroDaApi, pedir } from '../auth/api.ts';
 import {
   PAPEL,

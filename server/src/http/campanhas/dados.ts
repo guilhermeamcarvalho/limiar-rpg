@@ -9,8 +9,8 @@ import type {
   Papel,
   Quem,
   SituacaoDoCaso,
-} from '@limiar/shared';
-import { podeVerCampanha } from '@limiar/shared';
+} from '@membrana/shared';
+import { podeVerCampanha } from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
 import { campaigns, gameSystems, invites, memberships, users } from '../../db/schema.ts';
 import { ErroDaApi } from '../erros.ts';

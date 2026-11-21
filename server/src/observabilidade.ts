@@ -3,7 +3,7 @@
 // do pedido, nem o código de convite que aparece na URL.
 import * as Sentry from '@sentry/node';
 import type { Breadcrumb, ErrorEvent } from '@sentry/node';
-import { anonimizarUrl } from '@limiar/shared';
+import { anonimizarUrl } from '@membrana/shared';
 
 let ligado = false;
 
@@ -60,7 +60,7 @@ export function iniciarObservabilidade({ dsn, versao, ambiente }: OpcoesDeObserv
   if (!dsn) return false;
   Sentry.init({
     dsn,
-    release: `limiar@${versao}`,
+    release: `membrana@${versao}`,
     environment: ambiente,
     // O padrão do SDK coleta usuário, cookies, cabeçalhos, corpos e query. Aqui, nada disso;
     // o `limparEvento` ainda passa por cima de cada evento, por garantia.

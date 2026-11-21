@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { ErrorEvent } from '@sentry/node';
 import { appDeTeste } from './teste/apoio.ts';
-import { anonimizarUrl } from '@limiar/shared';
+import { anonimizarUrl } from '@membrana/shared';
 import { limparEvento, limparRastro } from './observabilidade.ts';
 
 describe('o que vai para o Sentry', () => {
   it('a URL perde a query e os códigos de convite', () => {
     expect(anonimizarUrl('/c/ERMIDA-3H33?aceitar=1')).toBe('/c/:codigo');
-    expect(anonimizarUrl('https://limiar.app/api/convites/ERMIDA-3H33/aceitar')).toBe(
-      'https://limiar.app/api/convites/:codigo/aceitar',
+    expect(anonimizarUrl('https://membrana.app/api/convites/ERMIDA-3H33/aceitar')).toBe(
+      'https://membrana.app/api/convites/:codigo/aceitar',
     );
     expect(anonimizarUrl('/api/campanhas/cmp_1?x=marta@exemplo.com')).toBe('/api/campanhas/cmp_1');
   });
@@ -21,11 +21,11 @@ describe('o que vai para o Sentry', () => {
       request: {
         url: '/c/ERMIDA-3H33?voltar=/casos',
         method: 'GET',
-        cookies: { limiar_sessao: 'segredo' },
+        cookies: { membrana_sessao: 'segredo' },
         data: { senha: 'mare-de-concreto' },
         query_string: 'voltar=/casos',
         headers: {
-          cookie: 'limiar_sessao=segredo',
+          cookie: 'membrana_sessao=segredo',
           authorization: 'Bearer x',
           'x-forwarded-for': '200.1.2.3',
           'User-Agent': 'Firefox',
@@ -67,7 +67,7 @@ describe('o que vai para o Sentry', () => {
 
 describe('/health', () => {
   it('mostra a versão publicada pelo deploy quando ela existe', async () => {
-    const app = await appDeTeste({ env: { LIMIAR_VERSAO: '0.0.0+abc1234' } });
+    const app = await appDeTeste({ env: { MEMBRANA_VERSAO: '0.0.0+abc1234' } });
     const r = await app.inject({ method: 'GET', url: '/health' });
     await app.close();
     expect(r.json()).toEqual({ ok: true, versao: '0.0.0+abc1234' });
