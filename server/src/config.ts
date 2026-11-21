@@ -18,7 +18,7 @@ const esquema = z
     SESSION_SECRET: z
       .string({ error: 'obrigatória' })
       .min(32, { error: 'precisa ter pelo menos 32 caracteres' }),
-    DATABASE_PATH: z.string().min(1).default(join(RAIZ, 'data/limiar.db')),
+    DATABASE_PATH: z.string().min(1).default(join(RAIZ, 'data/membrana.db')),
     UPLOADS_DIR: z.string().min(1).default(join(RAIZ, 'data/uploads')),
     DISCORD_CLIENT_ID: z.string().min(1).optional(),
     DISCORD_CLIENT_SECRET: z.string().min(1).optional(),
@@ -27,7 +27,7 @@ const esquema = z
     /** DSN do projeto do navegador: entra no build e libera o envio na CSP (connect-src). */
     SENTRY_DSN_CLIENT: z.url({ error: 'precisa ser a URL do DSN que o Sentry mostra' }).optional(),
     /** Escrita pelo deploy (o commit publicado); sem ela, vale a versão do package.json. */
-    LIMIAR_VERSAO: z.string().min(1).optional(),
+    MEMBRANA_VERSAO: z.string().min(1).optional(),
   })
   .refine((c) => Boolean(c.DISCORD_CLIENT_ID) === Boolean(c.DISCORD_CLIENT_SECRET), {
     error: 'DISCORD_CLIENT_ID e DISCORD_CLIENT_SECRET vão juntas: preencha as duas ou nenhuma',
@@ -60,5 +60,5 @@ export function carregarConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
 /** Só o caminho do banco: o script de migração não precisa do resto. */
 export function caminhoDoBanco(env: NodeJS.ProcessEnv = process.env): string {
-  return env.DATABASE_PATH || join(RAIZ, 'data/limiar.db');
+  return env.DATABASE_PATH || join(RAIZ, 'data/membrana.db');
 }

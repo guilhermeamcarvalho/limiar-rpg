@@ -5,7 +5,7 @@ import { Link, Route, Routes } from 'react-router';
 import { ExigirLogin } from '../auth/ExigirLogin.tsx';
 import { AppLayout, CarregandoPagina } from './AppLayout.tsx';
 
-const RECARREGOU = 'limiar.recarregou-por-versao';
+const RECARREGOU = 'membrana.recarregou-por-versao';
 
 /** Sem armazenamento (aba anônima, bloqueado), age como se nunca tivesse recarregado. */
 function marca(acao: 'ler' | 'marcar' | 'limpar'): boolean {

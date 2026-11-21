@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import type { ConvitePublico } from '@limiar/shared';
+import type { ConvitePublico } from '@membrana/shared';
 import { reiniciarConvitesPendentes } from '../convites/pendentes.ts';
 import { abrir, caso, json, semRede, servidor } from '../teste/apoio.tsx';
 
-const CHAVE = 'limiar.convites-pendentes.v1';
+const CHAVE = 'membrana.convites-pendentes.v1';
 const AMANHA = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
 const CONVITE: ConvitePublico = {

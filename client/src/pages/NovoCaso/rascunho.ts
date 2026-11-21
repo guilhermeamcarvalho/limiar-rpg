@@ -12,7 +12,7 @@ import {
   type Formato,
   type Frequencia,
   type Tom,
-} from '@limiar/shared';
+} from '@membrana/shared';
 
 export const PASSOS = [
   { id: 'premissa', nome: 'Premissa', dica: 'Sistema e mistério' },
@@ -62,7 +62,7 @@ export const RASCUNHO_VAZIO: Rascunho = {
   expiraEmDias: '7',
 };
 
-const chave = (userId: string) => `limiar.novo-caso.rascunho.v1:${userId}`;
+const chave = (userId: string) => `membrana.novo-caso.rascunho.v1:${userId}`;
 
 /** Lê o rascunho guardado, campo a campo: o que estiver estragado volta ao padrão. */
 export function lerRascunho(userId: string): { rascunho: Rascunho; salvoEm: number | null } {

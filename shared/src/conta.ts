@@ -19,7 +19,7 @@ export const esquemaCadastro = z.object({
     .string()
     .min(MIN_SENHA, { error: `Use pelo menos ${String(MIN_SENHA)} caracteres.` })
     .max(MAX_SENHA, { error: `Use até ${String(MAX_SENHA)} caracteres.` }),
-  aceite: z.literal(true, { error: 'É preciso aceitar como a LIMIAR guarda seus dados.' }),
+  aceite: z.literal(true, { error: 'É preciso aceitar como a MEMBRANA guarda seus dados.' }),
   manter: z.boolean().default(true),
 });
 

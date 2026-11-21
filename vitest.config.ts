@@ -15,7 +15,13 @@ export default defineConfig({
         test: { name: 'shared', root: './shared', environment: 'node' },
       },
       {
-        test: { name: 'server', root: './server', environment: 'node' },
+        test: {
+          name: 'server',
+          root: './server',
+          environment: 'node',
+          // Montar o app pela primeira vez (importar Fastify e afins) passa de 5 s numa máquina lenta.
+          testTimeout: 15000,
+        },
       },
       {
         extends: './client/vite.config.ts',

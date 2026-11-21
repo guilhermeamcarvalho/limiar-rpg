@@ -4,7 +4,7 @@ Nov 18, 2026 · @Guilherme
 
 ## Visão do produto
 
-A LIMIAR é uma mesa virtual para um grupo de amigos jogar RPG de mesa online: Ordem Paranormal II e sistemas inventados pelo próprio grupo. Ela reúne ficha, mapa, névoa, pistas, dados, chat e trilha sonora num só lugar, com o visual de dossiê da marca LIMIAR.
+A MEMBRANA é uma mesa virtual para um grupo de amigos jogar RPG de mesa online: Ordem Paranormal II e sistemas inventados pelo próprio grupo. Ela reúne ficha, mapa, névoa, pistas, dados, chat e trilha sonora num só lugar, com o visual de dossiê da marca MEMBRANA.
 
 Esta documentação tem três abas:
 

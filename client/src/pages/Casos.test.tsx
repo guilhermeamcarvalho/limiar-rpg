@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import type { CampanhaNaLista } from '@limiar/shared';
+import type { CampanhaNaLista } from '@membrana/shared';
 import { abrir, caso, detalhe, endereco, json, servidor } from '../teste/apoio.tsx';
 import { filtrarCasos, type Filtros } from './Casos.tsx';
 

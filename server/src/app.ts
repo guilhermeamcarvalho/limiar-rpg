@@ -71,8 +71,8 @@ export function origemDoSentryDoClient(config: Pick<Config, 'SENTRY_DSN_CLIENT'>
 }
 
 /** A versão publicada: o commit que o deploy escreveu ou, sem deploy, a do package.json. */
-export function versaoDoApp(config: Pick<Config, 'LIMIAR_VERSAO'>): string {
-  return config.LIMIAR_VERSAO ?? pacote.version;
+export function versaoDoApp(config: Pick<Config, 'MEMBRANA_VERSAO'>): string {
+  return config.MEMBRANA_VERSAO ?? pacote.version;
 }
 
 /** Monta o app sem abrir porta, para os testes usarem `app.inject`. */

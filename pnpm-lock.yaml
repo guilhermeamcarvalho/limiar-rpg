@@ -223,7 +223,7 @@ importers:
 
   client:
     dependencies:
-      '@limiar/shared':
+      '@membrana/shared':
         specifier: workspace:*
         version: link:../shared
       '@sentry/react':
@@ -275,7 +275,7 @@ importers:
       '@fastify/static':
         specifier: ^10.1.11
         version: 10.1.11
-      '@limiar/shared':
+      '@membrana/shared':
         specifier: workspace:*
         version: link:../shared
       '@sentry/node':

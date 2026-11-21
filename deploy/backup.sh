@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Backup diário da LIMIAR para fora do servidor (Google Drive, pelo rclone). Roda às 4h pelo
-# timer limiar-backup.timer, como o usuário do serviço. Para rodar na hora:
-#   sudo systemctl start limiar-backup && journalctl -u limiar-backup -n 30 --no-pager
+# Backup diário da MEMBRANA para fora do servidor (Google Drive, pelo rclone). Roda às 4h pelo
+# timer membrana-backup.timer, como o usuário do serviço. Para rodar na hora:
+#   sudo systemctl start membrana-backup && sudo journalctl -u membrana-backup -n 30 --no-pager
 #
-# O que fica no remoto (BACKUP_REMOTO, como gdrive:limiar-backup):
-#   banco/limiar-AAAA-MM-DD.db.gz        cópia consistente do SQLite, uma por dia, as 14 últimas
+# O que fica no remoto (BACKUP_REMOTO, como gdrive:membrana-backup):
+#   banco/membrana-AAAA-MM-DD.db.gz        cópia consistente do SQLite, uma por dia, as 14 últimas
 #   uploads/atual/                       espelho de data/uploads
 #   uploads/anteriores/AAAA-MM-DD/       o que foi apagado ou trocado naquele dia (14 dias)
 # Assim, qualquer um dos últimos 14 dias pode ser restaurado (deploy/restaurar.sh).
 set -Eeuo pipefail
 
-AMBIENTE=${LIMIAR_AMBIENTE:-/etc/limiar.env}
+AMBIENTE=${MEMBRANA_AMBIENTE:-/etc/membrana.env}
 MANTER=14
 
 ler_var() { { grep -E "^$1=" "$AMBIENTE" || true; } | tail -n 1 | cut -d= -f2-; }
@@ -52,15 +52,15 @@ trap 'rm -rf -- "$TEMP"' EXIT
 
 echo "Copiando o banco ($BANCO)"
 # .backup faz uma cópia consistente mesmo com o app gravando (modo WAL).
-sqlite3 "$BANCO" ".backup '$TEMP/limiar-$DIA.db'"
-integridade=$(sqlite3 "$TEMP/limiar-$DIA.db" 'PRAGMA integrity_check;')
+sqlite3 "$BANCO" ".backup '$TEMP/membrana-$DIA.db'"
+integridade=$(sqlite3 "$TEMP/membrana-$DIA.db" 'PRAGMA integrity_check;')
 if [[ $integridade != ok ]]; then
   echo "ERRO: a cópia do banco não passou na verificação: $integridade" >&2
   falhou $LINENO
 fi
-gzip -9 "$TEMP/limiar-$DIA.db"
-rclone copyto "$TEMP/limiar-$DIA.db.gz" "$REMOTO/banco/limiar-$DIA.db.gz"
-echo "Banco enviado: $REMOTO/banco/limiar-$DIA.db.gz ($(du -h "$TEMP/limiar-$DIA.db.gz" | cut -f1))"
+gzip -9 "$TEMP/membrana-$DIA.db"
+rclone copyto "$TEMP/membrana-$DIA.db.gz" "$REMOTO/banco/membrana-$DIA.db.gz"
+echo "Banco enviado: $REMOTO/banco/membrana-$DIA.db.gz ($(du -h "$TEMP/membrana-$DIA.db.gz" | cut -f1))"
 
 if [[ -d $UPLOADS ]]; then
   echo "Sincronizando os uploads ($UPLOADS)"
@@ -72,7 +72,7 @@ fi
 echo "Mantendo as $MANTER cópias mais novas"
 # Os nomes têm a data, então a ordem alfabética é a ordem do tempo. "|| true": lista vazia
 # (nada a apagar) é o caso normal, não um erro.
-copias=$(rclone lsf --files-only "$REMOTO/banco" | grep -E '^limiar-[0-9-]+\.db\.gz$' | sort || true)
+copias=$(rclone lsf --files-only "$REMOTO/banco" | grep -E '^membrana-[0-9-]+\.db\.gz$' | sort || true)
 for antigo in $(head -n -"$MANTER" <<< "$copias"); do
   rclone deletefile "$REMOTO/banco/$antigo"
   echo "  apagado banco/$antigo"

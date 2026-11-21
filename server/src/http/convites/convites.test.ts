@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
-import type { CampanhaDetalhe, ConviteDoMestre, ConvitePublico } from '@limiar/shared';
+import type { CampanhaDetalhe, ConviteDoMestre, ConvitePublico } from '@membrana/shared';
 import { schema } from '../../db/index.ts';
 import { appDeTeste, pessoaLogada } from '../../teste/apoio.ts';
 import { gerarCodigo, palavraDoNome } from './index.ts';

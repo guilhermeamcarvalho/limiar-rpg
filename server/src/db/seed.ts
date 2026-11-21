@@ -1,6 +1,6 @@
 // Dados que precisam existir antes de qualquer caso. Pode rodar quantas vezes quiser:
 // a linha é inserida uma vez e, depois, só atualizada com o config atual.
-import { CONFIG_OP2, esquemaConfigOp2, ID_OP2 } from '@limiar/shared';
+import { CONFIG_OP2, esquemaConfigOp2, ID_OP2 } from '@membrana/shared';
 import type { Banco } from './index.ts';
 import { gameSystems } from './schema.ts';
 

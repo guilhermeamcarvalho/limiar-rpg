@@ -8,7 +8,7 @@ import type { Banco } from '../../db/index.ts';
 import { sessions, users } from '../../db/schema.ts';
 import { ErroDaApi } from '../erros.ts';
 
-export const COOKIE_DA_SESSAO = 'limiar_sessao';
+export const COOKIE_DA_SESSAO = 'membrana_sessao';
 
 const DIA = 24 * 60 * 60 * 1000;
 /** Com "manter conectado": 30 dias, renovados quando passar da metade. */

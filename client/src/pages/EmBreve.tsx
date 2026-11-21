@@ -2,7 +2,7 @@
 // e como voltar, em vez de uma página não encontrada.
 import { useEffect, type ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { tituloDaPagina, type CampanhaDetalhe } from '@limiar/shared';
+import { tituloDaPagina, type CampanhaDetalhe } from '@membrana/shared';
 import { pedir } from '../auth/api.ts';
 import { linkDaCampanha, linkDoDossie, type PaginaDaCampanha } from '../casos/formatos.ts';
 import {

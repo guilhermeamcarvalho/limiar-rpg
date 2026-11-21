@@ -105,7 +105,7 @@ export function contaDoDiscord(db: Banco, perfil: PerfilDiscord): string {
   });
 }
 
-const COOKIE_DO_OAUTH = 'limiar_oauth';
+const COOKIE_DO_OAUTH = 'membrana_oauth';
 const CAMINHO_DO_OAUTH = '/api/auth/discord';
 
 const estadoGuardado = z.object({ state: z.string(), manter: z.boolean(), voltar: z.string() });

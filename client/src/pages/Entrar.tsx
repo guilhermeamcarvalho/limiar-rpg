@@ -1,7 +1,7 @@
 // Entrar: artboards "01 · Entrar" e "Celular · 01 · Entrar".
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router';
-import { tituloDaPagina } from '@limiar/shared';
+import { tituloDaPagina } from '@membrana/shared';
 import { useMe } from '../auth/sessao.tsx';
 import { Banner, Button, Checkbox, Field, Input, Marca, Note } from '../ui/index.ts';
 import {
@@ -67,7 +67,7 @@ export function Entrar() {
       </div>
       <div className="col acesso-titulo" style={{ gap: 6 }}>
         <h1 className="h1">Entrar</h1>
-        <p className="muted so-pc">Bem-vindo de volta à LIMIAR.</p>
+        <p className="muted so-pc">Bem-vindo de volta à MEMBRANA.</p>
         <p className="small muted so-cel">Uma conta serve para jogar e para mestrar.</p>
       </div>
 

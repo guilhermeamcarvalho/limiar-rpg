@@ -9,13 +9,13 @@
 #   deploy/restaurar.sh --sem-uploads      só o banco (mais rápido)
 #
 # Vai para data/restaurado/ (banco e uploads), sem tocar no data/ do dia a dia. Se a pasta já
-# existir, pergunta antes de apagar. Variáveis: LIMIAR_BACKUP_REMOTO (padrão gdrive:limiar-backup)
-# e LIMIAR_RESTAURAR_EM (padrão data/restaurado).
+# existir, pergunta antes de apagar. Variáveis: MEMBRANA_BACKUP_REMOTO (padrão gdrive:membrana-backup)
+# e MEMBRANA_RESTAURAR_EM (padrão data/restaurado).
 set -Eeuo pipefail
 
-REMOTO=${LIMIAR_BACKUP_REMOTO:-gdrive:limiar-backup}
+REMOTO=${MEMBRANA_BACKUP_REMOTO:-gdrive:membrana-backup}
 RAIZ=$(cd "$(dirname "$0")/.." && pwd)
-DESTINO=${LIMIAR_RESTAURAR_EM:-$RAIZ/data/restaurado}
+DESTINO=${MEMBRANA_RESTAURAR_EM:-$RAIZ/data/restaurado}
 
 dia=''
 listar=0
@@ -41,7 +41,7 @@ command -v rclone > /dev/null || {
   exit 1
 }
 
-backups=$(rclone lsf --files-only "$REMOTO/banco" | grep -E '^limiar-[0-9-]+\.db\.gz$' | sort || true)
+backups=$(rclone lsf --files-only "$REMOTO/banco" | grep -E '^membrana-[0-9-]+\.db\.gz$' | sort || true)
 [[ -n $backups ]] || {
   echo "Nenhum backup em $REMOTO/banco." >&2
   exit 1
@@ -50,19 +50,19 @@ backups=$(rclone lsf --files-only "$REMOTO/banco" | grep -E '^limiar-[0-9-]+\.db
 if [[ $listar == 1 ]]; then
   echo "Backups em $REMOTO/banco:"
   # shellcheck disable=SC2001 # várias linhas: o sed é mais claro
-  sed 's/^limiar-\(.*\)\.db\.gz$/  \1/' <<< "$backups"
+  sed 's/^membrana-\(.*\)\.db\.gz$/  \1/' <<< "$backups"
   exit 0
 fi
 
 if [[ -n $dia ]]; then
-  arquivo="limiar-$dia.db.gz"
+  arquivo="membrana-$dia.db.gz"
   grep -qx "$arquivo" <<< "$backups" || {
     echo "Não há backup de $dia. Veja os que existem com: deploy/restaurar.sh --listar" >&2
     exit 1
   }
 else
   arquivo=$(tail -n 1 <<< "$backups")
-  dia=${arquivo#limiar-}
+  dia=${arquivo#membrana-}
   dia=${dia%.db.gz}
 fi
 
@@ -74,16 +74,16 @@ fi
 mkdir -p "$DESTINO"
 
 echo "Baixando o banco de $dia"
-rclone copyto "$REMOTO/banco/$arquivo" "$DESTINO/limiar.db.gz"
-gzip -d "$DESTINO/limiar.db.gz"
+rclone copyto "$REMOTO/banco/$arquivo" "$DESTINO/membrana.db.gz"
+gzip -d "$DESTINO/membrana.db.gz"
 
 if command -v sqlite3 > /dev/null; then
-  integridade=$(sqlite3 "$DESTINO/limiar.db" 'PRAGMA integrity_check;')
+  integridade=$(sqlite3 "$DESTINO/membrana.db" 'PRAGMA integrity_check;')
   [[ $integridade == ok ]] || {
     echo "ERRO: o banco baixado não passou na verificação: $integridade" >&2
     exit 1
   }
-  echo "Banco íntegro: $(sqlite3 "$DESTINO/limiar.db" 'select count(*) from campaigns;') casos, $(sqlite3 "$DESTINO/limiar.db" 'select count(*) from users;') contas."
+  echo "Banco íntegro: $(sqlite3 "$DESTINO/membrana.db" 'select count(*) from campaigns;') casos, $(sqlite3 "$DESTINO/membrana.db" 'select count(*) from users;') contas."
 else
   echo "(sqlite3 não instalado: pulei a verificação de integridade.)"
 fi
@@ -96,13 +96,13 @@ fi
 
 # Caminhos no formato que o Node entende também no Windows (C:/...).
 caminho() { if command -v cygpath > /dev/null; then cygpath -m "$1"; else echo "$1"; fi; }
-banco=$(caminho "$DESTINO/limiar.db")
+banco=$(caminho "$DESTINO/membrana.db")
 pasta=$(caminho "$DESTINO/uploads")
 
 cat << FIM
 
 Backup de $dia restaurado em $DESTINO.
-Para abrir o app com ele (o pnpm dev normal continua usando data/limiar.db):
+Para abrir o app com ele (o pnpm dev normal continua usando data/membrana.db):
 
   PowerShell:
     \$env:DATABASE_PATH="$banco"; \$env:UPLOADS_DIR="$pasta"; pnpm.cmd db:migrate; pnpm.cmd dev

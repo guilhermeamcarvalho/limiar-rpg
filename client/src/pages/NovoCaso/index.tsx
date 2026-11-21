@@ -16,7 +16,7 @@ import {
   type Formato,
   type Frequencia,
   type Tom,
-} from '@limiar/shared';
+} from '@membrana/shared';
 import { ErroDaApi, pedir } from '../../auth/api.ts';
 import { useMe } from '../../auth/sessao.tsx';
 import { agendaEmTexto, linkDoDossie, quandoCurto } from '../../casos/formatos.ts';

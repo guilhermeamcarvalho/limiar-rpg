@@ -7,7 +7,7 @@ import {
   normalizarCodigo,
   tituloDaPagina,
   type ConvitePublico,
-} from '@limiar/shared';
+} from '@membrana/shared';
 import { ErroDaApi, pedir } from '../auth/api.ts';
 import { esquecerConvitePendente, guardarConvitePendente } from '../convites/pendentes.ts';
 import { useMe } from '../auth/sessao.tsx';

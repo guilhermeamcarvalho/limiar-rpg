@@ -1,17 +1,18 @@
-# Uma execução do backup. Instalado como /etc/systemd/system/limiar-backup.service;
-# quem chama é o limiar-backup.timer, às 4h. Logs: journalctl -u limiar-backup
+# Uma execução do backup. Instalado como /etc/systemd/system/membrana-backup.service;
+# quem chama é o membrana-backup.timer, às 4h. Logs: sudo journalctl -u membrana-backup
 [Unit]
-Description=Backup diário da LIMIAR (banco e uploads para o Google Drive)
+Description=Backup diário da MEMBRANA (banco e uploads para o Google Drive)
 Documentation=https://github.com/guilhermeamcarvalho/limiar-rpg/blob/main/docs/servidor.md
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=limiar
-Group=limiar
+User=membrana
+Group=membrana
 # Usa o script da versão publicada: um deploy que melhore o backup já vale na noite seguinte.
-ExecStart=/srv/limiar/current/deploy/backup.sh
+# Pelo bash: funciona mesmo se o arquivo perder a permissão de execução (commit do Windows).
+ExecStart=/bin/bash /srv/membrana/current/deploy/backup.sh
 # Não atrapalha o app se alguém estiver jogando de madrugada.
 Nice=10
 IOSchedulingClass=idle
@@ -21,5 +22,5 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-# O rclone guarda o token renovado na própria configuração, dentro de /srv/limiar.
-ReadWritePaths=/srv/limiar
+# O rclone guarda o token renovado na própria configuração, dentro de /srv/membrana.
+ReadWritePaths=/srv/membrana

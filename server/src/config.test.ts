@@ -18,7 +18,7 @@ describe('carregarConfig', () => {
 
     expect(config.PORT).toBe(3000);
     expect(config.HOST).toBe('127.0.0.1');
-    expect(config.DATABASE_PATH.replaceAll('\\', '/')).toMatch(/data\/limiar\.db$/);
+    expect(config.DATABASE_PATH.replaceAll('\\', '/')).toMatch(/data\/membrana\.db$/);
     expect(config.UPLOADS_DIR.replaceAll('\\', '/')).toMatch(/data\/uploads$/);
   });
 

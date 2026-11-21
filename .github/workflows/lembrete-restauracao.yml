@@ -32,7 +32,7 @@ jobs:
           gh issue create --title "$titulo" --label infra --body "$(cat <<'FIM'
           Teste mensal da restauração do backup. O passo a passo completo está em `docs/servidor.md`, seção "Testar a restauração".
 
-          - [ ] No servidor: `systemctl list-timers limiar-backup` mostra a última execução desta madrugada
+          - [ ] No servidor: `systemctl list-timers membrana-backup` mostra a última execução desta madrugada
           - [ ] No PC, da raiz do repositório (Git Bash): `deploy/restaurar.sh --listar` mostra as cópias dos últimos dias
           - [ ] `deploy/restaurar.sh` baixa a mais nova e passa na verificação de integridade
           - [ ] O app abre com o banco restaurado e mostra os casos de ontem

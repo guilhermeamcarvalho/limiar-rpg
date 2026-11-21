@@ -511,7 +511,7 @@ export default function Componentes() {
       }}
     >
       <section className="col" style={{ gap: 8 }}>
-        <span className="eyebrow">LIMIAR · componentes</span>
+        <span className="eyebrow">MEMBRANA · componentes</span>
         <h1 className="h1">Tokens, componentes e estados</h1>
         <p className="muted" style={{ maxWidth: 760 }}>
           Todas as telas usam só o que está aqui. Cor nova entra primeiro como token. Cada

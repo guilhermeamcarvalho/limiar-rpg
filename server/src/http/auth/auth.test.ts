@@ -42,7 +42,7 @@ function cookie(resposta: LightMyRequestResponse, nome: string) {
 async function comecar(a: FastifyInstance, query = '') {
   const inicio = await a.inject({ method: 'GET', url: `/api/auth/discord${query}` });
   const local = new URL(String(inicio.headers.location));
-  const oauth = cookie(inicio, 'limiar_oauth');
+  const oauth = cookie(inicio, 'membrana_oauth');
   return { inicio, state: local.searchParams.get('state') ?? '', oauth: oauth?.value ?? '' };
 }
 
@@ -52,12 +52,12 @@ async function entrar(a: FastifyInstance, query = '', codigo = 'bom') {
   return a.inject({
     method: 'GET',
     url: `/api/auth/discord/callback?code=${codigo}&state=${state}`,
-    cookies: { limiar_oauth: oauth },
+    cookies: { membrana_oauth: oauth },
   });
 }
 
 function me(a: FastifyInstance, sessao: string) {
-  return a.inject({ method: 'GET', url: '/api/me', cookies: { limiar_sessao: sessao } });
+  return a.inject({ method: 'GET', url: '/api/me', cookies: { membrana_sessao: sessao } });
 }
 
 describe('GET /api/auth/discord', () => {
@@ -67,7 +67,7 @@ describe('GET /api/auth/discord', () => {
     expect(inicio.statusCode).toBe(302);
     expect(inicio.headers.location).toMatch(/^https:\/\/discord\.test\/autorizar\?state=/);
     expect(state.length).toBeGreaterThanOrEqual(20);
-    expect(cookie(inicio, 'limiar_oauth')?.httpOnly).toBe(true);
+    expect(cookie(inicio, 'membrana_oauth')?.httpOnly).toBe(true);
     // Assinado (não cifrado): o valor segue visível, com a assinatura no fim. Adulterar invalida.
     expect(oauth).toMatch(/\}\.\S+$/);
   });
@@ -92,7 +92,7 @@ describe('GET /api/auth/discord/callback', () => {
 
     expect(resposta.statusCode).toBe(302);
     expect(resposta.headers.location).toBe('/');
-    const sessao = cookie(resposta, 'limiar_sessao');
+    const sessao = cookie(resposta, 'membrana_sessao');
     expect(sessao?.httpOnly).toBe(true);
     expect(sessao?.sameSite).toBe('Lax');
     expect(sessao?.path).toBe('/');
@@ -114,7 +114,7 @@ describe('GET /api/auth/discord/callback', () => {
   it('"manter conectado" dá cookie de 30 dias', async () => {
     const resposta = await entrar(await montar(), '?manter=1');
 
-    expect(cookie(resposta, 'limiar_sessao')?.maxAge).toBe(DURACAO_LONGA_MS / 1000);
+    expect(cookie(resposta, 'membrana_sessao')?.maxAge).toBe(DURACAO_LONGA_MS / 1000);
   });
 
   it('recusa state diferente do guardado', async () => {
@@ -124,11 +124,11 @@ describe('GET /api/auth/discord/callback', () => {
     const resposta = await a.inject({
       method: 'GET',
       url: '/api/auth/discord/callback?code=bom&state=forjado',
-      cookies: { limiar_oauth: oauth },
+      cookies: { membrana_oauth: oauth },
     });
 
     expect(resposta.headers.location).toBe('/entrar?erro=estado-invalido');
-    expect(cookie(resposta, 'limiar_sessao')).toBeUndefined();
+    expect(cookie(resposta, 'membrana_sessao')).toBeUndefined();
     expect(a.db.select().from(schema.sessions).all()).toHaveLength(0);
   });
 
@@ -152,7 +152,7 @@ describe('GET /api/auth/discord/callback', () => {
     const resposta = await a.inject({
       method: 'GET',
       url: `/api/auth/discord/callback?code=bom&state=${state}`,
-      cookies: { limiar_oauth: falso },
+      cookies: { membrana_oauth: falso },
     });
 
     expect(resposta.headers.location).toBe('/entrar?erro=estado-invalido');
@@ -165,7 +165,7 @@ describe('GET /api/auth/discord/callback', () => {
     const resposta = await a.inject({
       method: 'GET',
       url: `/api/auth/discord/callback?error=access_denied&state=${state}`,
-      cookies: { limiar_oauth: oauth },
+      cookies: { membrana_oauth: oauth },
     });
 
     expect(resposta.headers.location).toBe('/entrar?erro=discord-cancelado');
@@ -175,7 +175,7 @@ describe('GET /api/auth/discord/callback', () => {
     const resposta = await entrar(await montar(), '', 'ruim');
 
     expect(resposta.headers.location).toBe('/entrar?erro=discord-falhou');
-    expect(cookie(resposta, 'limiar_sessao')).toBeUndefined();
+    expect(cookie(resposta, 'membrana_sessao')).toBeUndefined();
   });
 });
 
@@ -222,23 +222,23 @@ describe('sessão', () => {
 
   it('sair apaga a sessão no servidor: o cookie antigo não vale mais', async () => {
     const a = await montar();
-    const token = cookie(await entrar(a), 'limiar_sessao')?.value ?? '';
+    const token = cookie(await entrar(a), 'membrana_sessao')?.value ?? '';
 
     const saida = await a.inject({
       method: 'POST',
       url: '/api/auth/sair',
-      cookies: { limiar_sessao: token },
+      cookies: { membrana_sessao: token },
     });
 
     expect(saida.statusCode).toBe(204);
-    expect(cookie(saida, 'limiar_sessao')?.value).toBe('');
+    expect(cookie(saida, 'membrana_sessao')?.value).toBe('');
     expect(a.db.select().from(schema.sessions).all()).toHaveLength(0);
     expect((await me(a, token)).statusCode).toBe(401);
   });
 
   it('o banco guarda só o hash do token, nunca o token', async () => {
     const a = await montar();
-    const token = cookie(await entrar(a), 'limiar_sessao')?.value ?? '';
+    const token = cookie(await entrar(a), 'membrana_sessao')?.value ?? '';
 
     const [guardada] = a.db.select().from(schema.sessions).all();
     expect(guardada?.id).not.toBe(token);
@@ -262,7 +262,7 @@ describe('sessão', () => {
   it('em produção o cookie é Secure', async () => {
     const a = await montar({ discord: discordFalso(), env: { NODE_ENV: 'production' } });
 
-    expect(cookie(await entrar(a), 'limiar_sessao')?.secure).toBe(true);
+    expect(cookie(await entrar(a), 'membrana_sessao')?.secure).toBe(true);
   });
 });
 

@@ -2,7 +2,7 @@
 // de baixo. O contexto (qual caso, qual personagem) vem da URL: /campanhas/:id/...?personagem=.
 import { Suspense, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
-import type { CampanhaDetalhe } from '@limiar/shared';
+import type { CampanhaDetalhe } from '@membrana/shared';
 import { pedir } from '../auth/api.ts';
 import { useMe } from '../auth/sessao.tsx';
 import { PAPEL, iniciais } from '../casos/formatos.ts';
@@ -165,9 +165,9 @@ export function AppLayout() {
           ))}
         </nav>
         <div className="end">
-          <Link className="btn sm" to="/convite">
+          <Link className="btn sm top-codigo" to="/convite">
             <Icon name="key" size="sm" />
-            Entrar com código
+            <span className="top-rotulo">Entrar com código</span>
           </Link>
           <Notificacoes />
           <Link className="av sm" to="/perfil" aria-label={`Perfil de ${nome}`} title={nome}>

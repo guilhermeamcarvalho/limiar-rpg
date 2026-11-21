@@ -4,7 +4,7 @@ import { abrir, detalhe, endereco, json, MARTA, servidor } from '../../teste/apo
 import { textoDoSalvo } from './index.tsx';
 import { RASCUNHO_VAZIO, lerRascunho, montarPedido } from './rascunho.ts';
 
-const CHAVE = `limiar.novo-caso.rascunho.v1:${MARTA.id}`;
+const CHAVE = `membrana.novo-caso.rascunho.v1:${MARTA.id}`;
 
 beforeEach(() => {
   localStorage.clear();

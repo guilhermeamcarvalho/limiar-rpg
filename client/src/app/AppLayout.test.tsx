@@ -31,7 +31,7 @@ describe('cabeçalho comum', () => {
         .map((l) => l.textContent),
     ).toEqual(['Central', 'Casos', 'Personagens', 'Arquivo']);
     expect(
-      screen.getAllByRole('link', { name: 'LIMIAR, ir para a Central' })[0]?.getAttribute('href'),
+      screen.getAllByRole('link', { name: 'MEMBRANA, ir para a Central' })[0]?.getAttribute('href'),
     ).toBe('/');
     expect(screen.getByRole('link', { name: /Entrar com código/ }).getAttribute('href')).toBe(
       '/convite',
@@ -112,7 +112,7 @@ describe('contexto da URL', () => {
 
 describe('notificações', () => {
   it('com convite guardado, o sino diz quantos e leva aos convites', async () => {
-    localStorage.setItem('limiar.convites-pendentes.v1', JSON.stringify(['ERMIDA-3H33']));
+    localStorage.setItem('membrana.convites-pendentes.v1', JSON.stringify(['ERMIDA-3H33']));
     servidor({ 'GET /api/campanhas': json(200, { campanhas: [] }) });
     abrir('/arquivo');
 

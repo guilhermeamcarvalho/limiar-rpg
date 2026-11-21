@@ -24,7 +24,7 @@ describe('carregarModulo (página de uma versão anterior, depois de um deploy)'
   });
 
   it('se falhar de novo depois de recarregar, o erro segue (sem laço de recargas)', async () => {
-    sessionStorage.setItem('limiar.recarregou-por-versao', '1');
+    sessionStorage.setItem('membrana.recarregou-por-versao', '1');
     const recarregar = vi.fn();
 
     await expect(carregarModulo(falhaDeChunk, recarregar)).rejects.toThrow('dynamically imported');
@@ -32,8 +32,8 @@ describe('carregarModulo (página de uma versão anterior, depois de um deploy)'
   });
 
   it('carregou: limpa a marca, para o próximo deploy poder recarregar de novo', async () => {
-    sessionStorage.setItem('limiar.recarregou-por-versao', '1');
+    sessionStorage.setItem('membrana.recarregou-por-versao', '1');
     await expect(carregarModulo(() => Promise.resolve({ ok: 1 }))).resolves.toEqual({ ok: 1 });
-    expect(sessionStorage.getItem('limiar.recarregou-por-versao')).toBeNull();
+    expect(sessionStorage.getItem('membrana.recarregou-por-versao')).toBeNull();
   });
 });

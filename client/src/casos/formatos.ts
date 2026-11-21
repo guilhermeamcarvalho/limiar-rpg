@@ -1,5 +1,5 @@
 // Como um caso aparece em texto: número, papel, datas, agenda e os links que levam a ele.
-import { DIAS_DA_SEMANA, type Agenda, type CampanhaNaLista, type Papel } from '@limiar/shared';
+import { DIAS_DA_SEMANA, type Agenda, type CampanhaNaLista, type Papel } from '@membrana/shared';
 
 /** 17 → "017". Sem número (caso antigo), "—". */
 export function numeroDoCaso(numero: number | null): string {

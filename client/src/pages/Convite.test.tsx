@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
-import type { ConvitePublico } from '@limiar/shared';
+import type { ConvitePublico } from '@membrana/shared';
 import { Rotas } from '../App.tsx';
 import { SessaoProvider } from '../auth/sessao.tsx';
 import { ToastProvider } from '../ui/index.ts';

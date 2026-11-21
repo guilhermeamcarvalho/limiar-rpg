@@ -2,7 +2,7 @@
 import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
-import type { CampanhaDetalhe, CampanhaNaLista } from '@limiar/shared';
+import type { CampanhaDetalhe, CampanhaNaLista } from '@membrana/shared';
 import { Rotas } from '../app/rotas.tsx';
 import { SessaoProvider } from '../auth/sessao.tsx';
 import { ToastProvider } from '../ui/index.ts';

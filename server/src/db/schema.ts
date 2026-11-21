@@ -8,7 +8,7 @@ import {
   type ConfigDeSistema,
   type Formato,
   type Tom,
-} from '@limiar/shared';
+} from '@membrana/shared';
 import { novoId } from './ids.ts';
 
 const criadoEm = () =>

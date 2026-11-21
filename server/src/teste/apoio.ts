@@ -39,5 +39,5 @@ export async function appDeTeste(
 /** Cria uma pessoa e uma sessão para ela; devolve o id e o cookie para usar no `inject`. */
 export function pessoaLogada(app: { db: Banco }, nome: string) {
   const { id } = app.db.insert(users).values({ nome }).returning({ id: users.id }).get();
-  return { id, nome, cookies: { limiar_sessao: criarSessao(app.db, id, false) } };
+  return { id, nome, cookies: { membrana_sessao: criarSessao(app.db, id, false) } };
 }
