@@ -15,3 +15,4 @@ export * from './schemas/campanha.ts';
 export * from './schemas/convite.ts';
 export * from './codigo.ts';
 export * from './agenda.ts';
+export * from './privacidade.ts';

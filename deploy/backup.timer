@@ -1,0 +1,14 @@
+# Dispara o backup todo dia às 4h (horário do servidor). Instalado como
+# /etc/systemd/system/limiar-backup.timer. Próxima execução: systemctl list-timers limiar-backup
+[Unit]
+Description=Backup diário da LIMIAR às 4h
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+# Servidor desligado às 4h? Roda assim que ligar.
+Persistent=true
+RandomizedDelaySec=5min
+Unit=limiar-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -349,7 +349,7 @@ Entre amigos o risco é baixo, mas o servidor fica na internet: o login precisa 
 
 ## Hospedagem, deploy e backup
 
-Decidido em 19/11/2026: um VPS pequeno com Linux, onde o app roda como serviço do systemd atrás do Caddy. Fica sempre no ar e custa de zero a poucos dólares por mês.
+Decidido em 19/11/2026: um VPS pequeno com Ubuntu LTS, onde o app roda como serviço do systemd atrás do Caddy. Fica sempre no ar e custa de zero a poucos dólares por mês. O passo a passo, do servidor novo ao monitor de queda, está em [Servidor](servidor.md), e os arquivos em `deploy/`.
 
 | Opção | Custo | Quando usar |
 | --- | --- | --- |
@@ -367,12 +367,12 @@ Decidido em 19/11/2026: um VPS pequeno com Linux, onde o app roda como serviço 
 
 ### Deploy
 
-Um script `deploy.sh` faz `git pull`, `pnpm install`, `pnpm build`, roda as migrações e reinicia o serviço. Mais tarde, um GitHub Actions pode rodar os testes e chamar o script por SSH a cada push na `main`.
+Um script `deploy.sh` busca o código, instala, faz o build, copia o banco, roda as migrações e reinicia o serviço. Cada versão vive na própria pasta (`/srv/limiar/releases/<commit>`) e um link `current` aponta para a publicada: se o build ou uma migração falhar, nada muda no ar; se a versão nova não responder no `/health`, o link volta para a anterior. Um GitHub Actions pode chamar o script por SSH a cada push na `main` (desligado até ser configurado).
 
 ### Acompanhamento
 
 - **Logs:** `journalctl -u limiar` mostra tudo o que o app escreveu.
-- **Erros:** o plano gratuito do Sentry avisa quando algo quebra durante a sessão.
+- **Erros:** o plano gratuito do Sentry avisa quando algo quebra durante a sessão, no servidor e no navegador, com a versão publicada. Nenhum dado pessoal vai junto.
 - **Fora do ar:** um monitor gratuito (UptimeRobot ou similar) manda alerta se o site cair.
 - **Teste do backup:** uma vez por mês, restaure o backup numa máquina local para garantir que ele funciona.
 

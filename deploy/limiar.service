@@ -1,0 +1,48 @@
+# O app como serviço do systemd. Instalado em /etc/systemd/system/limiar.service.
+# Logs: journalctl -u limiar -f
+[Unit]
+Description=LIMIAR (app e API)
+Documentation=https://github.com/guilhermeamcarvalho/limiar-rpg/blob/main/docs/servidor.md
+After=network-online.target
+Wants=network-online.target
+# Se cair mais de 10 vezes em 1 minuto, para de tentar (algo está muito errado).
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=limiar
+Group=limiar
+# "current" aponta para a versão publicada; o deploy troca o link e reinicia.
+WorkingDirectory=/srv/limiar/current/server
+EnvironmentFile=/etc/limiar.env
+# Escrito pelo deploy: LIMIAR_VERSAO=<versão>+<commit>. O "-" aceita se não existir.
+EnvironmentFile=-/srv/limiar/current/VERSAO.env
+ExecStart=/usr/bin/node src/index.ts
+Restart=always
+RestartSec=2
+# O app termina as requisições e fecha o banco ao receber SIGTERM.
+TimeoutStopSec=15
+
+# Endurecimento: o processo só escreve em /srv/limiar/data e não ganha privilégios.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/limiar/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

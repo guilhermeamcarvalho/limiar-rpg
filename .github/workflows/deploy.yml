@@ -1,0 +1,48 @@
+name: Deploy
+
+# Publica no servidor quando o CI passa num push na main (#27, "depois").
+# Desligado até existir a variável DEPLOY_AUTOMATICO=true no repositório. Antes de ligar, siga
+# docs/servidor.md, seção "Deploy automático": usuário deploy no servidor, chave e segredos.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Um deploy por vez, sem cancelar o que já começou.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: Publicar no servidor
+    if: >-
+      vars.DEPLOY_AUTOMATICO == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: producao
+    steps:
+      - name: Rodar o limiar-deploy por SSH
+        env:
+          CHAVE: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOSTS_CONHECIDOS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          SERVIDOR: ${{ vars.DEPLOY_HOST }}
+          USUARIO: ${{ vars.DEPLOY_USUARIO }}
+          COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$CHAVE" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$HOSTS_CONHECIDOS" > ~/.ssh/known_hosts
+          # O commit é só hexadecimal; mesmo assim, confere antes de mandar ao servidor.
+          [[ $COMMIT =~ ^[0-9a-f]{40}$ ]] || { echo "commit inválido: $COMMIT"; exit 1; }
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$USUARIO@$SERVIDOR" "sudo /usr/local/sbin/limiar-deploy $COMMIT"

@@ -1,6 +1,7 @@
 // Um formato só para todo erro da API: { erro: { codigo, mensagem, campos? } }, em português.
 import type { FastifyError, FastifyInstance } from 'fastify';
 import type { z } from 'zod';
+import { registrarErro } from '../observabilidade.ts';
 
 /** Mensagem por campo do formulário, para a tela mostrar o erro no lugar certo. */
 export type ErrosPorCampo = Record<string, string>;
@@ -70,8 +71,9 @@ export function registrarTratadorDeErros(app: FastifyInstance) {
     const padrao = PADRAO_POR_STATUS[status];
     if (status < 500 && padrao) return reply.status(status).send(resposta(...padrao));
 
-    // Inesperado: o detalhe vai para o log, nunca para quem chamou.
+    // Inesperado: o detalhe vai para o log e para o Sentry, nunca para quem chamou.
     request.log.error({ err: erro }, 'erro inesperado');
+    registrarErro(erro, { metodo: request.method, url: request.url });
     return reply.status(500).send(ERRO_INTERNO);
   });
 }
