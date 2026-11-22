@@ -16,6 +16,15 @@ Um teste soma o dado do atributo e o dado da perícia; se o total for igual ou m
 | Passos de dado | d4 → d6 → d8 → d10 → d12; subir ou descer um passo troca o dado |
 | Ajuda | Quem é ajudado sobe o dado da perícia em um passo |
 
+### Detalhes que o motor decide
+
+O código fica em `shared/src/regras/op2/`; a ficha (prévia) e o servidor (resultado oficial) usam a mesma função.
+
+- **Com 4 dados, sai o menor.** Se dois empatam no menor valor, sai o que veio por último (um bônus antes do atributo). O total é o mesmo de qualquer jeito.
+- **O sucesso crítico olha só os dados que contaram.** Um 6 descartado não forma par com outro 6.
+- **A falha crítica pede todos os dados em 1**, inclusive o descartado.
+- **No teste, um dado nunca passa de d12 nem fica abaixo de d4**, mesmo com vários efeitos somados (Machucado, Ímpeto, Ajuda).
+
 ### Falha crítica (1d8)
 
 | d8 | Resultado |
