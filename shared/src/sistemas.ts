@@ -2,6 +2,7 @@
 // Ordem Paranormal II tem regras em código (shared/regras/op2); RPG inventado é só configuração.
 // Referência: docs/regras-do-jogo.md.
 import { z } from 'zod';
+import { ATRIBUTOS_OP2, PERICIAS_OP2 } from './regras/op2/pericias.ts';
 
 export const DADOS = ['d4', 'd6', 'd8', 'd10', 'd12'] as const;
 export const esquemaDado = z.enum(DADOS);
@@ -79,41 +80,12 @@ export function esquemaDoConfig(tipo: 'op2' | 'inventado') {
 
 export const ID_OP2 = 'sys_op2';
 
-const pericia = (nome: string, atributo: string) => ({
-  id: nome
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase(),
-  nome,
-  atributo,
-});
-
 export const CONFIG_OP2: ConfigOp2 = {
   versao: 1,
   dados: [...DADOS],
-  atributos: [
-    { id: 'fisico', nome: 'Físico' },
-    { id: 'mente', nome: 'Mente' },
-    { id: 'emocao', nome: 'Emoção' },
-  ],
-  pericias: [
-    ...['Acrobacia', 'Atletismo', 'Crime', 'Furtividade', 'Luta', 'Pontaria', 'Vigor'].map((p) =>
-      pericia(p, 'fisico'),
-    ),
-    ...[
-      'Aptidão',
-      'Máquinas',
-      'Medicina',
-      'Ocultismo',
-      'Percepção',
-      'Pesquisa',
-      'Sobrevivência',
-      'Tecnologia',
-    ].map((p) => pericia(p, 'mente')),
-    ...['Disciplina', 'Enganação', 'Intimidação', 'Intuição', 'Persuasão'].map((p) =>
-      pericia(p, 'emocao'),
-    ),
-  ],
+  // A lista vem de regras/op2/pericias.ts: a ficha, as regras e o config usam a mesma.
+  atributos: ATRIBUTOS_OP2.map(({ id, nome }) => ({ id, nome })),
+  pericias: PERICIAS_OP2.map(({ id, nome, atributo }) => ({ id, nome, atributo })),
   recursos: {
     pv: { nome: 'PV', base: 4, somaMaximoDe: ['fisico'] },
     pd: { nome: 'PD', base: 0, somaMaximoDe: ['mente', 'emocao'] },
