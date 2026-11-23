@@ -200,3 +200,31 @@ export const characters = sqliteTable(
   },
   (t) => [index('characters_owner').on(t.ownerId), index('characters_campaign').on(t.campaignId)],
 );
+
+/**
+ * Testes de perícia feitos pela ficha: o histórico da aba Histórico. Provisória: na Fase 2 os
+ * testes passam a ir para `session_log`, junto com os outros acontecimentos da mesa.
+ * `registro` é o resultado como o shared o descreve (RegistroDeTeste, sem os ids e a data).
+ */
+export const testLog = sqliteTable(
+  'test_log',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('tst')),
+    characterId: text('character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    /** O caso do personagem na hora do teste. */
+    campaignId: text('campaign_id').references(() => campaigns.id, { onDelete: 'set null' }),
+    /** Quem pediu o teste: o dono ou o mestre. */
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    origem: text('origem', { enum: ['virtual', 'fisico'] }).notNull(),
+    registro: text('registro', { mode: 'json' }).$type<unknown>().notNull(),
+    criadoEm: criadoEm(),
+  },
+  (t) => [
+    index('test_log_character').on(t.characterId, t.criadoEm),
+    check('test_log_origem', sql`${t.origem} in ('virtual', 'fisico')`),
+  ],
+);

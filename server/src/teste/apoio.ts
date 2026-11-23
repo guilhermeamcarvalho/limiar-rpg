@@ -1,4 +1,5 @@
 // Apoio para os testes do servidor: config válida e banco em memória já migrado.
+import type { Rng } from '@membrana/shared';
 import { criarApp } from '../app.ts';
 import { carregarConfig } from '../config.ts';
 import { abrirBanco, migrar, type Banco } from '../db/index.ts';
@@ -21,7 +22,7 @@ export function bancoDeTeste() {
 }
 
 export async function appDeTeste(
-  opcoes: { discord?: ClienteDiscord | null; env?: NodeJS.ProcessEnv } = {},
+  opcoes: { discord?: ClienteDiscord | null; env?: NodeJS.ProcessEnv; sorteio?: Rng } = {},
 ) {
   const { db, sqlite } = bancoDeTeste();
   const app = await criarApp({
@@ -29,6 +30,7 @@ export async function appDeTeste(
     db,
     logger: false,
     ...(opcoes.discord !== undefined && { discord: opcoes.discord }),
+    ...(opcoes.sorteio && { sorteio: opcoes.sorteio }),
   });
   app.addHook('onClose', () => {
     sqlite.close();

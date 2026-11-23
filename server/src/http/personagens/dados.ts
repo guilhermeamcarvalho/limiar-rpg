@@ -3,6 +3,7 @@
 import { rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { and, eq, inArray, ne, or } from 'drizzle-orm';
+import type { FastifyInstance } from 'fastify';
 import {
   esquemaDaFicha,
   migrarFicha,
@@ -156,6 +157,18 @@ export function acessoAo(db: Banco, quem: Quem, { personagem }: LinhaDePersonage
     podeEditar: podeEditarFicha(quem, minimo, comMembros),
     ehDono,
   };
+}
+
+/** Avisa a sala de cada caso que a ficha mudou (ou foi removida). */
+export function avisarMesa(
+  app: Pick<FastifyInstance, 'mesa'>,
+  campanhas: string[],
+  personagemId: string,
+  removido = false,
+) {
+  for (const campanhaId of campanhas) {
+    app.mesa.emitir({ type: 'character.changed', campanhaId, personagemId, removido });
+  }
 }
 
 /** Os casos onde o personagem aparece: o dele e onde alguém o escolheu para jogar. */
