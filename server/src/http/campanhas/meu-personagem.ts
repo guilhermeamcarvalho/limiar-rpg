@@ -1,12 +1,13 @@
 // PUT /api/campanhas/:id/meu-personagem: com quem a pessoa joga neste caso.
 // Substitui o "personagem em uso" do protótipo: a escolha fica em memberships.character_id, uma por
 // caso, então trocar aqui não mexe em nenhum outro caso.
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { esquemaMeuPersonagem } from '@membrana/shared';
-import { campaigns, characters, gameSystems, memberships } from '../../db/schema.ts';
+import { campaigns, characters, gameSystems } from '../../db/schema.ts';
 import { usuarioLogado } from '../auth/sessao.ts';
 import { ErroDaApi, validar } from '../erros.ts';
+import { usarNoCaso } from '../personagens/dados.ts';
 import { campanhaVisivel, detalharPara } from './dados.ts';
 
 function recusa(status: number, codigo: string, mensagem: string) {
@@ -71,10 +72,7 @@ export function rotaMeuPersonagem(app: FastifyInstance) {
           .where(eq(characters.id, personagemId))
           .run();
       }
-      tx.update(memberships)
-        .set({ characterId: personagemId })
-        .where(and(eq(memberships.campaignId, campanha.id), eq(memberships.userId, usuario.id)))
-        .run();
+      usarNoCaso(tx, campanha.id, usuario.id, personagemId);
     });
 
     return { campanha: detalharPara(app.db, campanha.id, usuario, comMembros) };

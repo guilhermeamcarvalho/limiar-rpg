@@ -56,7 +56,10 @@ const Convite = pagina(() => import('../pages/Convite.tsx'), 'Convite');
 const Central = pagina(() => import('../pages/Central.tsx'), 'Central');
 const Casos = pagina(() => import('../pages/Casos.tsx'), 'Casos');
 const NovoCaso = pagina(() => import('../pages/NovoCaso/index.tsx'), 'NovoCaso');
-const Personagens = pagina(() => import('../pages/EmBreve.tsx'), 'Personagens');
+const Personagens = pagina(() => import('../pages/Personagens.tsx'), 'Personagens');
+const Criar = pagina(() => import('../pages/Criar/index.tsx'), 'Criar');
+const FichaEmBranco = pagina(() => import('../pages/Ficha/index.tsx'), 'FichaEmBranco');
+const FichaDoPersonagem = pagina(() => import('../pages/Ficha/index.tsx'), 'FichaDoPersonagem');
 const Arquivo = pagina(() => import('../pages/EmBreve.tsx'), 'Arquivo');
 const Perfil = pagina(() => import('../pages/Perfil.tsx'), 'Perfil');
 const Mesa = lazy(async () => {
@@ -103,6 +106,9 @@ export function Rotas() {
             <Route path="/casos/novo" element={<NovoCaso />} />
             <Route path="/casos/:id" element={<Casos />} />
             <Route path="/personagens" element={<Personagens />} />
+            <Route path="/personagens/novo" element={<Criar />} />
+            <Route path="/personagens/novo/ficha" element={<FichaEmBranco />} />
+            <Route path="/personagens/:id/ficha" element={<FichaDoPersonagem />} />
             <Route path="/arquivo" element={<Arquivo />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/campanhas/:id/mesa" element={<Mesa />} />

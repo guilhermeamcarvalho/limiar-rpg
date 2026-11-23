@@ -208,6 +208,8 @@ export interface AvisoNovo {
   text?: ReactNode;
   /** Troca o ícone padrão do tipo; `null` tira o ícone. */
   icon?: ReactNode;
+  /** Um botão no aviso, como "Desfazer". Clicar faz a ação e fecha o aviso. */
+  action?: { label: string; onClick: () => void };
 }
 
 const ICONE_DO_AVISO: Record<TipoDeAviso, NomeDoIcone> = {
@@ -226,6 +228,7 @@ export function Toast({
   title,
   text,
   icon,
+  action,
   onClose,
 }: AvisoNovo & { onClose?: () => void }) {
   return (
@@ -238,6 +241,18 @@ export function Toast({
         <b>{title}</b>
         {text}
       </div>
+      {action && (
+        <Button
+          size="sm"
+          className="toast-acao"
+          onClick={() => {
+            action.onClick();
+            onClose?.();
+          }}
+        >
+          {action.label}
+        </Button>
+      )}
       {onClose && (
         <Button
           className="toast-x"

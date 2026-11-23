@@ -4,7 +4,12 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { fichaDoDavi, type CampanhaDetalhe, type Personagem } from '@membrana/shared';
+import {
+  fichaDoDavi,
+  type CampanhaDetalhe,
+  type Personagem,
+  type PersonagemNaLista,
+} from '@membrana/shared';
 import { characters, gameSystems, memberships } from '../../db/schema.ts';
 import type { EventoDaMesa } from '../../mesa/index.ts';
 import { appDeTeste, pessoaLogada } from '../../teste/apoio.ts';
@@ -196,6 +201,78 @@ describe('GET /api/me/personagens', () => {
     const r = await a.inject({ method: 'GET', url: '/api/me/personagens', cookies: bia.cookies });
 
     expect(r.json<{ personagens: Personagem[] }>().personagens.map((p) => p.id)).toEqual([davi.id]);
+  });
+
+  it('traz o caso, o sistema e se está em uso', async () => {
+    const { a, ana, bia, caso, davi } = await mesaPronta();
+    const { personagem: solto } = await criarPersonagem(a, bia, {
+      ficha: { ...fichaDoDavi(), nome: 'Rui Batista' },
+    });
+    await a.inject({
+      method: 'PUT',
+      url: `/api/campanhas/${caso}/meu-personagem`,
+      cookies: bia.cookies,
+      payload: { personagemId: davi.id },
+    });
+    await a.inject({
+      method: 'PATCH',
+      url: `/api/campanhas/${caso}`,
+      cookies: ana.cookies,
+      payload: { encerrado: true },
+    });
+
+    const r = await a.inject({ method: 'GET', url: '/api/me/personagens', cookies: bia.cookies });
+    const lista = r.json<{ personagens: PersonagemNaLista[] }>().personagens;
+
+    expect(lista.find((p) => p.id === davi.id)).toMatchObject({
+      emUso: true,
+      campanha: { id: caso, nome: 'O Sinal de Santa Ermida', encerrado: true },
+      sistema: { id: 'sys_op2', nome: 'Ordem Paranormal II', tipo: 'op2' },
+    });
+    expect(lista.find((p) => p.id === solto.id)).toMatchObject({ emUso: false, campanha: null });
+  });
+});
+
+describe('POST /api/personagens com usarNoCaso', () => {
+  it('cria e já põe em uso no caso, numa vez só', async () => {
+    const { a, bia, caso } = await mesaPronta();
+
+    const { resposta, personagem } = await criarPersonagem(a, bia, {
+      campanhaId: caso,
+      usarNoCaso: true,
+      ficha: { ...fichaDoDavi(), nome: 'Bianca Moreira' },
+    });
+
+    expect(resposta.statusCode).toBe(201);
+    const lido = await a.inject({
+      method: 'GET',
+      url: `/api/campanhas/${caso}`,
+      cookies: bia.cookies,
+    });
+    expect(lido.json<{ campanha: CampanhaDetalhe }>().campanha.meuPersonagem).toEqual({
+      id: personagem.id,
+      nome: 'Bianca Moreira',
+    });
+  });
+
+  it('ficha inválida não cria nem troca o personagem em uso', async () => {
+    const { a, bia, caso, davi } = await mesaPronta();
+    await a.inject({
+      method: 'PUT',
+      url: `/api/campanhas/${caso}/meu-personagem`,
+      cookies: bia.cookies,
+      payload: { personagemId: davi.id },
+    });
+
+    const { resposta } = await criarPersonagem(a, bia, {
+      campanhaId: caso,
+      usarNoCaso: true,
+      ficha: { ...fichaDoDavi(), nome: '' },
+    });
+
+    expect(resposta.statusCode).toBe(422);
+    const vaga = a.db.select().from(memberships).where(eq(memberships.userId, bia.id)).get();
+    expect(vaga?.characterId).toBe(davi.id);
   });
 });
 

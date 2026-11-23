@@ -19,6 +19,7 @@ import {
   sessaoFutura,
 } from '../casos/formatos.ts';
 import { esquecerConvitePendente, useConvitesPendentes } from '../convites/pendentes.ts';
+import { linkDeCriar } from '../personagens/formatos.ts';
 import {
   Async,
   Button,
@@ -511,7 +512,7 @@ export function Central() {
           </h1>
         </div>
         <div className="row wrapx">
-          <Link className="btn" to="/personagens">
+          <Link className="btn" to={linkDeCriar()}>
             <Icon name="user" size="sm" />
             Criar personagem
           </Link>

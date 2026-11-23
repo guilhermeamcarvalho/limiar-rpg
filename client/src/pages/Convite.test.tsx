@@ -35,6 +35,7 @@ function servidor({
     }
     if (url === '/api/auth/opcoes') return json(200, { discord: true });
     if (url === '/api/campanhas') return json(200, { campanhas: [] });
+    if (url === '/api/me/personagens') return json(200, { personagens: [] });
     if (url.endsWith('/aceitar')) return json(200, { campanha: { id: 'cmp_1' } });
     if (url.startsWith('/api/convites/ERMIDA-3H33') && convite) return json(200, { convite });
     if (url.startsWith('/api/convites/')) {
@@ -119,20 +120,20 @@ describe('sem login', () => {
 });
 
 describe('com login', () => {
-  it('aceitar leva à Central, que já lista os casos', async () => {
+  it('aceitar leva a Personagens, para criar o personagem do caso', async () => {
     const chamadas = servidor({ logado: true });
     abrir('/c/ERMIDA-3H33');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Aceitar convite' }));
 
     await waitFor(() => {
-      expect(screen.getByTestId('endereco').textContent).toBe('/');
+      expect(screen.getByTestId('endereco').textContent).toBe('/personagens?aceito=cmp_1');
     });
     expect(chamadas).toContain('POST /api/convites/ERMIDA-3H33/aceitar');
     expect(await screen.findByText('Você entrou no caso')).toBeDefined();
-    // A Central chega sob demanda (lazy) e então pede os casos.
+    // Personagens chega sob demanda (lazy) e então pede a lista.
     await waitFor(() => {
-      expect(chamadas).toContain('GET /api/campanhas');
+      expect(chamadas).toContain('GET /api/me/personagens');
     });
   });
 
@@ -141,7 +142,7 @@ describe('com login', () => {
     abrir('/c/ERMIDA-3H33?aceitar=1');
 
     await waitFor(() => {
-      expect(screen.getByTestId('endereco').textContent).toBe('/');
+      expect(screen.getByTestId('endereco').textContent).toBe('/personagens?aceito=cmp_1');
     });
     expect(chamadas.filter((c) => c.endsWith('/aceitar'))).toHaveLength(1);
   });

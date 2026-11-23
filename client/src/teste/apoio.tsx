@@ -2,7 +2,13 @@
 import { vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router';
-import type { CampanhaDetalhe, CampanhaNaLista } from '@membrana/shared';
+import {
+  fichaDoDavi,
+  type CampanhaDetalhe,
+  type CampanhaNaLista,
+  type FichaOp2,
+  type PersonagemNaLista,
+} from '@membrana/shared';
 import { Rotas } from '../app/rotas.tsx';
 import { SessaoProvider } from '../auth/sessao.tsx';
 import { ToastProvider } from '../ui/index.ts';
@@ -100,6 +106,28 @@ export function detalhe(campos: Partial<CampanhaDetalhe> = {}): CampanhaDetalhe 
       { id: 'usr_1', nome: 'Marta', papel: 'jogador' },
     ],
     meuPersonagem: null,
+    ...campos,
+  };
+}
+
+/** Um personagem na lista de Personagens: o Davi, em uso no Sinal de Santa Ermida. */
+export function personagem(
+  campos: Partial<PersonagemNaLista> = {},
+  ficha: Partial<FichaOp2> = {},
+): PersonagemNaLista {
+  return {
+    id: 'chr_davi',
+    donoId: MARTA.id,
+    campanhaId: 'cmp_1',
+    sistemaId: 'sys_op2',
+    ficha: { ...fichaDoDavi(), ...ficha },
+    foto: null,
+    tokenImg: null,
+    criadoEm: '2026-11-20T12:00:00.000Z',
+    atualizadoEm: '2026-11-22T12:00:00.000Z',
+    sistema: { id: 'sys_op2', nome: 'Ordem Paranormal II', tipo: 'op2' },
+    campanha: { id: 'cmp_1', nome: 'O Sinal de Santa Ermida', encerrado: false },
+    emUso: true,
     ...campos,
   };
 }
