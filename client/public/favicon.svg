@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <!-- O selo da MEMBRANA (o mesmo de client/src/ui/Marca.tsx), com as cores dos tokens fixas -->
+  <rect width="32" height="32" rx="2" fill="#0a0909"/>
+  <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" stroke="#ece6df" stroke-width="1.75"/>
+  <polyline points="4,9 14,15 14,29" stroke="#4a403b" stroke-width="1.25"/>
+  <polyline points="28,9 18,15 18,29" stroke="#4a403b" stroke-width="1.25"/>
+  <path d="M16 1V31" stroke="#e0563c" stroke-width="2.25"/>
+  <polygon points="16,7 19.5,16 16,25 12.5,16" fill="#0a0909" stroke="#c2412b" stroke-width="1.75"/>
+  <circle cx="16" cy="16" r="1.75" fill="#e9b949"/>
+</svg>

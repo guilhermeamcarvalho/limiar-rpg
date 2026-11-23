@@ -903,13 +903,20 @@ textarea.fld {
   margin-top: 3px;
 }
 .brand-aro {
-  stroke: var(--red);
-}
-.brand-olho {
   stroke: var(--text);
 }
-.brand-pupila {
-  fill: var(--red);
+.brand-faceta {
+  stroke: var(--line-3);
+}
+.brand-fenda {
+  stroke: var(--red-hi);
+}
+.brand-limiar {
+  fill: var(--bg);
+  stroke: var(--red);
+}
+.brand-nucleo {
+  fill: var(--gold);
 }
 
 /* Botão do Discord: a cor da marca deles, só aqui */
