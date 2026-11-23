@@ -17,5 +17,6 @@ export * from './codigo.ts';
 export * from './agenda.ts';
 export * from './privacidade.ts';
 export * from './schemas/ficha-op2.ts';
+export * from './schemas/personagem.ts';
 export * from './regras/dados.ts';
 export * from './regras/op2/index.ts';

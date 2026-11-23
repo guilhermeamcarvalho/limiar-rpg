@@ -1,5 +1,5 @@
 // Estrutura de todas as páginas fora da mesa: cabeçalho global, conteúdo e, no celular, a barra
-// de baixo. O contexto (qual caso, qual personagem) vem da URL: /campanhas/:id/...?personagem=.
+// de baixo. O caso vem da URL (/campanhas/:id/...); o personagem, do próprio caso.
 import { Suspense, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
 import type { CampanhaDetalhe } from '@membrana/shared';
