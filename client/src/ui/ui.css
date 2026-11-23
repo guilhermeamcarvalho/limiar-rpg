@@ -893,3 +893,6 @@ textarea.fld {
   position: absolute;
   right: 4px;
 }
+.toast-acao {
+  align-self: center;
+}

@@ -1,0 +1,198 @@
+/* Criação guiada: artboards "07 · Criar" e "Celular · 07". */
+
+.criar {
+  padding-top: var(--s6);
+  padding-bottom: var(--s8);
+  gap: 28px;
+}
+.criar-topo {
+  gap: var(--s3);
+}
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font: 700 12px var(--f-ui);
+  color: var(--muted);
+}
+.crumb a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.crumb a:hover {
+  color: var(--text);
+}
+.crumb b {
+  color: var(--text);
+}
+.criar-progresso {
+  gap: 10px;
+}
+.criar-caso {
+  color: var(--text);
+}
+.criar-passos {
+  gap: var(--s5);
+}
+.criar-passo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 600 13px var(--f-ui);
+  cursor: pointer;
+}
+.criar-passo.on {
+  color: var(--text);
+  font-weight: 800;
+}
+.criar-passo.feito {
+  color: var(--green-hi);
+  font-weight: 800;
+}
+.criar-passo:disabled {
+  cursor: not-allowed;
+}
+.criar-split {
+  gap: 40px;
+}
+.criar-corpo {
+  flex: 999 1 640px;
+  min-width: 0;
+  gap: var(--s5);
+}
+.criar-lado {
+  flex: 1 1 320px;
+  min-width: 280px;
+  gap: var(--s3);
+}
+.criar-previa {
+  padding: 20px;
+  gap: 14px;
+}
+.criar-nome {
+  font: 400 24px var(--f-disp);
+  text-transform: uppercase;
+}
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s2) 0;
+  border-bottom: 1px dashed var(--line-2);
+  font-size: 13.5px;
+}
+
+/* Perfil e ocupação */
+.criar-opcoes {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  gap: 10px;
+}
+.criar-opcao {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  cursor: pointer;
+}
+.criar-opcao input {
+  width: 20px;
+  height: 20px;
+  margin-top: var(--s1);
+  accent-color: var(--red);
+  flex: none;
+}
+
+/* Atributos */
+.criar-atributo {
+  padding: 20px;
+  gap: 14px;
+  align-items: center;
+  text-align: center;
+}
+.criar-dado {
+  gap: 14px;
+}
+
+/* Perícias */
+.criar-pericias {
+  align-items: start;
+}
+.criar-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+.criar-pericia {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 48px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Toques finais e revisão */
+.criar-envio {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s4);
+  border: 1px dashed var(--line-3);
+}
+.criar-revisao {
+  margin: 0;
+}
+.criar-revisao > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s2) var(--s4);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--line);
+}
+.criar-revisao dt {
+  flex: 0 0 120px;
+  font: 800 11px var(--f-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.criar-revisao dd {
+  flex: 1 1 240px;
+  margin: 0;
+  min-width: 0;
+}
+.criar-rodape {
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+  gap: var(--s3);
+}
+
+/* Tela final */
+.criar-pronto {
+  align-items: center;
+  text-align: center;
+  gap: var(--s4);
+  padding: 56px var(--s5);
+}
+.criar-pronto > .ic {
+  color: var(--green-hi);
+}
+
+@media (max-width: 720px) {
+  .criar {
+    padding-top: var(--s4);
+  }
+  .criar-lado,
+  .criar-passos {
+    display: none;
+  }
+  .criar-rodape > * {
+    flex: 1;
+  }
+}

@@ -1,0 +1,129 @@
+/* Personagens: artboards "06 · Personagens", "16 · Personagens vazio" e os do celular. */
+
+.pers {
+  padding-top: 40px;
+  padding-bottom: var(--s8);
+  gap: var(--s5);
+}
+.pers-cabeca {
+  align-items: flex-end;
+}
+.pers-titulo {
+  gap: 6px;
+}
+.pers-ordem {
+  width: 220px;
+}
+.pers-cnt {
+  margin-left: var(--s1);
+  opacity: 0.75;
+}
+.pers-grade {
+  align-items: start;
+}
+.pers-cartao {
+  gap: 14px;
+  padding: 20px;
+}
+.pers-nome .h2 {
+  color: var(--red-soft);
+}
+.pers-tags {
+  gap: 6px;
+}
+.pers-atributos {
+  gap: var(--s4);
+}
+.pers-atributos .disp {
+  font-size: 17px;
+}
+.pers-acoes {
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
+}
+.pers-confirma {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+/* Menu "mais ações" */
+.pers-menu {
+  position: relative;
+  margin-left: auto;
+}
+.pers-menu-lista {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--s1));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: var(--s1);
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-md);
+}
+.pers-menu-lista button {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 40px;
+  padding: 0 var(--s3);
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 700 13.5px var(--f-ui);
+  text-align: left;
+  cursor: pointer;
+}
+.pers-menu-lista button:hover,
+.pers-menu-lista button:focus-visible {
+  background: var(--panel-3);
+}
+
+.pers-casos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--s2);
+}
+
+/* Vazio */
+.pers-vazio {
+  padding: 72px var(--s5);
+  gap: var(--s4);
+  border: 1px dashed var(--line-3);
+}
+.pers-vazio p {
+  max-width: 520px;
+}
+.pers-vazio-acoes {
+  justify-content: center;
+}
+.pers-cta {
+  min-height: 52px;
+  padding: 0 var(--s5);
+}
+.pers-etapas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 720px) {
+  .pers {
+    padding-top: var(--s4);
+  }
+  .pers-ordem {
+    width: 100%;
+  }
+  .pers-vazio {
+    padding: var(--s7) var(--s4);
+  }
+  .pers-vazio-acoes {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -12,6 +12,8 @@ export const esquemaNovoPersonagem = z
     campanhaId: id.nullable().optional(),
     /** Sem campanha, diz o sistema da ficha; com campanha, vale o sistema dela. */
     sistemaId: id.optional(),
+    /** Com campanha: já vira o personagem de quem criou naquele caso (meu-personagem). */
+    usarNoCaso: z.boolean().optional(),
     ficha: z.unknown(),
   })
   .strict();
@@ -40,6 +42,14 @@ export interface Personagem {
   tokenImg: string | null;
   criadoEm: string;
   atualizadoEm: string;
+}
+
+/** Um personagem na página Personagens: com o caso, o sistema e se está em uso no caso. */
+export interface PersonagemNaLista extends Personagem {
+  sistema: { id: string; nome: string; tipo: 'op2' | 'inventado' };
+  campanha: { id: string; nome: string; encerrado: boolean } | null;
+  /** É o personagem que o dono escolheu para jogar no caso dele (meu-personagem). */
+  emUso: boolean;
 }
 
 /** O personagem que a pessoa usa num caso, como o caso o mostra. */

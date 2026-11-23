@@ -32,7 +32,8 @@ export const GAMBIARRA = {
 
 export const HABILIDADES_OP2: readonly Habilidade[] = [GAMBIARRA];
 
-const paraId = (texto: string) =>
+/** "Mecânico" → "mecanico": o id de uma ocupação digitada. */
+export const idDoTexto = (texto: string) =>
   texto
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
@@ -42,7 +43,7 @@ const paraId = (texto: string) =>
 export function temHabilidade(ficha: FichaOp2, hab: Habilidade): boolean {
   return 'perfil' in hab.de
     ? ficha.perfil === hab.de.perfil
-    : paraId(ficha.ocupacao) === hab.de.ocupacao;
+    : idDoTexto(ficha.ocupacao) === hab.de.ocupacao;
 }
 
 /** As habilidades que a ficha tem, pela ocupação e pelo perfil. */

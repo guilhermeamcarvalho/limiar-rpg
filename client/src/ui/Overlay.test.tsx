@@ -141,4 +141,35 @@ describe('Toast', () => {
 
     expect(screen.queryByRole('status')).toBeNull();
   });
+
+  it('com ação: o botão faz a ação e fecha o aviso', () => {
+    const desfazer = vi.fn();
+    function ComAcao() {
+      const avisos = useToast();
+      return (
+        <Button
+          onClick={() =>
+            avisos.show({
+              type: 'ok',
+              title: 'Removido',
+              action: { label: 'Desfazer', onClick: desfazer },
+            })
+          }
+        >
+          Remover
+        </Button>
+      );
+    }
+    render(
+      <ToastProvider>
+        <ComAcao />
+      </ToastProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Remover' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Desfazer' }));
+
+    expect(desfazer).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('status')).toBeNull();
+  });
 });

@@ -11,6 +11,7 @@ import {
   type CampanhaComMembros,
   type FichaOp2,
   type Personagem,
+  type PersonagemNaLista,
   type Quem,
 } from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
@@ -80,15 +81,51 @@ export function paraApi({ personagem: p, tipo }: LinhaDePersonagem): Personagem 
   };
 }
 
-export function listarDoDono(db: Banco, donoId: string): Personagem[] {
+/** Os personagens do dono, com o caso, o sistema e se cada um está em uso no seu caso. */
+export function listarDoDono(db: Banco, donoId: string): PersonagemNaLista[] {
   return db
-    .select({ personagem: characters, tipo: gameSystems.tipo })
+    .select({
+      personagem: characters,
+      tipo: gameSystems.tipo,
+      sistema: { id: gameSystems.id, nome: gameSystems.nome, tipo: gameSystems.tipo },
+      campanha: { id: campaigns.id, nome: campaigns.nome, encerradoEm: campaigns.encerradoEm },
+      emUsoNoCaso: memberships.characterId,
+    })
     .from(characters)
     .innerJoin(gameSystems, eq(gameSystems.id, characters.systemId))
+    .leftJoin(campaigns, eq(campaigns.id, characters.campaignId))
+    .leftJoin(
+      memberships,
+      and(eq(memberships.campaignId, characters.campaignId), eq(memberships.userId, donoId)),
+    )
     .where(eq(characters.ownerId, donoId))
     .orderBy(characters.criadoEm)
     .all()
-    .map(paraApi);
+    .map((linha) => ({
+      ...paraApi(linha),
+      sistema: linha.sistema,
+      campanha: linha.campanha
+        ? {
+            id: linha.campanha.id,
+            nome: linha.campanha.nome,
+            encerrado: linha.campanha.encerradoEm !== null,
+          }
+        : null,
+      emUso: linha.emUsoNoCaso === linha.personagem.id,
+    }));
+}
+
+/** Põe o personagem como o de `userId` no caso (memberships.character_id). */
+export function usarNoCaso(
+  db: Pick<Banco, 'update'>,
+  campaignId: string,
+  userId: string,
+  personagemId: string | null,
+) {
+  db.update(memberships)
+    .set({ characterId: personagemId })
+    .where(and(eq(memberships.campaignId, campaignId), eq(memberships.userId, userId)))
+    .run();
 }
 
 /**

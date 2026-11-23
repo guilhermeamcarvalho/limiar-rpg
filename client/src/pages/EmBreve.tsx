@@ -47,14 +47,6 @@ const VOLTAR = (
   </Link>
 );
 
-export function Personagens() {
-  return (
-    <EmBreve titulo="Personagens" icone="users" acao={VOLTAR}>
-      Seus sobreviventes ficam aqui assim que a criação de personagem chegar.
-    </EmBreve>
-  );
-}
-
 export function Arquivo() {
   return (
     <EmBreve titulo="Arquivo" icone="book" acao={VOLTAR}>

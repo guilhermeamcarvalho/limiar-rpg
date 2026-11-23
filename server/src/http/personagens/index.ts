@@ -19,6 +19,7 @@ import {
   listarDoDono,
   paraApi,
   PERSONAGEM_NAO_ENCONTRADO,
+  usarNoCaso,
   validarFicha,
 } from './dados.ts';
 
@@ -70,11 +71,16 @@ export const rotas: FastifyPluginAsync = (app) => {
     const { tipo } = sistema(app, sistemaId);
     const ficha = validarFicha(tipo, dados.ficha);
 
-    const { id } = app.db
-      .insert(characters)
-      .values({ ownerId: usuario.id, campaignId: campanhaId, systemId: sistemaId, ficha })
-      .returning({ id: characters.id })
-      .get();
+    // Criar e pôr em uso no caso vão juntos: não fica personagem criado pela metade.
+    const id = app.db.transaction((tx) => {
+      const criado = tx
+        .insert(characters)
+        .values({ ownerId: usuario.id, campaignId: campanhaId, systemId: sistemaId, ficha })
+        .returning({ id: characters.id })
+        .get();
+      if (campanhaId && dados.usarNoCaso) usarNoCaso(tx, campanhaId, usuario.id, criado.id);
+      return criado.id;
+    });
     if (campanhaId) avisarMesa(app, [campanhaId], id);
     return reply.status(201).send({ personagem: paraApi(carregar(app.db, id)) });
   });

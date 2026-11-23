@@ -206,7 +206,8 @@ export function Convite() {
   const [erroDoConvite, setErroDoConvite] = useState<string | null>(null);
   const [aceitando, setAceitando] = useState(false);
   const [falhaAoAceitar, setFalhaAoAceitar] = useState<Falha | null>(null);
-  const [aceito, setAceito] = useState(false);
+  /** Para onde ir depois de aceitar: Personagens, para criar o personagem do caso. */
+  const [destino, setDestino] = useState<string | null>(null);
   const aceiteAutomatico = useRef(false);
   const login = useEntrarPorEmail(true);
 
@@ -249,11 +250,11 @@ export function Convite() {
       esquecerConvitePendente(codigo);
       avisos.show({ type: 'ok', title: 'Você entrou no caso', text: convite.campanha.nome });
       await recarregar();
-      setAceito(true);
+      setDestino(`/personagens?${new URLSearchParams({ aceito: convite.campanha.id }).toString()}`);
     } catch (erro) {
       if (erro instanceof ErroDaApi && erro.codigo === 'JA_PARTICIPA') {
         esquecerConvitePendente(codigo);
-        setAceito(true);
+        setDestino('/');
         return;
       }
       setFalhaAoAceitar(interpretarFalha(erro));
@@ -271,8 +272,8 @@ export function Convite() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, podeAceitar]);
 
-  // Depois de aceitar, vai para a Central (Personagens chega na Fase 1).
-  if (aceito) return <Navigate to="/" replace />;
+  // Depois de aceitar, vai para Personagens criar o personagem; quem já participava, para a Central.
+  if (destino) return <Navigate to={destino} replace />;
 
   const indisponivel =
     convite && convite.estado !== 'valido' ? MENSAGEM_DO_ESTADO[convite.estado] : null;
