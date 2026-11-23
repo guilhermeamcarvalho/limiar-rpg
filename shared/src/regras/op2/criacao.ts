@@ -48,8 +48,13 @@ export const PERFIS_INFO_OP2: readonly PerfilInfo[] = [
   },
 ];
 
+const PERFIS_POR_ID = Object.fromEntries(PERFIS_INFO_OP2.map((p) => [p.id, p])) as Record<
+  PerfilOp2,
+  PerfilInfo
+>;
+
 export function infoDoPerfil(perfil: PerfilOp2): PerfilInfo {
-  return PERFIS_INFO_OP2.find((p) => p.id === perfil) ?? (PERFIS_INFO_OP2[0] as PerfilInfo);
+  return PERFIS_POR_ID[perfil];
 }
 
 export interface Ocupacao {
@@ -138,7 +143,6 @@ export const PASSOS_DE_PERICIA = 8;
 export const LIMITE_DE_PERICIA: Dado = 'd8';
 
 const indice = (dado: Dado) => DADOS.indexOf(dado);
-const nomeDoAtributo = (id: string) => ATRIBUTOS_OP2.find((a) => a.id === id)?.nome ?? id;
 
 /** O dado de partida de cada perícia: d4, ou d6 nas da ocupação. */
 export function basesDasPericias(ocupacao: string): Record<PericiaOp2, Dado> {
@@ -188,12 +192,12 @@ export interface AvisoDaCriacao {
 export function avisosDaCriacao(ficha: FichaOp2): AvisoDaCriacao[] {
   const avisos: AvisoDaCriacao[] = [];
 
-  for (const { id } of ATRIBUTOS_OP2) {
+  for (const { id, nome } of ATRIBUTOS_OP2) {
     const dado = ficha.atributos[id];
     if (indice(dado) > indice(LIMITE_DE_ATRIBUTO)) {
       avisos.push({
         campo: `atributos.${id}`,
-        mensagem: `${nomeDoAtributo(id)} ${dado} passa do limite da criação (${LIMITE_DE_ATRIBUTO}).`,
+        mensagem: `${nome} ${dado} passa do limite da criação (${LIMITE_DE_ATRIBUTO}).`,
       });
     }
   }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { esquemaFichaOp2, type FichaOp2 } from '../../schemas/ficha-op2.ts';
+import { esquemaDaFicha } from '../../schemas/personagem.ts';
 import {
   OCUPACOES_OP2,
   PASSOS_DE_PERICIA,
@@ -7,6 +8,7 @@ import {
   basesDasPericias,
   comRecursosCheios,
   fichaNova,
+  infoDoPerfil,
   limiteDaPericia,
   ocupacaoConhecida,
   passosEmAtributos,
@@ -130,5 +132,18 @@ describe('ficha nova', () => {
   it('recalcula os recursos quando os atributos mudam', () => {
     const ficha = comRecursosCheios({ ...fichaNova(), atributos: atributos('d8', 'd8', 'd8') });
     expect(ficha).toMatchObject({ pv: 12, pvMax: 12, pd: 16, pdMax: 16 });
+  });
+});
+
+describe('perfis e sistemas', () => {
+  it('cada perfil tem a sua habilidade', () => {
+    expect(infoDoPerfil('executor').habilidade).toBe('Ímpeto');
+    expect(infoDoPerfil('analista').habilidade).toBe('Preparação');
+    expect(infoDoPerfil('vigilante').habilidade).toBe('Reflexo');
+  });
+
+  it('só Ordem Paranormal II tem ficha por enquanto', () => {
+    expect(esquemaDaFicha('op2')).toBe(esquemaFichaOp2);
+    expect(esquemaDaFicha('inventado')).toBeNull();
   });
 });
