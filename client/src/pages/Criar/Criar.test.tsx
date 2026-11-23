@@ -130,6 +130,8 @@ describe('Criação guiada', () => {
   it('sair e voltar recupera o rascunho', async () => {
     montar();
     const tela = abrir('/personagens/novo?caso=cmp_1');
+    // Enquanto o caso carrega, o Próximo fica desabilitado: espera o caso antes de avançar.
+    await screen.findByText('O Sinal de Santa Ermida');
     await ateAtributos();
     fireEvent.click(screen.getByRole('button', { name: 'Subir Físico' }));
     tela.unmount();
