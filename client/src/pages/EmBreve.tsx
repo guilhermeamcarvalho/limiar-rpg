@@ -1,7 +1,7 @@
 // Páginas que o menu já aponta, mas que chegam em fases seguintes. Mostram onde a pessoa está
 // e como voltar, em vez de uma página não encontrada.
 import { useEffect, type ReactNode } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { tituloDaPagina, type CampanhaDetalhe } from '@membrana/shared';
 import { pedir } from '../auth/api.ts';
 import { linkDaCampanha, linkDoDossie, type PaginaDaCampanha } from '../casos/formatos.ts';
@@ -72,11 +72,24 @@ const DA_CAMPANHA = {
   { titulo: string; icone: NomeDoIcone; texto: string }
 >;
 
-/** /campanhas/:id/mesa, /escudo e /ficha: o caso vem da URL, e o personagem de ?personagem=. */
+/** Com quem a pessoa joga neste caso, lido do caso (escolhido no servidor, um por caso). */
+function JogandoCom({ caso }: { caso: CampanhaDetalhe }) {
+  if (caso.papel === 'mestre' && !caso.meuPersonagem) return null;
+  return (
+    <p className="muted">
+      {caso.meuPersonagem
+        ? `Você joga com ${caso.meuPersonagem.nome} neste caso.`
+        : 'Você ainda não escolheu um personagem para este caso.'}
+    </p>
+  );
+}
+
+/**
+ * /campanhas/:id/mesa, /escudo e /ficha: o caso vem da URL, e o personagem vem do caso
+ * (`meuPersonagem`), nunca de um estado global ou guardado no navegador.
+ */
 export function PaginaDaCampanhaEmBreve({ pagina }: { pagina: PaginaDaCampanha }) {
   const { id = '' } = useParams();
-  const [params] = useSearchParams();
-  const personagem = params.get('personagem');
   const info = DA_CAMPANHA[pagina];
   const uso = useCarga(`/api/campanhas/${id}`, (signal) =>
     pedir<{ campanha: CampanhaDetalhe }>(`/api/campanhas/${encodeURIComponent(id)}`, {
@@ -105,6 +118,7 @@ export function PaginaDaCampanhaEmBreve({ pagina }: { pagina: PaginaDaCampanha }
             <div className="col" style={{ gap: 6 }}>
               <span className="lab">{info.titulo}</span>
               <h1 className="h1">{caso.nome}</h1>
+              <JogandoCom caso={caso} />
             </div>
             <Card pad>
               <EmptyState
@@ -117,7 +131,7 @@ export function PaginaDaCampanhaEmBreve({ pagina }: { pagina: PaginaDaCampanha }
                       Dossiê do caso
                     </Link>
                     {pagina !== 'mesa' && (
-                      <Link className="btn ghost" to={linkDaCampanha(caso.id, 'mesa', personagem)}>
+                      <Link className="btn ghost" to={linkDaCampanha(caso.id, 'mesa')}>
                         Mesa
                       </Link>
                     )}

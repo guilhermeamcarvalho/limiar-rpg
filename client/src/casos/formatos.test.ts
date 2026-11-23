@@ -23,9 +23,9 @@ describe('formatos de caso', () => {
     );
   });
 
-  it('link de dentro do caso leva o personagem na URL', () => {
-    expect(linkDaCampanha('cmp_1', 'mesa', 'chr_9')).toBe('/campanhas/cmp_1/mesa?personagem=chr_9');
-    expect(linkDaCampanha('cmp_1', 'ficha')).toBe('/campanhas/cmp_1/ficha');
+  it('link de dentro do caso leva só o caso na URL', () => {
+    expect(linkDaCampanha('cmp_1', 'mesa')).toBe('/campanhas/cmp_1/mesa');
+    expect(linkDaCampanha('cmp 1', 'ficha')).toBe('/campanhas/cmp%201/ficha');
   });
 
   it('continuar: a sessão futura mais próxima; sem nenhuma, o mais recente; nunca um encerrado', () => {

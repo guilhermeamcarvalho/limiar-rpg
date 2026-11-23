@@ -29,6 +29,13 @@
       "when": 1795208999743,
       "tag": "0003_detalhes_do_caso",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795433816714,
+      "tag": "0004_personagens",
+      "breakpoints": true
     }
   ]
 }

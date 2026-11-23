@@ -55,12 +55,11 @@ export function sessaoFutura(caso: Pick<CampanhaNaLista, 'proximaSessao'>, agora
 export type PaginaDaCampanha = 'mesa' | 'escudo' | 'ficha';
 
 /**
- * Link para dentro de um caso. O contexto (qual caso, qual personagem) vai na URL, nunca guardado
- * no navegador: /campanhas/cmp_1/mesa?personagem=chr_9.
+ * Link para dentro de um caso: /campanhas/cmp_1/mesa. O caso vai na URL e o personagem vem dele
+ * (`meuPersonagem`, escolhido por caso no servidor), nunca de algo guardado no navegador.
  */
-export function linkDaCampanha(id: string, pagina: PaginaDaCampanha, personagem?: string | null) {
-  const busca = personagem ? `?${new URLSearchParams({ personagem }).toString()}` : '';
-  return `/campanhas/${encodeURIComponent(id)}/${pagina}${busca}`;
+export function linkDaCampanha(id: string, pagina: PaginaDaCampanha) {
+  return `/campanhas/${encodeURIComponent(id)}/${pagina}`;
 }
 
 export function linkDoDossie(id: string) {

@@ -94,19 +94,37 @@ describe('cabeçalho comum', () => {
 });
 
 describe('contexto da URL', () => {
-  it('/campanhas/:id/mesa mostra o caso no cabeçalho e mantém ?personagem nos links', async () => {
+  it('/campanhas/:id/escudo mostra o caso no cabeçalho e links só com o caso', async () => {
     servidor({
       'GET /api/campanhas/cmp_1': json(200, { campanha: detalhe({ papel: 'mestre' }) }),
     });
-    abrir('/campanhas/cmp_1/escudo?personagem=chr_9');
+    abrir('/campanhas/cmp_1/escudo');
 
     expect(await screen.findByText('você mestra')).toBeDefined();
     expect(
       await screen.findByRole('heading', { name: 'O Sinal de Santa Ermida', level: 1 }),
     ).toBeDefined();
     expect(screen.getByRole('link', { name: 'Mesa' }).getAttribute('href')).toBe(
-      '/campanhas/cmp_1/mesa?personagem=chr_9',
+      '/campanhas/cmp_1/mesa',
     );
+  });
+
+  it('/campanhas/:id/ficha diz com quem a pessoa joga, lido do caso', async () => {
+    servidor({
+      'GET /api/campanhas/cmp_1': json(200, {
+        campanha: detalhe({ meuPersonagem: { id: 'chr_9', nome: 'Davi Rocha' } }),
+      }),
+    });
+    abrir('/campanhas/cmp_1/ficha');
+
+    expect(await screen.findByText(/Davi Rocha/)).toBeDefined();
+  });
+
+  it('sem personagem escolhido, a ficha avisa', async () => {
+    servidor({ 'GET /api/campanhas/cmp_1': json(200, { campanha: detalhe() }) });
+    abrir('/campanhas/cmp_1/ficha');
+
+    expect(await screen.findByText(/Você ainda não escolheu um personagem/)).toBeDefined();
   });
 });
 

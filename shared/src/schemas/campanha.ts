@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import type { Papel } from '../permissoes.ts';
 import { esquemaNovoConvite } from './convite.ts';
+import type { PersonagemEmUso } from './personagem.ts';
 
 const quando = z.iso
   .datetime({ offset: true, error: 'Use uma data e hora válidas.' })
@@ -157,6 +158,11 @@ export interface CampanhaDetalhe extends CampanhaNaLista {
   dadosFisicos: boolean;
   fichasVisiveis: boolean;
   membros: Membro[];
+  /**
+   * O personagem de quem pediu neste caso. Mesa, celular e ficha leem daqui (o caso vem da URL),
+   * nunca de um "personagem em uso" guardado no navegador.
+   */
+  meuPersonagem: PersonagemEmUso | null;
   convites?: ConviteDoMestre[];
 }
 

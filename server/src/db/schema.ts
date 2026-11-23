@@ -1,4 +1,4 @@
-// Tabelas da Fase 0. Mudou algo aqui? Gere a migração com `pnpm db:generate` e versione no Git.
+// Tabelas do banco. Mudou algo aqui? Gere a migração com `pnpm db:generate` e versione no Git.
 // Nunca altere o banco à mão.
 import { sql } from 'drizzle-orm';
 import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
@@ -132,8 +132,8 @@ export const memberships = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     papel: text('papel', { enum: ['mestre', 'jogador'] }).notNull(),
-    /** Personagem que a pessoa usa nesta campanha. A tabela de personagens vem na Fase 1. */
-    characterId: text('character_id'),
+    /** Personagem que a pessoa usa nesta campanha. Trocar aqui não mexe nas outras campanhas. */
+    characterId: text('character_id').references(() => characters.id, { onDelete: 'set null' }),
     /** Convite usado para entrar (nulo para o mestre): o mestre vê quem ocupou cada vaga. */
     inviteId: text('invite_id').references(() => invites.id, { onDelete: 'set null' }),
     entrouEm: integer('entrou_em', { mode: 'timestamp_ms' }),
@@ -169,4 +169,34 @@ export const invites = sqliteTable(
     index('invites_campaign').on(t.campaignId),
     check('invites_vagas', sql`${t.usados} >= 0 and ${t.usados} <= ${t.vagas}`),
   ],
+);
+
+/**
+ * Personagens. A ficha é JSON com `versao`, validada pelo schema do sistema na entrada e na saída.
+ * `campaign_id` é o caso a que o personagem pertence (nulo enquanto está só na lista do dono);
+ * qual personagem cada pessoa usa em cada caso fica em `memberships.character_id`.
+ */
+export const characters = sqliteTable(
+  'characters',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('chr')),
+    ownerId: text('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    campaignId: text('campaign_id').references(() => campaigns.id, { onDelete: 'set null' }),
+    systemId: text('system_id')
+      .notNull()
+      .references(() => gameSystems.id),
+    ficha: text('ficha', { mode: 'json' }).$type<unknown>().notNull(),
+    /** Nome do arquivo em UPLOADS_DIR (hash do conteúdo). Os uploads chegam na Fase 2. */
+    foto: text('foto'),
+    tokenImg: text('token_img'),
+    criadoEm: criadoEm(),
+    atualizadoEm: integer('atualizado_em', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch('subsec') * 1000)`),
+  },
+  (t) => [index('characters_owner').on(t.ownerId), index('characters_campaign').on(t.campaignId)],
 );

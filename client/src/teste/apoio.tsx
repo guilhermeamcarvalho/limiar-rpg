@@ -99,6 +99,7 @@ export function detalhe(campos: Partial<CampanhaDetalhe> = {}): CampanhaDetalhe 
       { id: 'usr_9', nome: 'Helena Duarte', papel: 'mestre' },
       { id: 'usr_1', nome: 'Marta', papel: 'jogador' },
     ],
+    meuPersonagem: null,
     ...campos,
   };
 }

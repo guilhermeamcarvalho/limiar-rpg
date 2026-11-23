@@ -2,21 +2,18 @@
 // Quem cria vira mestre daquele caso; o papel é de cada caso, não da conta.
 import { eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
-import {
-  esquemaEdicaoDeCampanha,
-  esquemaNovaCampanha,
-  papelNa,
-  podeEditarCampanha,
-} from '@membrana/shared';
+import { esquemaEdicaoDeCampanha, esquemaNovaCampanha, podeEditarCampanha } from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
 import { campaigns, gameSystems, memberships } from '../../db/schema.ts';
 import { exigirLogin, usuarioLogado } from '../auth/sessao.ts';
 import { inserirConvite } from '../convites/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
+import { rotaMeuPersonagem } from './meu-personagem.ts';
 import {
   campanhaVisivel,
   convitesDoMestre,
   detalhar,
+  detalharPara,
   listarDoUsuario,
   proximoNumero,
 } from './dados.ts';
@@ -88,18 +85,18 @@ export const rotas: FastifyPluginAsync = (app) => {
     });
 
     return reply.status(201).send({
-      campanha: { ...detalhar(app.db, id, 'mestre'), convites: convitesDoMestre(app.db, id) },
+      campanha: {
+        ...detalhar(app.db, id, 'mestre', usuario.id),
+        convites: convitesDoMestre(app.db, id),
+      },
     });
   });
 
   app.get<{ Params: { id: string } }>('/:id', (request) => {
     const usuario = usuarioLogado(request);
     const { comMembros } = campanhaVisivel(app.db, request.params.id, usuario);
-    const papel = papelNa(usuario, comMembros) ?? 'jogador';
-    const campanha = detalhar(app.db, request.params.id, papel);
-    if (papel !== 'mestre') return { campanha };
     // O mestre recebe a mais os convites e quem entrou por cada um.
-    return { campanha: { ...campanha, convites: convitesDoMestre(app.db, campanha.id) } };
+    return { campanha: detalharPara(app.db, request.params.id, usuario, comMembros) };
   });
 
   app.patch<{ Params: { id: string } }>('/:id', (request) => {
@@ -125,11 +122,13 @@ export const rotas: FastifyPluginAsync = (app) => {
       .run();
     return {
       campanha: {
-        ...detalhar(app.db, request.params.id, 'mestre'),
+        ...detalhar(app.db, request.params.id, 'mestre', usuario.id),
         convites: convitesDoMestre(app.db, request.params.id),
       },
     };
   });
+
+  rotaMeuPersonagem(app);
 
   return Promise.resolve();
 };

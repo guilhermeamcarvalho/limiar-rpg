@@ -10,9 +10,16 @@ import type {
   Quem,
   SituacaoDoCaso,
 } from '@membrana/shared';
-import { podeVerCampanha } from '@membrana/shared';
+import { papelNa, podeVerCampanha } from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
-import { campaigns, gameSystems, invites, memberships, users } from '../../db/schema.ts';
+import {
+  campaigns,
+  characters,
+  gameSystems,
+  invites,
+  memberships,
+  users,
+} from '../../db/schema.ts';
 import { ErroDaApi } from '../erros.ts';
 
 /** 404, e não 403: quem não participa nem fica sabendo que o caso existe. */
@@ -105,7 +112,8 @@ export function campanhaVisivel(db: Banco, id: string, quem: Quem) {
   return { campanha, comMembros };
 }
 
-export function detalhar(db: Banco, id: string, papel: Papel): CampanhaDetalhe {
+/** O caso como `userId` o vê: com o papel e o personagem dele neste caso. */
+export function detalhar(db: Banco, id: string, papel: Papel, userId: string): CampanhaDetalhe {
   const contagem = contagemDeJogadores(db);
   const linha = db
     .select({
@@ -151,7 +159,36 @@ export function detalhar(db: Banco, id: string, papel: Papel): CampanhaDetalhe {
     proximaSessao: iso(proximaSessao),
     contagens: { jogadores },
     membros,
+    meuPersonagem: personagemEmUso(db, id, userId),
   };
+}
+
+/** O personagem que a pessoa escolheu para este caso, com o nome tirado da ficha. */
+export function personagemEmUso(db: Banco, campaignId: string, userId: string) {
+  return (
+    db
+      .select({
+        id: characters.id,
+        nome: sql<string>`json_extract(${characters.ficha}, '$.nome')`,
+      })
+      .from(memberships)
+      .innerJoin(characters, eq(characters.id, memberships.characterId))
+      .where(and(eq(memberships.campaignId, campaignId), eq(memberships.userId, userId)))
+      .get() ?? null
+  );
+}
+
+/** A resposta de GET /campanhas/:id: o mestre recebe a mais os convites. */
+export function detalharPara(
+  db: Banco,
+  id: string,
+  quem: { id: string },
+  comMembros: CampanhaComMembros,
+) {
+  const papel = papelNa(quem, comMembros) ?? 'jogador';
+  const campanha = detalhar(db, id, papel, quem.id);
+  if (papel !== 'mestre') return campanha;
+  return { ...campanha, convites: convitesDoMestre(db, id) };
 }
 
 /** Os convites da campanha, com quem entrou por cada um. Só para o mestre. */

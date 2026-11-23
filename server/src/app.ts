@@ -16,11 +16,14 @@ import { rotas as rotasDeCampanhas } from './http/campanhas/index.ts';
 import { rotas as rotasDeConvites } from './http/convites/index.ts';
 import { rotas as rotasDePersonagens } from './http/personagens/index.ts';
 import { rotas as rotasDeUploads } from './http/uploads/index.ts';
+import { criarAvisosDaMesa, type AvisosDaMesa } from './mesa/index.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
     config: Config;
     db: Banco;
+    /** Por onde as rotas avisam a mesa ao vivo de uma mudança. */
+    mesa: AvisosDaMesa;
   }
 }
 
@@ -86,6 +89,7 @@ export async function criarApp({ config, db, logger, discord }: DependenciasDoAp
 
   app.decorate('config', config);
   app.decorate('db', db);
+  app.decorate('mesa', criarAvisosDaMesa());
   registrarTratadorDeErros(app);
 
   await app.register(helmet, {
@@ -104,7 +108,7 @@ export async function criarApp({ config, db, logger, discord }: DependenciasDoAp
   await app.register(rotasDeAuth, { prefix: '/api', ...(discord !== undefined && { discord }) });
   await app.register(rotasDeCampanhas, { prefix: '/api/campanhas' });
   await app.register(rotasDeConvites, { prefix: '/api' });
-  await app.register(rotasDePersonagens, { prefix: '/api/personagens' });
+  await app.register(rotasDePersonagens, { prefix: '/api' });
   await app.register(rotasDeUploads, { prefix: '/api/uploads' });
 
   const servirClient = config.NODE_ENV === 'production' && existsSync(PASTA_DO_CLIENT);
