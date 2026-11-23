@@ -4,6 +4,7 @@
 //   GET    /api/personagens/:id      o dono, o mestre do caso e, se o caso deixar, os outros jogadores
 //   PUT    /api/personagens/:id      troca a ficha: o dono ou o mestre do caso
 //   DELETE /api/personagens/:id      só o dono; leva junto foto, token e pistas guardadas
+//   POST   /api/personagens/:id/testes, GET …/testes   testes de perícia e histórico (testes.ts)
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { esquemaEdicaoDePersonagem, esquemaNovoPersonagem, ID_OP2 } from '@membrana/shared';
@@ -11,8 +12,10 @@ import { characters, gameSystems } from '../../db/schema.ts';
 import { exigirLogin, usuarioLogado } from '../auth/sessao.ts';
 import { campanhaVisivel } from '../campanhas/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
+import { rotasDeTestes } from './testes.ts';
 import {
   acessoAo,
+  avisarMesa,
   apagarArquivos,
   campanhasDo,
   carregar,
@@ -38,19 +41,9 @@ function sistema(app: FastifyInstance, id: string) {
   return linha;
 }
 
-function avisarMesa(
-  app: FastifyInstance,
-  campanhas: string[],
-  personagemId: string,
-  removido = false,
-) {
-  for (const campanhaId of campanhas) {
-    app.mesa.emitir({ type: 'character.changed', campanhaId, personagemId, removido });
-  }
-}
-
 export const rotas: FastifyPluginAsync = (app) => {
   app.addHook('preHandler', exigirLogin);
+  rotasDeTestes(app);
 
   app.post('/personagens', (request, reply) => {
     const usuario = usuarioLogado(request);

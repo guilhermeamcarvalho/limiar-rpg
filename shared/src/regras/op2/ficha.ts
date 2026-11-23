@@ -24,6 +24,15 @@ export function maximosDeRecursos(atributos: FichaOp2['atributos']): {
   return { pvMax: calcular(CONFIG_OP2.recursos.pv), pdMax: calcular(CONFIG_OP2.recursos.pd) };
 }
 
+/**
+ * Espaços para itens (RF-13): um por face do dado de Físico, sem os efeitos da cena (d8 → 8).
+ * Cada item ocupa um espaço. Regra provisória do protótipo, até o texto do manual; passar do
+ * limite é aviso, não bloqueia.
+ */
+export function espacosDeItens(atributos: FichaOp2['atributos']): number {
+  return faces(atributos.fisico);
+}
+
 export interface OpcoesDoTeste {
   /** DT pedida pelo mestre; sem ela, a padrão (7). */
   dt?: number;

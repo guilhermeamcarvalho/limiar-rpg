@@ -1,8 +1,9 @@
 // Edição da ficha de Ordem Paranormal II, com todos os campos numa página (RF-08) e os avisos
-// RF-09. Usada pela ficha em branco (#44) e pela edição de uma ficha salva; o modo de edição da
-// tela Ficha (#47) parte daqui. Erros (como PV acima do máximo) bloqueiam salvar; avisos da regra
-// de criação não. O rascunho é separado do estado salvo: Cancelar descarta.
-import { useState, type ReactNode } from 'react';
+// RF-09. Usada pela ficha em branco (#44) e pelo modo de edição da tela Ficha (#47, artboard
+// Ficha-Inventado). Erros (como PV acima do máximo) bloqueiam salvar, aparecem no campo e levam o
+// foco até ele; avisos da regra de criação não bloqueiam. O rascunho é separado do estado salvo:
+// Cancelar descarta.
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ATRIBUTOS_OP2,
   DADOS,
@@ -17,7 +18,7 @@ import {
   type PerfilOp2,
 } from '@membrana/shared';
 import { NOME_DO_PERFIL } from '../../personagens/formatos.ts';
-import { Banner, Button, Card, Field, Icon, Input, Select, Textarea } from '../../ui/index.ts';
+import { Banner, Button, Card, cx, Field, Icon, Input, Select, Textarea } from '../../ui/index.ts';
 import './ficha.css';
 
 /** Os campos como a tela os edita: números ainda como texto, do jeito que a pessoa digitou. */
@@ -116,6 +117,17 @@ export interface EdicaoProps {
   falha?: string | null;
   aoCancelar: () => void;
   aoSalvar: (ficha: FichaOp2) => void;
+  /** Terceira coluna, ao lado das perícias: o aviso de testes pausados na tela Ficha. */
+  lateral?: ReactNode;
+}
+
+const SEM_ERROS: Record<string, string> = {};
+
+/** Leva o foco ao primeiro campo com erro, depois de a tela mostrar os erros. */
+function focarPrimeiroErro() {
+  requestAnimationFrame(() => {
+    document.querySelector<HTMLElement>('.ficha-edicao [aria-invalid="true"]')?.focus();
+  });
 }
 
 export function EdicaoDaFicha({
@@ -124,10 +136,11 @@ export function EdicaoDaFicha({
   contexto,
   rotuloDeSalvar,
   salvando,
-  errosDoServidor = {},
+  errosDoServidor = SEM_ERROS,
   falha,
   aoCancelar,
   aoSalvar,
+  lateral,
 }: EdicaoProps) {
   const [salvo] = useState(() => paraForm(inicial));
   const [f, setF] = useState<FormDaFicha>(salvo);
@@ -140,6 +153,10 @@ export function EdicaoDaFicha({
     setDoServidor(errosDoServidor);
     setMexidosDepois(new Set());
   }
+  // Erro novo do servidor: o foco vai para o campo, como nos erros da própria tela.
+  useEffect(() => {
+    if (Object.keys(errosDoServidor).length > 0) focarPrimeiroErro();
+  }, [errosDoServidor]);
   const servidorAinda = Object.fromEntries(
     Object.entries(errosDoServidor).filter(([c]) => !mexidosDepois.has(c.split('.')[0] ?? c)),
   );
@@ -168,9 +185,7 @@ export function EdicaoDaFicha({
   function salvar() {
     setTentou(true);
     if (Object.keys(erros).length > 0) {
-      requestAnimationFrame(() => {
-        document.querySelector<HTMLElement>('.ficha-edicao [aria-invalid="true"]')?.focus();
-      });
+      focarPrimeiroErro();
       return;
     }
     aoSalvar(daForm(f));
@@ -279,7 +294,7 @@ export function EdicaoDaFicha({
           </div>
         </Card>
 
-        <div className="ficha-grade">
+        <div className={cx('ficha-grade', lateral !== undefined && 'com-lateral')}>
           <div className="col ficha-coluna">
             <Card pad className="col">
               <span className="lab">Atributos</span>
@@ -353,6 +368,8 @@ export function EdicaoDaFicha({
               ))}
             </div>
           </Card>
+
+          {lateral !== undefined && <div className="col ficha-coluna">{lateral}</div>}
         </div>
 
         {avisosGerais.map((a) => (

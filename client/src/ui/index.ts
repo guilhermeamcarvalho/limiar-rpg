@@ -32,6 +32,12 @@ export {
   type AvisoNovo,
   type TipoDeAviso,
 } from './Overlay.tsx';
+export {
+  ResultadoTeste,
+  textoDoVeredito,
+  type DadoDoResultado,
+  type ResultadoTesteProps,
+} from './ResultadoTeste.tsx';
 export { Async, useCarga, type AsyncProps, type Carga, type UsoDaCarga } from './Async.tsx';
 export { ErrorBlock, valeTentarDeNovo, type ErrorBlockProps } from './ErrorBlock.tsx';
 export { useEnvio } from './useEnvio.ts';

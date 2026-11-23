@@ -92,11 +92,18 @@ describe('Ficha em branco', () => {
   });
 });
 
+/** Abre a ficha do Davi e entra no modo de edição. */
+async function editarDavi() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Editar ficha' }));
+  return screen.findByText('Editando a ficha de Davi');
+}
+
 describe('Edição de uma ficha salva', () => {
-  it('Cancelar descarta; Salvar envia e zera a contagem de mudanças', async () => {
+  it('Salvar envia, volta para a ficha com o valor novo e avisa', async () => {
     const davi = personagem();
     const chamadas = servidor({
       'GET /api/personagens/chr_davi': json(200, { personagem: davi }),
+      'GET /api/campanhas/cmp_1': json(200, { campanha: detalhe() }),
       'PUT /api/personagens/chr_davi': (c: Chamada) =>
         json(200, {
           personagem: {
@@ -108,7 +115,7 @@ describe('Edição de uma ficha salva', () => {
     });
     abrir('/personagens/chr_davi/ficha');
 
-    expect(await screen.findByText('Editando a ficha de Davi')).toBeDefined();
+    expect(await editarDavi()).toBeDefined();
     fireEvent.change(screen.getByLabelText('PV atual'), { target: { value: '7' } });
     expect(screen.getByText(/^1 mudança/)).toBeDefined();
 
@@ -117,11 +124,51 @@ describe('Edição de uma ficha salva', () => {
     await waitFor(() => {
       expect(chamadas.find((c) => c.metodo === 'PUT')?.corpo).toMatchObject({ ficha: { pv: 7 } });
     });
-    expect(await screen.findByText(/^0 mudanças/)).toBeDefined();
-    expect(screen.getByLabelText<HTMLInputElement>('PV atual').value).toBe('7');
+    expect(await screen.findByText('Ficha salva')).toBeDefined();
+    expect(screen.queryByText('Editando a ficha de Davi')).toBeNull();
+    expect(screen.getByRole('group', { name: 'PV: 7 de 12' })).toBeDefined();
   });
 
-  it('erro do servidor aparece no campo', async () => {
+  it('Cancelar volta exatamente ao estado salvo, sem enviar nada', async () => {
+    const chamadas = servidor({
+      'GET /api/personagens/chr_davi': json(200, { personagem: personagem() }),
+    });
+    abrir('/personagens/chr_davi/ficha');
+    await editarDavi();
+
+    fireEvent.change(screen.getByLabelText('PV atual'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Mente'), { target: { value: 'd10' } });
+    expect(screen.getByText(/^2 mudanças/)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(await screen.findByRole('group', { name: 'PV: 12 de 12' })).toBeDefined();
+    await editarDavi();
+    expect(screen.getByLabelText<HTMLInputElement>('PV atual').value).toBe('12');
+    expect(screen.getByLabelText<HTMLSelectElement>('Mente').value).toBe('d6');
+    expect(screen.getByText(/^0 mudanças/)).toBeDefined();
+    expect(chamadas.some((c) => c.metodo === 'PUT')).toBe(false);
+  });
+
+  it('erro bloqueia salvar, aparece no campo e leva o foco; testes ficam pausados', async () => {
+    const chamadas = servidor({
+      'GET /api/personagens/chr_davi': json(200, { personagem: personagem() }),
+    });
+    abrir('/personagens/chr_davi/ficha');
+    await editarDavi();
+    expect(screen.getByText(/Os testes ficam pausados/)).toBeDefined();
+    expect(screen.queryByRole('button', { name: /^Testar / })).toBeNull();
+
+    fireEvent.change(screen.getByLabelText('PV atual'), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar ficha' }));
+
+    expect(await screen.findByText('O PV não pode passar do máximo.')).toBeDefined();
+    await waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByLabelText('PV atual'));
+    });
+    expect(chamadas.some((c) => c.metodo === 'PUT')).toBe(false);
+  });
+
+  it('erro do servidor aparece no campo, com o foco nele', async () => {
     servidor({
       'GET /api/personagens/chr_davi': json(200, { personagem: personagem() }),
       'PUT /api/personagens/chr_davi': json(422, {
@@ -133,11 +180,14 @@ describe('Edição de uma ficha salva', () => {
       }),
     });
     abrir('/personagens/chr_davi/ficha');
-    await screen.findByText('Editando a ficha de Davi');
+    await editarDavi();
 
     fireEvent.click(screen.getByRole('button', { name: 'Salvar ficha' }));
 
     expect(await screen.findByText('Origem recusada pelo servidor.')).toBeDefined();
+    await waitFor(() => {
+      expect(document.activeElement).toBe(screen.getByLabelText('Origem'));
+    });
     fireEvent.change(screen.getByLabelText('Origem'), { target: { value: 'Outra' } });
     expect(screen.queryByText('Origem recusada pelo servidor.')).toBeNull();
   });

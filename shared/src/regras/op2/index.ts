@@ -7,5 +7,6 @@ export * from './falha-critica.ts';
 export * from './impeto.ts';
 export * from './modificadores.ts';
 export * from './ficha.ts';
+export * from './teste-da-ficha.ts';
 export * from './criacao.ts';
 export * from './exemplos.ts';

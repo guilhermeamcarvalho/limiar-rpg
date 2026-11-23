@@ -6,6 +6,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import estaticos from '@fastify/static';
 import pacote from '../package.json' with { type: 'json' };
+import { rngCripto, type Rng } from '@membrana/shared';
 import type { Config } from './config.ts';
 import type { Banco } from './db/index.ts';
 import { NAO_ENCONTRADO, registrarTratadorDeErros } from './http/erros.ts';
@@ -24,6 +25,8 @@ declare module 'fastify' {
     db: Banco;
     /** Por onde as rotas avisam a mesa ao vivo de uma mudança. */
     mesa: AvisosDaMesa;
+    /** O sorteio dos testes: criptográfico; os testes do servidor passam um com semente. */
+    sorteio: Rng;
   }
 }
 
@@ -66,6 +69,8 @@ export interface DependenciasDoApp {
   discord?: ClienteDiscord | null;
   /** Sobrescreve o logger padrão (os testes passam `false`). */
   logger?: FastifyServerOptions['logger'];
+  /** Troca o sorteio dos dados (os testes passam um previsível). */
+  sorteio?: Rng;
 }
 
 /** A origem (https://host) do DSN do Sentry do navegador, se houver. */
@@ -79,7 +84,7 @@ export function versaoDoApp(config: Pick<Config, 'MEMBRANA_VERSAO'>): string {
 }
 
 /** Monta o app sem abrir porta, para os testes usarem `app.inject`. */
-export async function criarApp({ config, db, logger, discord }: DependenciasDoApp) {
+export async function criarApp({ config, db, logger, discord, sorteio }: DependenciasDoApp) {
   const opcoes: FastifyServerOptions = {
     logger: logger ?? opcoesDoLogger(config),
     // Atrás do Caddy: o IP real vem no X-Forwarded-For.
@@ -90,6 +95,7 @@ export async function criarApp({ config, db, logger, discord }: DependenciasDoAp
   app.decorate('config', config);
   app.decorate('db', db);
   app.decorate('mesa', criarAvisosDaMesa());
+  app.decorate('sorteio', sorteio ?? rngCripto());
   registrarTratadorDeErros(app);
 
   await app.register(helmet, {
