@@ -36,6 +36,7 @@ import {
   Field,
   Icon,
   Input,
+  ModoDados,
   ResourceBar,
   Tag,
   cx,
@@ -66,6 +67,8 @@ interface PropsDoPasso {
   r: Rascunho;
   mudar: (m: Partial<Rascunho>) => void;
   erro: (campo: string) => string | undefined;
+  /** O caso permite dados físicos (sem caso, permite). */
+  permitirFisico: boolean;
 }
 
 /* ---------- 1 · Perfil ---------- */
@@ -184,7 +187,7 @@ function Ocupacao({ r, mudar, erro }: PropsDoPasso) {
 
 /* ---------- 5 · Toques finais e revisão ---------- */
 
-function ToquesFinais({ r, mudar, erro }: PropsDoPasso) {
+function ToquesFinais({ r, mudar, erro, permitirFisico }: PropsDoPasso) {
   return (
     <>
       <Field label="Nome" error={erro('nome')} help="Como a mesa vai chamar o personagem.">
@@ -222,17 +225,28 @@ function ToquesFinais({ r, mudar, erro }: PropsDoPasso) {
           />
         </Field>
       </div>
+      {permitirFisico && (
+        <div className="field">
+          <span className="flabel">Dados</span>
+          <ModoDados
+            value={r.modoDados}
+            onChange={(modoDados) => {
+              mudar({ modoDados });
+            }}
+          />
+          <span className="help">
+            Quem rola nos testes: o app ou você, na mão. Dá para trocar depois, na ficha.
+          </span>
+        </div>
+      )}
       <div className="field">
         <span className="flabel">Foto e token</span>
         <div className="criar-envio">
           <Icon name="image" size="xl" className="muted" />
           <div className="grow">
-            <b>O envio de foto e token chega junto com os uploads</b>
+            <b>Envie a foto e o token pela ficha, depois de criar</b>
             <div className="help">Até lá, o personagem usa as iniciais do nome.</div>
           </div>
-          <Button size="sm" icon={<Icon name="upload" size="sm" />} disabled>
-            Escolher
-          </Button>
         </div>
       </div>
     </>
@@ -453,7 +467,12 @@ export function Criar() {
     document.getElementById('criar-titulo')?.focus();
   }, [r.passo]);
 
-  const ficha = fichaDoRascunho(r, nivel);
+  const permitirFisico = caso?.dadosFisicos !== false;
+  // Caso só com dados virtuais: o que o rascunho guardou não vale.
+  const ficha = {
+    ...fichaDoRascunho(r, nivel),
+    ...(!permitirFisico && { modoDados: 'virtual' as const }),
+  };
   const erros = { ...validarRascunho(r, nivel), ...doServidor };
   const passo = r.passo;
   const errosAqui = errosDoPasso(erros, passo);
@@ -526,7 +545,7 @@ export function Criar() {
 
   if (criado) return <Pronto personagem={criado} caso={caso} />;
 
-  const props: PropsDoPasso = { r, mudar, erro };
+  const props: PropsDoPasso = { r, mudar, erro, permitirFisico };
   const titulo = TITULOS[passo] ?? TITULOS[0];
   // Veio de um caso que ainda não carregou (ou falhou): criar agora salvaria o personagem sem caso.
   const bloqueado = (casoId !== null && caso === null) || outroSistema;

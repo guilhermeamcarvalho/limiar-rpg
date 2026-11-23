@@ -42,6 +42,8 @@ export interface Rascunho {
   /** Como a pessoa digitou; vazio é "sem idade". */
   idade: string;
   origem: string;
+  /** Quem rola nos testes (RF-83). */
+  modoDados: FichaOp2['modoDados'];
 }
 
 export const RASCUNHO_VAZIO: Rascunho = {
@@ -54,6 +56,7 @@ export const RASCUNHO_VAZIO: Rascunho = {
   nome: '',
   idade: '',
   origem: '',
+  modoDados: 'virtual',
 };
 
 const chave = (userId: string, caso: string | null) =>
@@ -99,6 +102,7 @@ export function lerRascunho(userId: string, caso: string | null): Rascunho {
       nome: ehTexto(l['nome']) ? l['nome'] : '',
       idade: ehTexto(l['idade']) ? l['idade'] : '',
       origem: ehTexto(l['origem']) ? l['origem'] : '',
+      modoDados: l['modoDados'] === 'fisico' ? 'fisico' : 'virtual',
     };
   } catch {
     return RASCUNHO_VAZIO;
@@ -149,6 +153,7 @@ export function fichaDoRascunho(r: Rascunho, nivel: number): FichaOp2 {
     }),
     idade: idadeDoTexto(r.idade),
     origem: r.origem,
+    modoDados: r.modoDados,
     atributos: r.atributos,
     pericias: periciasDoRascunho(r),
   });

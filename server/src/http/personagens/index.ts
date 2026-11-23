@@ -19,12 +19,18 @@ import {
   apagarArquivos,
   campanhasDo,
   carregar,
+  casoPermiteFisico,
   listarDoDono,
   paraApi,
   PERSONAGEM_NAO_ENCONTRADO,
   usarNoCaso,
   validarFicha,
 } from './dados.ts';
+
+/** Num caso que só aceita dados virtuais, a ficha não entra no modo físico (RF-83). */
+const FISICO_DESLIGADO = new ErroDaApi(422, 'FICHA_INVALIDA', 'A ficha tem campos inválidos.', {
+  'ficha.modoDados': 'O mestre deste caso não permite dados físicos.',
+});
 
 /** O sistema escolhido, ou 400 no campo. */
 function sistema(app: FastifyInstance, id: string) {
@@ -63,6 +69,8 @@ export const rotas: FastifyPluginAsync = (app) => {
     }
     const { tipo } = sistema(app, sistemaId);
     const ficha = validarFicha(tipo, dados.ficha);
+    if (ficha.modoDados === 'fisico' && !casoPermiteFisico(app.db, campanhaId))
+      throw FISICO_DESLIGADO;
 
     // Criar e pôr em uso no caso vão juntos: não fica personagem criado pela metade.
     const id = app.db.transaction((tx) => {
@@ -109,6 +117,13 @@ export const rotas: FastifyPluginAsync = (app) => {
     }
     const dados = validar(esquemaEdicaoDePersonagem, request.body);
     const ficha = validarFicha(linha.tipo, dados.ficha);
+    // Ficha que já estava no modo físico (o caso mudou depois) pode ser salva como está.
+    const virouFisica =
+      ficha.modoDados === 'fisico' &&
+      (linha.personagem.ficha as { modoDados?: unknown }).modoDados !== 'fisico';
+    if (virouFisica && !casoPermiteFisico(app.db, linha.personagem.campaignId)) {
+      throw FISICO_DESLIGADO;
+    }
 
     app.db
       .update(characters)

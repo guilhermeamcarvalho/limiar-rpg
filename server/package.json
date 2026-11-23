@@ -15,6 +15,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
     "@fastify/helmet": "^13.2.0",
+    "@fastify/multipart": "^10.1.9",
     "@fastify/rate-limit": "^11.2.2",
     "@fastify/static": "^10.1.11",
     "@membrana/shared": "workspace:*",
@@ -23,6 +24,7 @@
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.8",
     "nanoid": "^6.0.2",
+    "sharp": "^0.35.5",
     "zod": "^4.6.7"
   },
   "devDependencies": {

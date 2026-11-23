@@ -7,7 +7,8 @@ import {
   type Personagem,
   type RegistroDeTeste,
 } from '@membrana/shared';
-import { testLog } from '../../db/schema.ts';
+import { eq } from 'drizzle-orm';
+import { campaigns, testLog } from '../../db/schema.ts';
 import type { EventoDaMesa } from '../../mesa/index.ts';
 import { appDeTeste, pessoaLogada } from '../../teste/apoio.ts';
 import { LIMITE_DO_HISTORICO } from './testes.ts';
@@ -272,5 +273,144 @@ describe('GET /api/personagens/:id/testes', () => {
     await testar(a, bia, davi.id, { periciaId: 'maquinas' });
     await a.inject({ method: 'DELETE', url: `/api/personagens/${davi.id}`, cookies: bia.cookies });
     expect(a.db.select().from(testLog).all()).toEqual([]);
+  });
+});
+
+describe('POST /api/personagens/:id/testes/informado (dados físicos)', () => {
+  const fisica = () => ({ ...fichaDoDavi(), modoDados: 'fisico' as const });
+  const informar = (a: FastifyInstance, quem: Pessoa, id: string, payload: object) =>
+    a.inject({
+      method: 'POST',
+      url: `/api/personagens/${id}/testes/informado`,
+      cookies: quem.cookies,
+      payload,
+    });
+
+  it('registra os valores informados com a origem "dados físicos" e o mestre vê', async () => {
+    const { a, eventos, bia, ana, caso, davi } = await mesaPronta(fisica());
+
+    const r = await informar(a, bia, davi.id, {
+      periciaId: 'maquinas',
+      resultado: { modo: 'dados', valores: [5, 9] },
+    });
+
+    expect(r.statusCode).toBe(201);
+    const { teste } = r.json<Resposta>();
+    expect(teste).toMatchObject({
+      origem: 'fisico',
+      resultado: { total: 14, dt: 9, veredito: 'sucesso', informado: true },
+    });
+    expect(eventos).toEqual([
+      { type: 'character.changed', campanhaId: caso, personagemId: davi.id, removido: false },
+    ]);
+    const { testes } = await historico(a, ana, davi.id);
+    expect(testes.map((t) => [t.origem, t.autor?.nome])).toEqual([['fisico', 'Bia']]);
+  });
+
+  it('d10 com 12 é recusado no campo do dado, sem gravar nada', async () => {
+    const { a, bia, davi } = await mesaPronta(fisica());
+
+    const r = await informar(a, bia, davi.id, {
+      periciaId: 'maquinas',
+      resultado: { modo: 'dados', valores: [5, 12] },
+    });
+
+    expect(r.statusCode).toBe(422);
+    expect(r.json()).toMatchObject({
+      erro: { codigo: 'TESTE_RECUSADO', campos: { 'valores.1': 'O d10 vai de 1 a 10.' } },
+    });
+    expect(a.db.select().from(testLog).all()).toEqual([]);
+  });
+
+  it('só o resultado, com falha crítica: aplica o d8 e o d4 informados e gasta o Ímpeto', async () => {
+    const { a, bia, davi } = await mesaPronta(fisica());
+
+    const r = await informar(a, bia, davi.id, {
+      periciaId: 'maquinas',
+      impeto: true,
+      resultado: { modo: 'veredito', veredito: 'falhaCritica' },
+      falhaCritica: { d8: 5, d4: 3 },
+    });
+
+    const { teste, personagem } = r.json<Resposta>();
+    expect(teste.falhaCritica).toEqual({
+      d8: 5,
+      d4: 3,
+      nome: 'Acidente',
+      descricao: 'Perde 3 PV.',
+    });
+    expect(personagem.ficha).toMatchObject({ pv: 9, impeto: 1 });
+  });
+
+  it('ficha no modo virtual: quem rola é o app', async () => {
+    const { a, bia, davi } = await mesaPronta();
+    const r = await informar(a, bia, davi.id, {
+      periciaId: 'maquinas',
+      resultado: { modo: 'dados', valores: [5, 9] },
+    });
+    expect(r.statusCode).toBe(409);
+    expect(r.json()).toMatchObject({ erro: { codigo: 'MODO_VIRTUAL' } });
+  });
+
+  it('caso que desligou os dados físicos recusa o resultado informado', async () => {
+    const { a, bia, caso, davi } = await mesaPronta(fisica());
+    a.db.update(campaigns).set({ dadosFisicos: false }).where(eq(campaigns.id, caso)).run();
+
+    const r = await informar(a, bia, davi.id, {
+      periciaId: 'maquinas',
+      resultado: { modo: 'veredito', veredito: 'sucesso' },
+    });
+
+    expect(r.statusCode).toBe(409);
+    expect(r.json()).toMatchObject({ erro: { codigo: 'DADOS_FISICOS_DESLIGADOS' } });
+  });
+
+  it('outro jogador recebe 403 e pedido mal montado é 400', async () => {
+    const { a, bia, caio, davi } = await mesaPronta(fisica());
+    const corpo = { periciaId: 'maquinas', resultado: { modo: 'dados', valores: [5, 9] } };
+    expect((await informar(a, caio, davi.id, corpo)).statusCode).toBe(403);
+    const ruim = await informar(a, bia, davi.id, { periciaId: 'maquinas' });
+    expect(ruim.statusCode).toBe(400);
+  });
+});
+
+describe('modo de dados e a regra do caso', () => {
+  it('num caso só com dados virtuais, a ficha não passa para o modo físico', async () => {
+    const { a, bia, caso, davi } = await mesaPronta();
+    a.db.update(campaigns).set({ dadosFisicos: false }).where(eq(campaigns.id, caso)).run();
+
+    const editar = await a.inject({
+      method: 'PUT',
+      url: `/api/personagens/${davi.id}`,
+      cookies: bia.cookies,
+      payload: { ficha: { ...davi.ficha, modoDados: 'fisico' } },
+    });
+    expect(editar.statusCode).toBe(422);
+    expect(editar.json()).toMatchObject({
+      erro: { campos: { 'ficha.modoDados': 'O mestre deste caso não permite dados físicos.' } },
+    });
+
+    const criar = await a.inject({
+      method: 'POST',
+      url: '/api/personagens',
+      cookies: bia.cookies,
+      payload: { campanhaId: caso, ficha: { ...fichaDoDavi(), modoDados: 'fisico' } },
+    });
+    expect(criar.statusCode).toBe(422);
+  });
+
+  it('ficha que já estava no modo físico continua salvando, e pode voltar ao virtual', async () => {
+    const { a, bia, caso, davi } = await mesaPronta({ ...fichaDoDavi(), modoDados: 'fisico' });
+    a.db.update(campaigns).set({ dadosFisicos: false }).where(eq(campaigns.id, caso)).run();
+    const salvar = (ficha: FichaOp2) =>
+      a.inject({
+        method: 'PUT',
+        url: `/api/personagens/${davi.id}`,
+        cookies: bia.cookies,
+        payload: { ficha },
+      });
+
+    expect((await salvar({ ...davi.ficha, pv: 10 })).statusCode).toBe(200);
+    expect((await salvar({ ...davi.ficha, modoDados: 'virtual' })).statusCode).toBe(200);
   });
 });

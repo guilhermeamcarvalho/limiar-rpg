@@ -70,6 +70,7 @@ export function FichaEmBranco() {
               </div>
             }
             rotuloDeSalvar="Criar personagem"
+            permitirFisico={caso?.dadosFisicos !== false}
             salvando={envio.salvando}
             errosDoServidor={envio.erros}
             falha={envio.falha}

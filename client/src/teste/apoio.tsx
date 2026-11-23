@@ -37,7 +37,18 @@ export function servidor(rotas: Respostas = {}) {
   const chamadas: Chamada[] = [];
   vi.stubGlobal('fetch', async (url: string, init?: RequestInit) => {
     const metodo = init?.method ?? 'GET';
-    const corpo: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
+    // JSON vira objeto; formulário (envio de imagem) vira os campos, com o arquivo pelo nome e tipo.
+    const corpo: unknown =
+      typeof init?.body === 'string'
+        ? JSON.parse(init.body)
+        : init?.body instanceof FormData
+          ? Object.fromEntries(
+              [...init.body.entries()].map(([k, v]) => [
+                k,
+                typeof v === 'string' ? v : { nome: v.name, tipo: v.type },
+              ]),
+            )
+          : undefined;
     const chamada = { metodo, url, corpo };
     chamadas.push(chamada);
     const todas: Respostas = { 'GET /api/me': json(200, { usuario: MARTA }), ...rotas };

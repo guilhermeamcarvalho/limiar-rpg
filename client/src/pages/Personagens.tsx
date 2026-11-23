@@ -6,6 +6,7 @@ import { Link, useSearchParams } from 'react-router';
 import {
   ATRIBUTOS_OP2,
   tituloDaPagina,
+  urlDoArquivo,
   type CampanhaNaLista,
   type PersonagemNaLista,
 } from '@membrana/shared';
@@ -192,6 +193,8 @@ function Cartao({ p, acoes }: { p: PersonagemNaLista; acoes: AcoesDoCartao }) {
   const [usando, setUsando] = useState(false);
   const manter = useRef<HTMLButtonElement>(null);
   const { ficha, campanha } = p;
+  // O token é o que a mesa mostra; sem ele, a foto.
+  const imagem = p.tokenImg ?? p.foto;
   const nome = primeiroNome(ficha.nome) || ficha.nome;
   const ativo = campanha !== null && !campanha.encerrado;
 
@@ -212,6 +215,7 @@ function Cartao({ p, acoes }: { p: PersonagemNaLista; acoes: AcoesDoCartao }) {
           name={ficha.nome}
           tone={TOM_DO_PERFIL[ficha.perfil]}
           size="lg"
+          src={imagem ? urlDoArquivo(imagem) : undefined}
         />
         <div className="grow pers-nome">
           <div className="row between">
