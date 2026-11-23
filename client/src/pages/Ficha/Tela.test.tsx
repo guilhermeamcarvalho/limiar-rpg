@@ -284,18 +284,191 @@ describe('Ficha: 20 perícias com prévia de teste (#46)', () => {
     expect(await screen.findByText('Gambiarra já foi usada nesta cena.')).toBeDefined();
     expect(screen.queryByRole('region', { name: 'Resultado do teste' })).toBeNull();
   });
+});
 
-  it('em dados físicos, clicar abre o modal e não registra nada', async () => {
-    const { chamadas } = await abrirDavi({ modoDados: 'fisico' });
+describe('Ficha: modal de dados físicos (#50, #51)', () => {
+  const URL_INFORMADO = 'POST /api/personagens/chr_davi/testes/informado';
 
+  /** Abre a ficha no modo físico e clica em Máquinas. */
+  async function abrirModal(rotas: Respostas = {}) {
+    const r = await abrirDavi({ modoDados: 'fisico' }, rotas);
     fireEvent.click(screen.getByRole('button', { name: /^Testar Máquinas/ }));
+    const janela = await screen.findByRole('dialog', { name: /Máquinas · Mente/ });
+    return { ...r, janela };
+  }
 
-    const janela = await screen.findByRole('dialog', {
-      name: 'Testar Máquinas · dados físicos',
-    });
-    expect(within(janela).getByText('d6 de atributo')).toBeDefined();
-    expect(within(janela).getByText('d10 de perícia')).toBeDefined();
+  const valor = (janela: HTMLElement, rotulo: string, texto: string) => {
+    fireEvent.change(within(janela).getByLabelText(rotulo), { target: { value: texto } });
+  };
+  const enviar = (janela: HTMLElement) =>
+    within(janela).getByRole<HTMLButtonElement>('button', { name: 'Enviar resultado' });
+  const informados = (chamadas: Chamada[]) =>
+    chamadas.filter((c) => c.metodo === 'POST' && c.url.endsWith('/testes/informado'));
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('mostra os dados a rolar e cancelar não envia nada', async () => {
+    const { chamadas, janela } = await abrirModal();
+
+    expect(within(janela).getByLabelText('Valor do d6 de Mente')).toBeDefined();
+    expect(within(janela).getByLabelText('Valor do d10 de Máquinas')).toBeDefined();
+    expect(within(janela).getByText('Aguardando os valores')).toBeDefined();
+    expect(enviar(janela).disabled).toBe(true);
+
+    fireEvent.click(within(janela).getByRole('button', { name: 'Cancelar · nada é enviado' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(chamadas.some((c) => c.metodo === 'POST')).toBe(false);
+  });
+
+  it('d10 com 12 mostra "O d10 vai de 1 a 10" e bloqueia o envio', async () => {
+    const { janela } = await abrirModal();
+
+    valor(janela, 'Valor do d6 de Mente', '5');
+    valor(janela, 'Valor do d10 de Máquinas', '12');
+
+    expect(within(janela).getByRole('alert').textContent).toBe(
+      'O d10 vai de 1 a 10. Confira o dado de Máquinas.',
+    );
+    expect(enviar(janela).disabled).toBe(true);
+  });
+
+  it('informar os dados: soma, veredito e envio com a origem "dados físicos"', async () => {
+    const { chamadas, janela } = await abrirModal({
+      [URL_INFORMADO]: json(201, {
+        teste: registro({ origem: 'fisico' }),
+        personagem: personagem({}, { modoDados: 'fisico' }),
+      }),
+    });
+
+    valor(janela, 'Valor do d6 de Mente', '5');
+    valor(janela, 'Valor do d10 de Máquinas', '9');
+    expect(within(janela).getByText('5 + 9')).toBeDefined();
+    expect(within(janela).getByText('14 · Sucesso')).toBeDefined();
+    fireEvent.click(enviar(janela));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(informados(chamadas)[0]?.corpo).toEqual({
+      periciaId: 'maquinas',
+      dt: 7,
+      resultado: { modo: 'dados', valores: [5, 9] },
+    });
+    const cartao = screen.getByRole('region', { name: 'Resultado do teste' });
+    expect(within(cartao).getByText('Dados físicos')).toBeDefined();
+  });
+
+  it('falha crítica: pede o d8, o d4 do Acidente e mostra o efeito antes de enviar', async () => {
+    const { chamadas, janela } = await abrirModal({
+      [URL_INFORMADO]: json(201, {
+        teste: registro({ origem: 'fisico' }),
+        personagem: personagem({}, { modoDados: 'fisico' }),
+      }),
+    });
+
+    valor(janela, 'Valor do d6 de Mente', '1');
+    valor(janela, 'Valor do d10 de Máquinas', '1');
+    expect(within(janela).getByText('Passo 2')).toBeDefined();
+    expect(enviar(janela).disabled).toBe(true);
+
+    fireEvent.click(within(janela).getByRole('button', { name: /^5: Acidente/ }));
+    valor(janela, 'Acidente: quanto deu o d4?', '3');
+
+    expect(within(janela).getByText('−3 PV')).toBeDefined();
+    expect(within(janela).getByText(/fica com 9\/12 PV/)).toBeDefined();
+    fireEvent.click(enviar(janela));
+    await waitFor(() => {
+      expect(informados(chamadas)).toHaveLength(1);
+    });
+    expect(informados(chamadas)[0]?.corpo).toMatchObject({
+      resultado: { modo: 'dados', valores: [1, 1] },
+      falhaCritica: { d8: 5, d4: 3 },
+    });
+  });
+
+  it('só o resultado: escolhe o veredito, lembra o jeito e envia sem os números', async () => {
+    const { chamadas, janela } = await abrirModal({
+      [URL_INFORMADO]: json(201, {
+        teste: registro({ origem: 'fisico' }),
+        personagem: personagem({}, { modoDados: 'fisico' }),
+      }),
+    });
+
+    fireEvent.click(within(janela).getByRole('tab', { name: 'Só o resultado' }));
+    fireEvent.click(within(janela).getByRole('button', { name: 'Falha' }));
+    expect(within(janela).getByText(/Ímpeto \+1 \(2\/3\)/)).toBeDefined();
+    fireEvent.click(enviar(janela));
+
+    await waitFor(() => {
+      expect(informados(chamadas)).toHaveLength(1);
+    });
+    expect(informados(chamadas)[0]?.corpo).toEqual({
+      periciaId: 'maquinas',
+      dt: 7,
+      resultado: { modo: 'veredito', veredito: 'falha' },
+    });
+    expect(localStorage.getItem('membrana.dadosFisicos.jeito')).toBe('veredito');
+  });
+
+  it('a soma informada que não combina com o veredito aparece no campo', async () => {
+    const { janela } = await abrirModal();
+
+    fireEvent.click(within(janela).getByRole('tab', { name: 'Só o resultado' }));
+    fireEvent.click(within(janela).getByRole('button', { name: 'Sucesso' }));
+    valor(janela, 'Soma dos 3 maiores', '5');
+
+    expect(within(janela).getByText('5 não alcança a DT 7: é falha.')).toBeDefined();
+    expect(enviar(janela).disabled).toBe(true);
+  });
+
+  it('se o servidor recusar, o modal fica aberto com o motivo', async () => {
+    const { janela } = await abrirModal({
+      [URL_INFORMADO]: json(409, {
+        erro: { codigo: 'DADOS_FISICOS_DESLIGADOS', mensagem: 'O mestre deste caso não permite.' },
+      }),
+    });
+
+    valor(janela, 'Valor do d6 de Mente', '5');
+    valor(janela, 'Valor do d10 de Máquinas', '9');
+    fireEvent.click(enviar(janela));
+
+    expect(await within(janela).findByText('O mestre deste caso não permite.')).toBeDefined();
+    expect(screen.getByRole('dialog')).toBeDefined();
+  });
+});
+
+describe('Ficha: seletor de dados e foto (#49, #52)', () => {
+  it('trocar o modo de dados grava na ficha', async () => {
+    const { chamadas } = await abrirDavi();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dados físicos' }));
+
+    await waitFor(() => {
+      expect(ultimoPut(chamadas)?.modoDados).toBe('fisico');
+    });
+  });
+
+  it('caso só com dados virtuais esconde o seletor', async () => {
+    servidor({
+      'GET /api/personagens/chr_davi': json(200, { personagem: personagem() }),
+      'GET /api/campanhas/cmp_1': json(200, { campanha: detalhe({ dadosFisicos: false }) }),
+    });
+    abrir('/personagens/chr_davi/ficha');
+    await screen.findByRole('heading', { name: 'Davi Rocha' });
+    expect(screen.queryByRole('group', { name: 'Como rolar os dados' })).toBeNull();
+  });
+
+  it('a foto aparece no topo e o botão abre o envio', async () => {
+    await abrirDavi({}, {}, { foto: `${'a'.repeat(64)}.webp` });
+
+    const foto = screen.getByRole('img', { name: 'Davi Rocha' });
+    expect(foto.querySelector('img')?.getAttribute('src')).toBe(
+      `/api/arquivos/${'a'.repeat(64)}.webp`,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Trocar foto e token' }));
+    expect(await screen.findByRole('dialog', { name: 'Foto e token' })).toBeDefined();
   });
 });
 

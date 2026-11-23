@@ -18,7 +18,18 @@ import {
   type PerfilOp2,
 } from '@membrana/shared';
 import { NOME_DO_PERFIL } from '../../personagens/formatos.ts';
-import { Banner, Button, Card, cx, Field, Icon, Input, Select, Textarea } from '../../ui/index.ts';
+import {
+  Banner,
+  Button,
+  Card,
+  cx,
+  Field,
+  Icon,
+  Input,
+  ModoDados,
+  Select,
+  Textarea,
+} from '../../ui/index.ts';
 import './ficha.css';
 
 /** Os campos como a tela os edita: números ainda como texto, do jeito que a pessoa digitou. */
@@ -119,6 +130,8 @@ export interface EdicaoProps {
   aoSalvar: (ficha: FichaOp2) => void;
   /** Terceira coluna, ao lado das perícias: o aviso de testes pausados na tela Ficha. */
   lateral?: ReactNode;
+  /** A regra do caso: sem ela, os dados físicos ficam de fora (RF-83). */
+  permitirFisico?: boolean;
 }
 
 const SEM_ERROS: Record<string, string> = {};
@@ -141,6 +154,7 @@ export function EdicaoDaFicha({
   aoCancelar,
   aoSalvar,
   lateral,
+  permitirFisico = true,
 }: EdicaoProps) {
   const [salvo] = useState(() => paraForm(inicial));
   const [f, setF] = useState<FormDaFicha>(salvo);
@@ -329,17 +343,21 @@ export function EdicaoDaFicha({
             </Card>
 
             <Card pad className="col">
-              <Field label="Dados" help="Quem rola nos testes: o app ou você, na mão.">
-                <Select
-                  value={f.modoDados}
-                  onChange={(e) => {
-                    mudar({ modoDados: e.target.value as FichaOp2['modoDados'] });
-                  }}
-                >
-                  <option value="virtual">Dados virtuais</option>
-                  <option value="fisico">Dados físicos</option>
-                </Select>
-              </Field>
+              {(permitirFisico || f.modoDados === 'fisico') && (
+                <div className="field">
+                  <span className="flabel">Dados</span>
+                  <ModoDados
+                    value={f.modoDados}
+                    onChange={(modoDados) => {
+                      mudar({ modoDados });
+                    }}
+                    permitirFisico={permitirFisico}
+                  />
+                  <span className={erro('modoDados') ? 'ferr' : 'help'}>
+                    {erro('modoDados') ?? 'Quem rola nos testes: o app ou você, na mão.'}
+                  </span>
+                </div>
+              )}
               <Field label="Anotações" error={erro('anotacoes')}>
                 <Textarea
                   value={f.anotacoes}

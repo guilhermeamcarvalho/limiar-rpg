@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { ErroDeRegra, rngComSemente, type Rng } from '../dados.ts';
 import { fichaDoDavi } from './exemplos.ts';
 import { espacosDeItens } from './ficha.ts';
-import { testarPericia, textoDoUso } from './teste-da-ficha.ts';
+import {
+  pedeD4,
+  registrarTesteInformado,
+  testarPericia,
+  textoDoUso,
+  type RelatoDeTesteOp2,
+} from './teste-da-ficha.ts';
 
 /**
  * Sorteio que dá exatamente estes valores, na ordem em que o teste rola: atributo, perícia,
@@ -199,5 +205,122 @@ describe('espacosDeItens', () => {
   it('um espaço por face do dado de Físico', () => {
     expect(espacosDeItens(fichaDoDavi().atributos)).toBe(8);
     expect(espacosDeItens({ fisico: 'd4', mente: 'd6', emocao: 'd6' })).toBe(4);
+  });
+});
+
+describe('registrarTesteInformado (dados físicos)', () => {
+  const dados = (...valores: number[]): RelatoDeTesteOp2 => ({
+    resultado: { modo: 'dados', valores },
+  });
+  const maquinas = { periciaId: 'maquinas' } as const;
+
+  it('os valores informados decidem o teste, igual ao sorteio', () => {
+    const davi = fichaDoDavi();
+    const r = registrarTesteInformado(davi, maquinas, dados(5, 9));
+    expect(r.resultado).toMatchObject({ total: 14, veredito: 'sucesso', informado: true });
+    expect(r.ficha).toEqual(davi);
+    expect(r.falhaCritica).toBeNull();
+  });
+
+  it('gasta o Ímpeto e a Gambiarra e enche o Ímpeto na falha (RF-87)', () => {
+    const r = registrarTesteInformado(
+      fichaDoDavi(),
+      { ...maquinas, dt: 20, impeto: true, habilidades: ['gambiarra'] },
+      dados(5, 9, 3, 2),
+    );
+    expect(r.resultado).toMatchObject({ total: 17, veredito: 'falha' });
+    expect(r.ficha).toMatchObject({ impeto: 1, pv: 10, usadasNaCena: ['gambiarra'] });
+    expect(r.efeitos).toEqual([
+      'Ímpeto gasto: +d4.',
+      'Gambiarra usada: −2 PV.',
+      'Ímpeto +1 (1/3).',
+    ]);
+  });
+
+  it('valor fora do dado é recusado no campo do dado', () => {
+    const erro = erroDe(() => registrarTesteInformado(fichaDoDavi(), maquinas, dados(5, 12)));
+    expect(erro).toMatchObject({ campo: 'valores.1', message: 'O d10 vai de 1 a 10.' });
+  });
+
+  it('só o resultado: o veredito e os números opcionais', () => {
+    const r = registrarTesteInformado(fichaDoDavi(), maquinas, {
+      resultado: { modo: 'veredito', veredito: 'sucesso', soma: 12 },
+    });
+    expect(r.resultado).toMatchObject({ total: 12, dados: [], veredito: 'sucesso' });
+  });
+
+  it('falha crítica com o d8 e o d4 informados aplica o efeito', () => {
+    const r = registrarTesteInformado(fichaDoDavi(), maquinas, {
+      ...dados(1, 1),
+      falhaCritica: { d8: 5, d4: 3 },
+    });
+    expect(r.falhaCritica).toEqual({ d8: 5, d4: 3, nome: 'Acidente', descricao: 'Perde 3 PV.' });
+    expect(r.ficha).toMatchObject({ pv: 9, impeto: 2 });
+  });
+
+  it('o d4 a mais num efeito que não pede fica de fora', () => {
+    const r = registrarTesteInformado(fichaDoDavi(), maquinas, {
+      resultado: { modo: 'veredito', veredito: 'falhaCritica' },
+      falhaCritica: { d8: 1, d4: 2 },
+    });
+    expect(r.falhaCritica).toEqual({
+      d8: 1,
+      nome: 'Vexame',
+      descricao: 'Vexame: nada muda na ficha, só no orgulho.',
+    });
+  });
+
+  it('Perda com itens: a pessoa escolhe o item, como no virtual', () => {
+    const davi = fichaDoDavi();
+    const r = registrarTesteInformado(davi, maquinas, {
+      ...dados(1, 1),
+      falhaCritica: { d8: 7 },
+    });
+    expect(r.ficha.itens).toEqual(davi.itens);
+    expect(r.falhaCritica?.nome).toBe('Perda');
+  });
+
+  it('a falha crítica pede o d8 e, em Acidente e Frustração, o d4', () => {
+    const testar = (falhaCritica?: { d8: number; d4?: number }) =>
+      erroDe(() =>
+        registrarTesteInformado(fichaDoDavi(), maquinas, {
+          ...dados(1, 1),
+          ...(falhaCritica && { falhaCritica }),
+        }),
+      );
+    expect(testar()).toMatchObject({
+      campo: 'falhaCritica.d8',
+      message: 'Falha crítica: role o d8 e informe o resultado.',
+    });
+    expect(testar({ d8: 9 })).toMatchObject({
+      campo: 'falhaCritica.d8',
+      message: 'O d8 vai de 1 a 8.',
+    });
+    expect(testar({ d8: 2.5 }).campo).toBe('falhaCritica.d8');
+    expect(testar({ d8: 6 })).toMatchObject({
+      campo: 'falhaCritica.d4',
+      message: 'Este efeito pede o d4: role e informe o valor.',
+    });
+    expect(testar({ d8: 6, d4: 5 })).toMatchObject({
+      campo: 'falhaCritica.d4',
+      message: 'O d4 vai de 1 a 4.',
+    });
+    expect(testar({ d8: 6, d4: 1.5 }).campo).toBe('falhaCritica.d4');
+  });
+
+  it('d8 sem falha crítica é recusado', () => {
+    const erro = erroDe(() =>
+      registrarTesteInformado(fichaDoDavi(), maquinas, {
+        ...dados(5, 9),
+        falhaCritica: { d8: 2 },
+      }),
+    );
+    expect(erro.campo).toBe('falhaCritica');
+  });
+});
+
+describe('pedeD4', () => {
+  it('só Acidente (5) e Frustração (6)', () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8].filter(pedeD4)).toEqual([5, 6]);
   });
 });

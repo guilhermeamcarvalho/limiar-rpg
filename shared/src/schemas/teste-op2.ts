@@ -23,6 +23,50 @@ export const esquemaPedidoDeTeste = z
   .strict();
 export type PedidoDeTeste = z.input<typeof esquemaPedidoDeTeste>;
 
+// A faixa de cada valor (um d10 vai de 1 a 10) é conferida pela regra, que sabe qual dado é qual e
+// devolve a mensagem no campo certo. Aqui só se recusa o que nem é um número de dado.
+const numeroDeDado = z
+  .int({ error: 'Informe um número inteiro.' })
+  .min(0, { error: 'Informe um número de 1 para cima.' })
+  .max(99, { error: 'Informe um número até 99.' });
+
+export const VEREDITOS = ['sucesso', 'falha', 'critico', 'falhaCritica'] as const;
+
+/**
+ * POST /personagens/:id/testes/informado: o teste com dados físicos (o `test.report` da mesa). O
+ * pedido é o mesmo do teste virtual, mais o que o jogador rolou na mão.
+ */
+export const esquemaTesteInformado = esquemaPedidoDeTeste
+  .extend({
+    resultado: z.discriminatedUnion(
+      'modo',
+      [
+        /** "Informar os dados": um valor por dado, na ordem atributo, perícia e extras. */
+        z
+          .object({
+            modo: z.literal('dados'),
+            valores: z.array(numeroDeDado).min(1).max(4, { error: 'No máximo 4 dados.' }),
+          })
+          .strict(),
+        /** "Só o resultado": o veredito e, se o teste pedir, a soma, o maior e o menor. */
+        z
+          .object({
+            modo: z.literal('veredito'),
+            veredito: z.enum(VEREDITOS, { error: 'Diga como foi o teste.' }),
+            soma: numeroDeDado.optional(),
+            maior: numeroDeDado.optional(),
+            menor: numeroDeDado.optional(),
+          })
+          .strict(),
+      ],
+      { error: 'Informe os dados ou só o resultado.' },
+    ),
+    /** Na falha crítica: o d8 da tabela e, em Acidente e Frustração, o d4 da perda. */
+    falhaCritica: z.object({ d8: numeroDeDado, d4: numeroDeDado.optional() }).strict().optional(),
+  })
+  .strict();
+export type TesteInformado = z.input<typeof esquemaTesteInformado>;
+
 /** Quem rolou: o app (virtual) ou o jogador, que informou os valores (físico). */
 export type OrigemDoTeste = 'virtual' | 'fisico';
 

@@ -52,6 +52,12 @@ export interface ResultadoDeTeste {
   veredito: Veredito;
   /** Os valores vieram do jogador (dados físicos), não do sorteio. */
   informado: boolean;
+  /**
+   * Dados físicos, "Só o resultado": o jogador disse só o veredito e `dados` vem vazio. Cada
+   * campo diz se aquele número foi informado. Sem a soma, o total é a DT no sucesso e DT − 1 na
+   * falha (RF-85); sem o maior ou o menor, RA e RB ficam em 0.
+   */
+  soVeredito?: { soma: boolean; maior: boolean; menor: boolean };
 }
 
 type DadoDoTeste = Omit<DadoRolado, 'valor' | 'descartado'>;
@@ -142,6 +148,92 @@ export function resolverTesteInformado(teste: TesteOp2, valores: number[]): Resu
     return { ...d, valor };
   });
   return avaliar(comValores, teste.dt, true);
+}
+
+/** O que o jogador diz no "Só o resultado": o veredito e, se o teste pedir, os números. */
+export interface VereditoInformado {
+  veredito: Veredito;
+  /** A soma dos três maiores. */
+  soma?: number | undefined;
+  /** O maior dado que contou (RA). */
+  maior?: number | undefined;
+  /** O menor dado que contou (RB). */
+  menor?: number | undefined;
+}
+
+/**
+ * Dados físicos, "Só o resultado": o jogador rolou na mão e diz só se passou. Os números são
+ * opcionais, mas precisam caber nos dados do teste e combinar com o veredito: uma soma abaixo da
+ * DT não é sucesso. Falha crítica é todos os dados em 1, então os números saem dela.
+ */
+export function resolverTesteSoVeredito(
+  teste: TesteOp2,
+  informado: VereditoInformado,
+): ResultadoDeTeste {
+  const dados = dadosDoTeste(teste);
+  const { veredito } = informado;
+  const { dt } = teste;
+  const contam = Math.min(dados.length, CONTAM);
+  const maiorFace = Math.max(...dados.map((d) => faces(d.tipo)));
+
+  if (veredito === 'falhaCritica') {
+    return {
+      dados: [],
+      total: contam,
+      dt,
+      ra: 1,
+      rb: 1,
+      veredito,
+      informado: true,
+      soVeredito: { soma: true, maior: true, menor: true },
+    };
+  }
+
+  const { soma, maior, menor } = informado;
+  if (soma !== undefined) {
+    const maximo = dados
+      .map((d) => faces(d.tipo))
+      .sort((a, b) => b - a)
+      .slice(0, CONTAM)
+      .reduce((a, b) => a + b, 0);
+    if (!Number.isInteger(soma) || soma < contam || soma > maximo) {
+      throw new ErroDeRegra(
+        'soma',
+        `A soma dos três maiores vai de ${String(contam)} a ${String(maximo)}.`,
+      );
+    }
+    if (veredito === 'sucesso' && soma < dt) {
+      throw new ErroDeRegra('soma', `${String(soma)} não alcança a DT ${String(dt)}: é falha.`);
+    }
+    if (veredito === 'falha' && soma >= dt) {
+      throw new ErroDeRegra('soma', `${String(soma)} alcança a DT ${String(dt)}: é sucesso.`);
+    }
+  }
+  if (maior !== undefined && (!Number.isInteger(maior) || maior < 1 || maior > maiorFace)) {
+    throw new ErroDeRegra('maior', `O maior dado vai de 1 a ${String(maiorFace)}.`);
+  }
+  if (menor !== undefined) {
+    const teto = maior ?? maiorFace;
+    if (!Number.isInteger(menor) || menor < 1 || menor > teto) {
+      throw new ErroDeRegra('menor', `O menor dado vai de 1 a ${String(teto)}.`);
+    }
+  }
+
+  const passou = veredito !== 'falha';
+  return {
+    dados: [],
+    total: soma ?? (passou ? dt : dt - 1),
+    dt,
+    ra: maior ?? 0,
+    rb: menor ?? 0,
+    veredito,
+    informado: true,
+    soVeredito: {
+      soma: soma !== undefined,
+      maior: maior !== undefined,
+      menor: menor !== undefined,
+    },
+  };
 }
 
 /** Um teste que veio mal (falha ou falha crítica). O Ímpeto enche com isso. */

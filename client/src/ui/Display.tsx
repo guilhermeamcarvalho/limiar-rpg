@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import { useState, type HTMLAttributes, type ReactNode } from 'react';
 import { cx } from './cx.ts';
 import { Icon } from './Icon.tsx';
 
@@ -38,17 +38,31 @@ export interface AvatarProps {
   /** Cor do anel: diz o perfil. */
   tone?: keyof typeof ANEIS;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  /** A foto ou o token. Sem ela (ou se não carregar), ficam as iniciais. */
+  src?: string | undefined;
 }
 
-export function Avatar({ initials, name, tone = 'red', size = 'md' }: AvatarProps) {
+export function Avatar({ initials, name, tone = 'red', size = 'md', src }: AvatarProps) {
+  const [quebrada, setQuebrada] = useState<string | null>(null);
+  const comImagem = src !== undefined && quebrada !== src;
   return (
     <span
-      className={cx('av', ANEIS[tone], size !== 'md' && size)}
+      className={cx('av', ANEIS[tone], size !== 'md' && size, comImagem && 'img')}
       role="img"
       aria-label={name}
       title={name}
     >
-      {initials}
+      {comImagem ? (
+        <img
+          src={src}
+          alt=""
+          onError={() => {
+            setQuebrada(src);
+          }}
+        />
+      ) : (
+        initials
+      )}
     </span>
   );
 }

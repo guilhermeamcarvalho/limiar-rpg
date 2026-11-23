@@ -3,7 +3,13 @@
 // apaga a mudança do outro. A tela mostra a mudança na hora; se o servidor recusar, a ficha volta
 // ao último estado salvo e a pessoa vê o motivo.
 import { useRef, useState } from 'react';
-import type { FichaOp2, PedidoDeTeste, Personagem, RegistroDeTeste } from '@membrana/shared';
+import type {
+  FichaOp2,
+  PedidoDeTeste,
+  Personagem,
+  RegistroDeTeste,
+  TesteInformado,
+} from '@membrana/shared';
 import { ErroDaApi, pedir } from '../../auth/api.ts';
 
 export const mensagemDe = (e: unknown) =>
@@ -26,6 +32,13 @@ export interface FichaAoVivo {
   salvarFicha: (ficha: FichaOp2) => Promise<Personagem>;
   /** Pede o teste oficial ao servidor. `null` se falhou (o motivo vai para `aoFalhar`). */
   testar: (pedido: PedidoDeTeste) => Promise<RegistroDeTeste | null>;
+  /**
+   * Envia o teste com dados físicos (o que o jogador rolou na mão). Rejeita com o erro do servidor,
+   * para o modal continuar aberto e mostrar o motivo.
+   */
+  informar: (teste: TesteInformado) => Promise<RegistroDeTeste>;
+  /** Mostra o personagem que o servidor devolveu depois de trocar a foto ou o token. */
+  trocouImagem: (personagem: Personagem) => void;
 }
 
 export function useFichaAoVivo(
@@ -88,6 +101,25 @@ export function useFichaAoVivo(
     }
   }
 
+  /** Um teste (rolado pelo servidor ou informado) entra na fila; a resposta traz a ficha nova. */
+  async function enviarTeste(caminho: string, corpo: object): Promise<RegistroDeTeste> {
+    setTestando(true);
+    try {
+      return await enfileirar(async () => {
+        const r = await pedir<{ teste: RegistroDeTeste; personagem: Personagem }>(caminho, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(corpo),
+        });
+        confirmar(r.personagem);
+        mostrar(r.personagem);
+        return r.teste;
+      });
+    } finally {
+      setTestando(false);
+    }
+  }
+
   return {
     personagem,
     salvando: pendentes > 0,
@@ -111,27 +143,20 @@ export function useFichaAoVivo(
       });
     },
     async testar(pedido) {
-      setTestando(true);
       try {
-        return await enfileirar(async () => {
-          const r = await pedir<{ teste: RegistroDeTeste; personagem: Personagem }>(
-            `${url}/testes`,
-            {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify(pedido),
-            },
-          );
-          confirmar(r.personagem);
-          mostrar(r.personagem);
-          return r.teste;
-        });
+        return await enviarTeste(`${url}/testes`, pedido);
       } catch (e) {
         aoFalhar(mensagemDe(e));
         return null;
-      } finally {
-        setTestando(false);
       }
+    },
+    informar(teste) {
+      return enviarTeste(`${url}/testes/informado`, teste);
+    },
+    trocouImagem(p) {
+      // Só a foto e o token mudaram: a ficha da tela (com mudanças ainda na fila) continua.
+      confirmado.current = { ...p, ficha: confirmado.current.ficha };
+      mostrar({ ...p, ficha: atual.current.ficha });
     },
   };
 }

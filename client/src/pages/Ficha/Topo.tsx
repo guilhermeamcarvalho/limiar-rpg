@@ -2,7 +2,7 @@
 // nome, perfil, ocupação e nível; à direita, Editar ficha, Jogar na mesa e o seletor de dados.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import type { CampanhaDetalhe, FichaOp2 } from '@membrana/shared';
+import { urlDoArquivo, type CampanhaDetalhe, type FichaOp2 } from '@membrana/shared';
 import { iniciais, linkDaCampanha } from '../../casos/formatos.ts';
 import {
   linhaDaFicha,
@@ -10,7 +10,7 @@ import {
   textoDeSalva,
   TOM_DO_PERFIL,
 } from '../../personagens/formatos.ts';
-import { Avatar, Button, Chip, Icon, Segmented, Tag } from '../../ui/index.ts';
+import { Avatar, Button, Chip, Icon, ModoDados, Tag } from '../../ui/index.ts';
 
 const ANEL = { red: 'red', blue: 'blue', green: 'green' } as const;
 
@@ -30,6 +30,8 @@ function useAgora(intervaloMs = 30_000) {
 
 export interface TopoProps {
   ficha: FichaOp2;
+  /** O arquivo da foto do personagem, ou nulo (fica com as iniciais). */
+  foto: string | null;
   caso: CampanhaDetalhe | null;
   sistema: string;
   salvando: boolean;
@@ -39,10 +41,13 @@ export interface TopoProps {
   editarDesligado?: boolean;
   aoEditar: () => void;
   aoMudarModo: (modo: FichaOp2['modoDados']) => void;
+  /** Abre o envio de foto e token. */
+  aoTrocarImagem: () => void;
 }
 
 export function Topo({
   ficha,
+  foto,
   caso,
   sistema,
   salvando,
@@ -51,6 +56,7 @@ export function Topo({
   editarDesligado = false,
   aoEditar,
   aoMudarModo,
+  aoTrocarImagem,
 }: TopoProps) {
   const agora = useAgora();
   // A gravação que acabou de voltar pode ser mais nova que o último tique do relógio.
@@ -63,15 +69,16 @@ export function Topo({
           name={ficha.nome}
           tone={ANEL[TOM_DO_PERFIL[ficha.perfil]]}
           size="xl"
+          src={foto ? urlDoArquivo(foto) : undefined}
         />
         {podeEditar && (
           <Button
             size="sm"
             className="ficha-trocar-foto"
             icon={<Icon name="image" size="sm" />}
-            aria-label="Trocar foto e token (em breve)"
-            title="O envio de foto e token chega em breve"
-            disabled
+            aria-label="Trocar foto e token"
+            title="Trocar foto e token"
+            onClick={aoTrocarImagem}
           />
         )}
       </div>
@@ -109,16 +116,11 @@ export function Topo({
             </Link>
           )}
         </div>
-        {/* Caso que não permite dados físicos: o seletor some (a menos que a ficha já esteja neles). */}
-        {podeEditar && (caso?.dadosFisicos !== false || ficha.modoDados === 'fisico') && (
-          <Segmented
-            label="Como rolar os dados"
+        {podeEditar && (
+          <ModoDados
             value={ficha.modoDados}
             onChange={aoMudarModo}
-            options={[
-              { value: 'virtual', label: 'Dados virtuais', icon: <Icon name="dice" size="sm" /> },
-              { value: 'fisico', label: 'Dados físicos' },
-            ]}
+            permitirFisico={caso?.dadosFisicos !== false}
           />
         )}
       </div>

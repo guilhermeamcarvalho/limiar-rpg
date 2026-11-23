@@ -115,7 +115,7 @@ export async function criarApp({ config, db, logger, discord, sorteio }: Depende
   await app.register(rotasDeCampanhas, { prefix: '/api/campanhas' });
   await app.register(rotasDeConvites, { prefix: '/api' });
   await app.register(rotasDePersonagens, { prefix: '/api' });
-  await app.register(rotasDeUploads, { prefix: '/api/uploads' });
+  await app.register(rotasDeUploads, { prefix: '/api' });
 
   const servirClient = config.NODE_ENV === 'production' && existsSync(PASTA_DO_CLIENT);
   if (servirClient) await app.register(estaticos, { root: PASTA_DO_CLIENT, wildcard: false });

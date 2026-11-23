@@ -7,6 +7,7 @@ import {
   falhou,
   resolverTeste,
   resolverTesteInformado,
+  resolverTesteSoVeredito,
   type TesteOp2,
 } from './teste.ts';
 
@@ -183,9 +184,52 @@ describe('sorteio', () => {
       const x = rng();
       expect(x).toBeGreaterThanOrEqual(0);
       expect(x).toBeLessThan(1);
-      vistos.add(rolar('d6', () => x));
+      vistos.add(rolar('d6', rng));
     }
     expect([...vistos].sort()).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+});
+
+describe('rolar: todas as faces com a mesma chance', () => {
+  const FAIXA = 2 ** 32;
+  /** Sorteio que devolve estes inteiros de 32 bits, em ordem, como o rngCripto faria. */
+  const inteiros = (...valores: number[]) => {
+    const fila = [...valores];
+    return () => {
+      const proximo = fila.shift();
+      if (proximo === undefined) throw new Error('Sorteou mais do que o previsto.');
+      return proximo / FAIXA;
+    };
+  };
+
+  it('cada face do d6 fica com o mesmo tanto de números; a sobra fica de fora', () => {
+    // 2³² ÷ 6 deixa resto 4: os 4 últimos números são a sobra.
+    const valida = FAIXA - 4;
+    const porFace = valida / 6;
+    expect(rolar('d6', inteiros(porFace - 1))).toBe(1);
+    expect(rolar('d6', inteiros(porFace))).toBe(2);
+    expect(rolar('d6', inteiros(valida - 1))).toBe(6);
+  });
+
+  it('caiu na sobra: sorteia de novo e só o segundo número vale', () => {
+    const rng = inteiros(FAIXA - 1, FAIXA - 4, 0);
+    expect(rolar('d6', rng)).toBe(1);
+    expect(() => rng()).toThrow('Sorteou mais do que o previsto.');
+  });
+
+  it('dado que divide 2³² por igual (d4, d8) nunca descarta', () => {
+    expect(rolar('d4', inteiros(FAIXA - 1))).toBe(4);
+    expect(rolar('d8', inteiros(FAIXA - 1))).toBe(8);
+  });
+
+  it('qualquer número do sorteio dá uma face válida (na sobra, a do sorteio seguinte)', () => {
+    fc.assert(
+      fc.property(fc.constantFrom<Dado>(...DADOS), fc.nat({ max: FAIXA - 1 }), (d, n) => {
+        const face = rolar(d, inteiros(n, 0));
+        expect(face).toBeGreaterThanOrEqual(1);
+        expect(face).toBeLessThanOrEqual(faces(d));
+      }),
+    );
   });
 });
 
@@ -277,5 +321,88 @@ describe('propriedades do teste (fast-check)', () => {
       }),
       PROPRIEDADE,
     );
+  });
+});
+
+describe('resolverTesteSoVeredito (só o resultado)', () => {
+  const so = (
+    informado: Parameters<typeof resolverTesteSoVeredito>[1],
+    campos: Partial<TesteOp2> = {},
+  ) => resolverTesteSoVeredito(teste(campos), informado);
+  const quatro = { extras: [d4('Ímpeto'), d4('Gambiarra')] };
+
+  it('sem a soma, o sucesso conta como a DT exata e a falha como DT − 1 (RF-85)', () => {
+    expect(so({ veredito: 'sucesso' })).toEqual({
+      dados: [],
+      total: 7,
+      dt: 7,
+      ra: 0,
+      rb: 0,
+      veredito: 'sucesso',
+      informado: true,
+      soVeredito: { soma: false, maior: false, menor: false },
+    });
+    expect(so({ veredito: 'falha' }).total).toBe(6);
+    expect(so({ veredito: 'critico' }).total).toBe(7);
+  });
+
+  it('com a soma, o maior e o menor, guarda os três', () => {
+    expect(so({ veredito: 'sucesso', soma: 12, maior: 9, menor: 3 })).toMatchObject({
+      total: 12,
+      ra: 9,
+      rb: 3,
+      soVeredito: { soma: true, maior: true, menor: true },
+    });
+    expect(so({ veredito: 'critico', soma: 3 }).total).toBe(3);
+  });
+
+  it('falha crítica: todos os dados em 1', () => {
+    expect(so({ veredito: 'falhaCritica', soma: 15 })).toMatchObject({
+      total: 2,
+      ra: 1,
+      rb: 1,
+      soVeredito: { soma: true, maior: true, menor: true },
+    });
+    expect(so({ veredito: 'falhaCritica' }, quatro).total).toBe(3);
+  });
+
+  it('a soma precisa caber nos dados e combinar com o veredito', () => {
+    expect(erroDe(() => so({ veredito: 'sucesso', soma: 17 }))).toMatchObject({
+      campo: 'soma',
+      message: 'A soma dos três maiores vai de 2 a 16.',
+    });
+    expect(erroDe(() => so({ veredito: 'sucesso', soma: 1 })).campo).toBe('soma');
+    expect(erroDe(() => so({ veredito: 'sucesso', soma: 7.5 })).campo).toBe('soma');
+    expect(erroDe(() => so({ veredito: 'sucesso', soma: 6 })).message).toBe(
+      '6 não alcança a DT 7: é falha.',
+    );
+    expect(erroDe(() => so({ veredito: 'falha', soma: 7 })).message).toBe(
+      '7 alcança a DT 7: é sucesso.',
+    );
+    // Com 4 dados, o teto é a soma das três maiores faces.
+    expect(erroDe(() => so({ veredito: 'sucesso', soma: 21 }, quatro)).message).toBe(
+      'A soma dos três maiores vai de 3 a 20.',
+    );
+  });
+
+  it('o maior e o menor precisam caber no maior dado', () => {
+    expect(erroDe(() => so({ veredito: 'sucesso', maior: 11 }))).toMatchObject({
+      campo: 'maior',
+      message: 'O maior dado vai de 1 a 10.',
+    });
+    expect(erroDe(() => so({ veredito: 'sucesso', maior: 0 })).campo).toBe('maior');
+    expect(erroDe(() => so({ veredito: 'sucesso', maior: 2.5 })).campo).toBe('maior');
+    expect(erroDe(() => so({ veredito: 'sucesso', maior: 5, menor: 6 }))).toMatchObject({
+      campo: 'menor',
+      message: 'O menor dado vai de 1 a 5.',
+    });
+    expect(erroDe(() => so({ veredito: 'sucesso', menor: 11 })).message).toBe(
+      'O menor dado vai de 1 a 10.',
+    );
+    expect(erroDe(() => so({ veredito: 'sucesso', menor: 0.5 })).campo).toBe('menor');
+  });
+
+  it('confere a DT como qualquer teste', () => {
+    expect(erroDe(() => so({ veredito: 'sucesso' }, { dt: 0 })).campo).toBe('dt');
   });
 });

@@ -1,6 +1,7 @@
 // A tela Ficha (artboard 08): topo, atributos, PV/PD, Ímpeto e habilidades à esquerda (#45), as
 // 20 perícias clicáveis no meio (#46), o último resultado e as abas à direita (#54). "Editar
-// ficha" troca a tela pelo modo de edição (#47), com os testes pausados.
+// ficha" troca a tela pelo modo de edição (#47), com os testes pausados. No modo de dados físicos,
+// a perícia abre o modal para informar o que saiu na mão (#50, #51); a foto abre o envio (#52).
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -12,18 +13,20 @@ import {
   tituloDaPagina,
   type AtributoOp2,
   type CampanhaDetalhe,
+  type PedidoDeTeste,
   type PericiaOp2,
   type Personagem,
   type RegistroDeTeste,
+  type RelatoDeTesteOp2,
 } from '@membrana/shared';
 import { useMe } from '../../auth/sessao.tsx';
-import { linkDoDossie } from '../../casos/formatos.ts';
-import { primeiroNome } from '../../personagens/formatos.ts';
+import { iniciais, linkDoDossie } from '../../casos/formatos.ts';
+import { primeiroNome, TOM_DO_PERFIL } from '../../personagens/formatos.ts';
 import {
   Banner,
-  Button,
+  EnviarImagem,
   Icon,
-  Modal,
+  ModalDadosFisicos,
   ResultadoTeste,
   Tag,
   useToast,
@@ -33,7 +36,7 @@ import { AbasDaFicha } from './Abas.tsx';
 import { useSalvar } from './comum.tsx';
 import { EdicaoDaFicha } from './Edicao.tsx';
 import { depoisDoTeste, NADA_ARMADO, previaDoTeste, type Armados } from './extras.ts';
-import { useFichaAoVivo } from './gravacao.ts';
+import { mensagemDe, useFichaAoVivo } from './gravacao.ts';
 import { Pericias } from './Pericias.tsx';
 import { Atributos, CartaoDoImpeto, CartoesDeHabilidade, VidaESanidade } from './Recursos.tsx';
 import { Topo } from './Topo.tsx';
@@ -104,7 +107,11 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
   const [ultimo, setUltimo] = useState<RegistroDeTeste | null>(null);
   const [versaoDoHistorico, setVersaoDoHistorico] = useState(0);
   const [editando, setEditando] = useState(false);
+  /** A perícia do modal de dados físicos aberto. */
   const [fisico, setFisico] = useState<PericiaOp2 | null>(null);
+  const [informando, setInformando] = useState(false);
+  const [erroFisico, setErroFisico] = useState<string | null>(null);
+  const [imagens, setImagens] = useState(false);
 
   const envio = useSalvar(async (nova) => {
     const salvo = await vivo.salvarFicha(nova);
@@ -121,6 +128,7 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
 
   async function testar(periciaId: PericiaOp2) {
     if (ficha.modoDados === 'fisico') {
+      setErroFisico(null);
       setFisico(periciaId);
       return;
     }
@@ -130,6 +138,23 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
     setUltimo(registro);
     setArmados((a) => depoisDoTeste(a, pedido));
     setVersaoDoHistorico((v) => v + 1);
+  }
+
+  /** O resultado dos dados físicos vai ao servidor; se ele recusar, o modal fica aberto. */
+  async function informar(pedido: PedidoDeTeste, relato: RelatoDeTesteOp2) {
+    setErroFisico(null);
+    setInformando(true);
+    try {
+      const registro = await vivo.informar({ ...pedido, ...relato });
+      setUltimo(registro);
+      setArmados((a) => depoisDoTeste(a, pedido));
+      setVersaoDoHistorico((v) => v + 1);
+      setFisico(null);
+    } catch (e) {
+      setErroFisico(mensagemDe(e));
+    } finally {
+      setInformando(false);
+    }
   }
 
   function subirAtributo(atributo: AtributoOp2) {
@@ -159,6 +184,7 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
         titulo={`Editando a ficha de ${primeiroNome(ficha.nome) || ficha.nome}`}
         contexto={etiquetas}
         rotuloDeSalvar="Salvar ficha"
+        permitirFisico={caso?.dadosFisicos !== false}
         salvando={envio.salvando}
         errosDoServidor={envio.erros}
         falha={envio.falha}
@@ -199,6 +225,7 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
 
       <Topo
         ficha={ficha}
+        foto={personagem.foto}
         caso={caso}
         sistema={caso?.sistema.nome ?? NOME_DO_OP2}
         salvando={vivo.salvando}
@@ -210,6 +237,9 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
         }}
         aoMudarModo={(modoDados) => {
           vivo.mudar((f) => ({ ...f, modoDados }));
+        }}
+        aoTrocarImagem={() => {
+          setImagens(true);
         }}
       />
 
@@ -276,43 +306,32 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
         </div>
       </div>
 
-      <Modal
-        open={previaFisica !== null}
-        onClose={() => {
-          setFisico(null);
-        }}
-        title={fisico ? `Testar ${nomeDaPericia(fisico)} · dados físicos` : ''}
-        footer={
-          <Button
-            onClick={() => {
-              setFisico(null);
-            }}
-          >
-            Fechar
-          </Button>
-        }
-      >
-        {previaFisica && (
-          <>
-            <p>Role estes dados e some os três maiores. A DT é {dt}.</p>
-            <ul className="row wrapx ficha-dados-fisicos">
-              {[
-                { tipo: previaFisica.teste.atributo, rotulo: 'atributo' },
-                { tipo: previaFisica.teste.pericia, rotulo: 'perícia' },
-                ...previaFisica.armados.map((b) => ({ tipo: b.tipo, rotulo: b.origem })),
-              ].map((d, i) => (
-                <li key={i} className="tag">
-                  {d.tipo} de {d.rotulo}
-                </li>
-              ))}
-            </ul>
-            <Banner>
-              Informar o resultado pelo app chega em breve. Por enquanto, conte o resultado ao
-              mestre: nada foi registrado na ficha.
-            </Banner>
-          </>
-        )}
-      </Modal>
+      {previaFisica && fisico && (
+        <ModalDadosFisicos
+          key={fisico}
+          ficha={ficha}
+          pedido={{ ...previaFisica.pedido, dt }}
+          enviando={informando}
+          erro={erroFisico}
+          aoEnviar={(relato) => void informar(previaFisica.pedido, relato)}
+          aoCancelar={() => {
+            setFisico(null);
+          }}
+        />
+      )}
+
+      {podeEditar && (
+        <EnviarImagem
+          open={imagens}
+          personagem={{ ...personagem, nome: ficha.nome }}
+          tone={TOM_DO_PERFIL[ficha.perfil]}
+          iniciais={iniciais(ficha.nome) || '?'}
+          aoTrocar={vivo.trocouImagem}
+          aoFechar={() => {
+            setImagens(false);
+          }}
+        />
+      )}
     </div>
   );
 }

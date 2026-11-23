@@ -159,6 +159,17 @@ export function acessoAo(db: Banco, quem: Quem, { personagem }: LinhaDePersonage
   };
 }
 
+/** Se o caso do personagem permite dados físicos. Sem caso, permite. */
+export function casoPermiteFisico(db: Pick<Banco, 'select'>, campaignId: string | null): boolean {
+  if (!campaignId) return true;
+  const caso = db
+    .select({ dadosFisicos: campaigns.dadosFisicos })
+    .from(campaigns)
+    .where(eq(campaigns.id, campaignId))
+    .get();
+  return caso?.dadosFisicos ?? true;
+}
+
 /** Avisa a sala de cada caso que a ficha mudou (ou foi removida). */
 export function avisarMesa(
   app: Pick<FastifyInstance, 'mesa'>,

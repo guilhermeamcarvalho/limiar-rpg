@@ -38,6 +38,20 @@ export {
   type DadoDoResultado,
   type ResultadoTesteProps,
 } from './ResultadoTeste.tsx';
+export { ModoDados, ROTULO_DO_MODO, type ModoDadosProps, type ModoDeDados } from './ModoDados.tsx';
+export {
+  CHAVE_DO_JEITO,
+  ModalDadosFisicos,
+  type JeitoDeInformar,
+  type ModalDadosFisicosProps,
+} from './ModalDadosFisicos.tsx';
+export {
+  EnviarImagem,
+  problemaDoArquivo,
+  recorteDe,
+  TIPOS_ACEITOS,
+  type EnviarImagemProps,
+} from './EnviarImagem.tsx';
 export { Async, useCarga, type AsyncProps, type Carga, type UsoDaCarga } from './Async.tsx';
 export { ErrorBlock, valeTentarDeNovo, type ErrorBlockProps } from './ErrorBlock.tsx';
 export { useEnvio } from './useEnvio.ts';

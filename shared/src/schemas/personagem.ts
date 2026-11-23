@@ -31,14 +31,42 @@ export function esquemaDaFicha(tipo: 'op2' | 'inventado') {
   return tipo === 'op2' ? esquemaFichaOp2 : null;
 }
 
+/* ---------- Foto e token (RF-10) ---------- */
+
+export const TIPOS_DE_IMAGEM = ['foto', 'token'] as const;
+export type TipoDeImagem = (typeof TIPOS_DE_IMAGEM)[number];
+
+/** Foto e token: até 5 MB, conferidos no navegador e no servidor. */
+export const LIMITE_DA_IMAGEM = 5 * 1024 * 1024;
+/** O token é um quadrado de 256 px. */
+export const LADO_DO_TOKEN = 256;
+
+/**
+ * O quadrado do token dentro da imagem, em frações: `x` e `y` do canto de cima à esquerda (da
+ * largura e da altura) e `lado` do menor lado da imagem. Em frações, o recorte vale igual na
+ * prévia do navegador e na imagem original.
+ */
+export const esquemaRecorte = z
+  .object({
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    lado: z.number().gt(0).max(1),
+  })
+  .strict();
+export type Recorte = z.infer<typeof esquemaRecorte>;
+
+/** Onde o navegador busca uma imagem enviada (só quem é do caso recebe). */
+export const urlDoArquivo = (nome: string) => `/api/arquivos/${encodeURIComponent(nome)}`;
+
 export interface Personagem {
   id: string;
   donoId: string;
   campanhaId: string | null;
   sistemaId: string;
   ficha: FichaOp2;
-  /** Nome do arquivo enviado, ou nulo. Os uploads chegam na Fase 2. */
+  /** O arquivo da foto (`<hash>.webp`, em `urlDoArquivo`), ou nulo. */
   foto: string | null;
+  /** O arquivo do token, 256 × 256, ou nulo. */
   tokenImg: string | null;
   criadoEm: string;
   atualizadoEm: string;
