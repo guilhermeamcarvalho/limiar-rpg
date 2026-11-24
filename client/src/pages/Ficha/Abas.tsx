@@ -41,7 +41,7 @@ export interface PistaDaFicha {
   apresentada: boolean;
 }
 
-type Aba = 'itens' | 'pistas' | 'anotacoes' | 'historico';
+export type Aba = 'itens' | 'pistas' | 'anotacoes' | 'historico';
 
 type Mudar = (mudanca: (ficha: FichaOp2) => FichaOp2) => void;
 
@@ -283,6 +283,9 @@ export interface AbasProps {
   pistas?: readonly PistaDaFicha[];
   /** Muda a cada teste feito na tela, para o histórico buscar de novo. */
   versaoDoHistorico: number;
+  /** A aba aberta, quando quem usa quer escolher (a barra da Ficha no celular). */
+  aba?: Aba;
+  aoMudarAba?: (aba: Aba) => void;
 }
 
 const SEM_PISTAS: readonly PistaDaFicha[] = [];
@@ -294,11 +297,18 @@ export function AbasDaFicha({
   mudar,
   pistas = SEM_PISTAS,
   versaoDoHistorico,
+  aba: abaDeFora,
+  aoMudarAba,
 }: AbasProps) {
   const idBase = useId();
-  const [aba, setAba] = useState<Aba>('itens');
+  const [abaDaqui, setAbaDaqui] = useState<Aba>('itens');
+  const aba = abaDeFora ?? abaDaqui;
+  const setAba = (nova: Aba) => {
+    setAbaDaqui(nova);
+    aoMudarAba?.(nova);
+  };
   return (
-    <Card className="ficha-abas">
+    <Card className="ficha-abas" id="ficha-abas">
       <Tabs
         idBase={idBase}
         label="Partes da ficha"

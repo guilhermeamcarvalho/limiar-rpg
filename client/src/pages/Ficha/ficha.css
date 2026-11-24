@@ -328,3 +328,29 @@
     width: 100%;
   }
 }
+
+/* Celular · 08: o caminho dá lugar ao cabeçalho do celular, e a barra própria da Ficha (Ficha,
+   Itens, Pistas, Mesa) fica no lugar da barra do app (estilo em app.css). */
+@media (max-width: 720px) {
+  .ficha-pagina {
+    padding-top: var(--s4);
+    gap: var(--s4);
+  }
+  .ficha-pagina > .crumb {
+    display: none;
+  }
+  .ficha-abas {
+    scroll-margin-top: var(--s4);
+  }
+  /* Alvos de toque de 44 px: as caixas de PV e PD ficam pequenas demais para o dedo, então no
+     celular só mostram; marcar é pelos botões −1 e +1 logo abaixo. */
+  .ficha-dt {
+    min-height: 44px;
+  }
+  .ficha-caixas button {
+    pointer-events: none;
+  }
+  .ficha-dica-caixas {
+    display: none;
+  }
+}

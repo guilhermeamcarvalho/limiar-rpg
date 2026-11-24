@@ -184,15 +184,38 @@
   color: var(--green-hi);
 }
 
+/* Celular · 07: o cabeçalho do celular diz o passo, a barra de progresso fica em cima e os botões
+   Voltar e Próximo ficam fixos embaixo, no lugar da barra do app. */
 @media (max-width: 720px) {
   .criar {
-    padding-top: var(--s4);
+    padding-top: var(--s3);
+    padding-bottom: 0;
+    gap: var(--s4);
   }
   .criar-lado,
-  .criar-passos {
+  .criar-passos,
+  .criar-topo .crumb,
+  .criar-cancelar {
     display: none;
+  }
+  .criar-topo {
+    justify-content: flex-end;
+  }
+  .criar-corpo .h1 {
+    font-size: 34px;
+  }
+  .criar-rodape {
+    position: sticky;
+    bottom: 0;
+    z-index: var(--z-panel);
+    flex-wrap: nowrap;
+    margin: 0 calc(var(--s4) * -1);
+    padding: var(--s3) var(--s4);
+    background: var(--bg-2);
+    border-top: 1px solid var(--line);
   }
   .criar-rodape > * {
     flex: 1;
+    min-width: 0;
   }
 }

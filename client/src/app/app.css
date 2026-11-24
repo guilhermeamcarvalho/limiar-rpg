@@ -281,12 +281,43 @@ a.card:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* A marca do celular é um link: 44 px de área, mesmo com o desenho de 32. */
+.m-top .brand {
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+}
+.m-top .t > span {
+  display: block;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .m-tabbar {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   background: var(--bg-2);
   border-top: 1px solid var(--line);
 }
-.m-tabbar a {
+/* A barra própria da Ficha: Ficha, Itens, Pistas e Mesa. */
+.m-tabbar.quatro {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.m-tabbar button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.m-tabbar button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.m-tabbar button:focus-visible {
+  outline: 2px solid var(--red-hi);
+  outline-offset: -2px;
+}
+.m-tabbar a,
+.m-tabbar button {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -300,10 +331,10 @@ a.card:hover {
   text-transform: uppercase;
   text-decoration: none;
 }
-.m-tabbar a.on {
+.m-tabbar .on {
   color: var(--white);
 }
-.m-tabbar a.on::before {
+.m-tabbar .on::before {
   content: '';
   position: absolute;
   top: 0;

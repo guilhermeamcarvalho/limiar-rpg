@@ -20,10 +20,13 @@ import {
   type RelatoDeTesteOp2,
 } from '@membrana/shared';
 import { useMe } from '../../auth/sessao.tsx';
-import { iniciais, linkDoDossie } from '../../casos/formatos.ts';
+import { TopoDoCelular, useCelularProprio } from '../../app/celular.tsx';
+import { iniciais, linkDaCampanha, linkDoDossie } from '../../casos/formatos.ts';
 import { primeiroNome, TOM_DO_PERFIL } from '../../personagens/formatos.ts';
 import {
   Banner,
+  Button,
+  cx,
   EnviarImagem,
   Icon,
   ModalDadosFisicos,
@@ -32,7 +35,7 @@ import {
   useToast,
   type DadoDoResultado,
 } from '../../ui/index.ts';
-import { AbasDaFicha } from './Abas.tsx';
+import { AbasDaFicha, type Aba } from './Abas.tsx';
 import { useSalvar } from './comum.tsx';
 import { EdicaoDaFicha } from './Edicao.tsx';
 import { depoisDoTeste, NADA_ARMADO, previaDoTeste, type Armados } from './extras.ts';
@@ -123,6 +126,17 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
     document.title = tituloDaPagina(ficha.nome);
   }, [ficha.nome]);
 
+  // Celular · 08: cabeçalho e barra de baixo próprios (Ficha, Itens, Pistas, Mesa). Na edição,
+  // volta a valer o cabeçalho do app.
+  useCelularProprio({ topo: !editando, barra: !editando });
+  const [aba, setAba] = useState<Aba>('itens');
+  const [parte, setParte] = useState<'ficha' | Aba>('ficha');
+  function irParaAba(nova: Aba) {
+    setAba(nova);
+    setParte(nova);
+    document.getElementById('ficha-abas')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
   // Enquanto um teste espera o servidor, nada mais muda a ficha: a resposta dele é a nova ficha.
   const podeMudar = podeEditar && !vivo.testando;
 
@@ -209,129 +223,204 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
   const previaFisica =
     fisico === null ? null : previaDoTeste(ficha, fisico, { dt, ajuda, armados });
 
+  const sistema = caso?.sistema.nome ?? NOME_DO_OP2;
   return (
-    <div className="wrap col ficha-pagina">
-      <nav className="crumb" aria-label="Caminho">
-        <Link to="/personagens">Personagens</Link>
-        <Icon name="next" size="sm" />
-        {caso && (
-          <>
-            <Link to={linkDoDossie(caso.id)}>{caso.nome}</Link>
-            <Icon name="next" size="sm" />
-          </>
-        )}
-        <b aria-current="page">{ficha.nome}</b>
-      </nav>
-
-      <Topo
-        ficha={ficha}
-        foto={personagem.foto}
-        caso={caso}
-        sistema={caso?.sistema.nome ?? NOME_DO_OP2}
-        salvando={vivo.salvando}
-        salvaEm={vivo.salvaEm}
-        podeEditar={podeEditar}
-        editarDesligado={vivo.testando}
-        aoEditar={() => {
-          setEditando(true);
-        }}
-        aoMudarModo={(modoDados) => {
-          vivo.mudar((f) => ({ ...f, modoDados }));
-        }}
-        aoTrocarImagem={() => {
-          setImagens(true);
-        }}
+    <>
+      <TopoDoCelular
+        inicio={
+          <Link className="btn icon ghost" to="/personagens" aria-label="Voltar para Personagens">
+            <Icon name="back" />
+          </Link>
+        }
+        titulo={ficha.nome || 'Sem nome'}
+        subtitulo={caso ? `${caso.nome} · ${sistema}` : `Sem caso · ${sistema}`}
+        fim={
+          podeEditar && (
+            <Button
+              variant="ghost"
+              icon={<Icon name="edit" />}
+              aria-label={`Editar a ficha de ${primeiroNome(ficha.nome) || ficha.nome}`}
+              disabled={vivo.testando}
+              onClick={() => {
+                setEditando(true);
+              }}
+            />
+          )
+        }
       />
+      <div className="wrap col ficha-pagina">
+        <nav className="crumb" aria-label="Caminho">
+          <Link to="/personagens">Personagens</Link>
+          <Icon name="next" size="sm" />
+          {caso && (
+            <>
+              <Link to={linkDoDossie(caso.id)}>{caso.nome}</Link>
+              <Icon name="next" size="sm" />
+            </>
+          )}
+          <b aria-current="page">{ficha.nome}</b>
+        </nav>
 
-      <div className="ficha-tres">
-        <div className="col ficha-coluna">
-          <Atributos ficha={ficha} />
-          <VidaESanidade
-            ficha={ficha}
-            podeMudar={podeMudar}
-            mudar={(m) => {
-              vivo.mudar((f) => ({ ...f, ...m }));
-            }}
-          />
-          <CartaoDoImpeto
-            ficha={ficha}
-            armado={armados.impeto}
-            podeMudar={podeMudar}
-            aoArmar={(impeto) => {
-              setArmados((a) => ({ ...a, impeto }));
-            }}
-            aoSubirAtributo={subirAtributo}
-          />
-          <CartoesDeHabilidade
-            ficha={ficha}
-            armados={armados}
-            podeMudar={podeMudar}
-            aoArmar={(id, armada) => {
-              setArmados((a) => ({
-                ...a,
-                habilidades: armada
-                  ? [...a.habilidades.filter((h) => h !== id), id]
-                  : a.habilidades.filter((h) => h !== id),
-              }));
-            }}
-          />
-        </div>
-
-        <Pericias
+        <Topo
           ficha={ficha}
-          dt={dt}
-          dtPadrao={dtPadrao}
-          aoMudarDt={setDt}
-          ajuda={ajuda}
-          aoMudarAjuda={setAjuda}
-          armados={armados}
-          podeTestar={podeMudar}
-          aoTestar={(id) => void testar(id)}
+          foto={personagem.foto}
+          caso={caso}
+          sistema={caso?.sistema.nome ?? NOME_DO_OP2}
+          salvando={vivo.salvando}
+          salvaEm={vivo.salvaEm}
+          podeEditar={podeEditar}
+          editarDesligado={vivo.testando}
+          aoEditar={() => {
+            setEditando(true);
+          }}
+          aoMudarModo={(modoDados) => {
+            vivo.mudar((f) => ({ ...f, modoDados }));
+          }}
+          aoTrocarImagem={() => {
+            setImagens(true);
+          }}
         />
 
-        <div className="col ficha-coluna ficha-direita">
-          {vivo.testando && (
-            <p className="small muted" role="status">
-              Rolando no servidor…
-            </p>
-          )}
-          {ultimo && <ResultadoDoRegistro registro={ultimo} quando="agora" />}
-          <AbasDaFicha
-            personagemId={personagem.id}
+        <div className="ficha-tres">
+          <div className="col ficha-coluna">
+            <Atributos ficha={ficha} />
+            <VidaESanidade
+              ficha={ficha}
+              podeMudar={podeMudar}
+              mudar={(m) => {
+                vivo.mudar((f) => ({ ...f, ...m }));
+              }}
+            />
+            <CartaoDoImpeto
+              ficha={ficha}
+              armado={armados.impeto}
+              podeMudar={podeMudar}
+              aoArmar={(impeto) => {
+                setArmados((a) => ({ ...a, impeto }));
+              }}
+              aoSubirAtributo={subirAtributo}
+            />
+            <CartoesDeHabilidade
+              ficha={ficha}
+              armados={armados}
+              podeMudar={podeMudar}
+              aoArmar={(id, armada) => {
+                setArmados((a) => ({
+                  ...a,
+                  habilidades: armada
+                    ? [...a.habilidades.filter((h) => h !== id), id]
+                    : a.habilidades.filter((h) => h !== id),
+                }));
+              }}
+            />
+          </div>
+
+          <Pericias
             ficha={ficha}
-            podeEditar={podeMudar}
-            mudar={vivo.mudar}
-            versaoDoHistorico={versaoDoHistorico}
+            dt={dt}
+            dtPadrao={dtPadrao}
+            aoMudarDt={setDt}
+            ajuda={ajuda}
+            aoMudarAjuda={setAjuda}
+            armados={armados}
+            podeTestar={podeMudar}
+            aoTestar={(id) => void testar(id)}
           />
+
+          <div className="col ficha-coluna ficha-direita">
+            {vivo.testando && (
+              <p className="small muted" role="status">
+                Rolando no servidor…
+              </p>
+            )}
+            {ultimo && <ResultadoDoRegistro registro={ultimo} quando="agora" />}
+            <AbasDaFicha
+              personagemId={personagem.id}
+              ficha={ficha}
+              podeEditar={podeMudar}
+              mudar={vivo.mudar}
+              versaoDoHistorico={versaoDoHistorico}
+              aba={aba}
+              aoMudarAba={setAba}
+            />
+          </div>
         </div>
+
+        {previaFisica && fisico && (
+          <ModalDadosFisicos
+            key={fisico}
+            ficha={ficha}
+            pedido={{ ...previaFisica.pedido, dt }}
+            enviando={informando}
+            erro={erroFisico}
+            aoEnviar={(relato) => void informar(previaFisica.pedido, relato)}
+            aoCancelar={() => {
+              setFisico(null);
+            }}
+          />
+        )}
+
+        {podeEditar && (
+          <EnviarImagem
+            open={imagens}
+            personagem={{ ...personagem, nome: ficha.nome }}
+            tone={TOM_DO_PERFIL[ficha.perfil]}
+            iniciais={iniciais(ficha.nome) || '?'}
+            aoTrocar={vivo.trocouImagem}
+            aoFechar={() => {
+              setImagens(false);
+            }}
+          />
+        )}
       </div>
 
-      {previaFisica && fisico && (
-        <ModalDadosFisicos
-          key={fisico}
-          ficha={ficha}
-          pedido={{ ...previaFisica.pedido, dt }}
-          enviando={informando}
-          erro={erroFisico}
-          aoEnviar={(relato) => void informar(previaFisica.pedido, relato)}
-          aoCancelar={() => {
-            setFisico(null);
+      <nav className="m-tabbar quatro" aria-label="Partes da ficha">
+        <button
+          type="button"
+          className={cx(parte === 'ficha' && 'on')}
+          aria-current={parte === 'ficha' ? 'true' : undefined}
+          onClick={() => {
+            setParte('ficha');
+            document.querySelector('.ficha-pagina')?.scrollIntoView({ behavior: 'smooth' });
           }}
-        />
-      )}
-
-      {podeEditar && (
-        <EnviarImagem
-          open={imagens}
-          personagem={{ ...personagem, nome: ficha.nome }}
-          tone={TOM_DO_PERFIL[ficha.perfil]}
-          iniciais={iniciais(ficha.nome) || '?'}
-          aoTrocar={vivo.trocouImagem}
-          aoFechar={() => {
-            setImagens(false);
+        >
+          <Icon name="user" />
+          Ficha
+        </button>
+        <button
+          type="button"
+          className={cx(parte === 'itens' && 'on')}
+          aria-current={parte === 'itens' ? 'true' : undefined}
+          onClick={() => {
+            irParaAba('itens');
           }}
-        />
-      )}
-    </div>
+        >
+          <Icon name="key" />
+          Itens
+        </button>
+        <button
+          type="button"
+          className={cx(parte === 'pistas' && 'on')}
+          aria-current={parte === 'pistas' ? 'true' : undefined}
+          onClick={() => {
+            irParaAba('pistas');
+          }}
+        >
+          <Icon name="clue" />
+          Pistas
+        </button>
+        {caso ? (
+          <Link to={linkDaCampanha(caso.id, 'mesa')}>
+            <Icon name="map" />
+            Mesa
+          </Link>
+        ) : (
+          <button type="button" disabled title="Sem caso, sem mesa">
+            <Icon name="map" />
+            Mesa
+          </button>
+        )}
+      </nav>
+    </>
   );
 }

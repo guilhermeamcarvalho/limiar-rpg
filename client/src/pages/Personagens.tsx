@@ -10,6 +10,7 @@ import {
   type CampanhaNaLista,
   type PersonagemNaLista,
 } from '@membrana/shared';
+import { TopoDoCelular, useCelularProprio } from '../app/celular.tsx';
 import { ErroDaApi, pedir } from '../auth/api.ts';
 import { iniciais, linkDaCampanha } from '../casos/formatos.ts';
 import {
@@ -224,7 +225,10 @@ function Cartao({ p, acoes }: { p: PersonagemNaLista; acoes: AcoesDoCartao }) {
             </b>
             {p.emUso && ativo && <Tag tone="green">Em uso</Tag>}
           </div>
-          <span className="small muted">{descricaoDaFicha(ficha)}</span>
+          <span className="small muted pers-desc">{descricaoDaFicha(ficha)}</span>
+          <span className="small muted pers-desc-celular">
+            {NOME_DO_PERFIL[ficha.perfil]} · {campanha ? campanha.nome : 'sem caso'}
+          </span>
         </div>
       </div>
 
@@ -280,15 +284,21 @@ function Cartao({ p, acoes }: { p: PersonagemNaLista; acoes: AcoesDoCartao }) {
               );
             })}
           </div>
-          <ResourceBar kind="pv" value={ficha.pv} max={ficha.pvMax} />
-          <ResourceBar kind="pd" value={ficha.pd} max={ficha.pdMax} />
+          <div className="pers-pv">
+            <ResourceBar kind="pv" value={ficha.pv} max={ficha.pvMax} />
+          </div>
+          <div className="pers-pd">
+            <ResourceBar kind="pd" value={ficha.pd} max={ficha.pdMax} />
+          </div>
 
           {!campanha && (
-            <Banner icon={<Icon name="info" size="sm" />}>
-              <span className="small">
-                Sem caso. Leve {nome} para um caso de {p.sistema.nome}.
-              </span>
-            </Banner>
+            <div className="pers-sem-caso">
+              <Banner icon={<Icon name="info" size="sm" />}>
+                <span className="small">
+                  Sem caso. Leve {nome} para um caso de {p.sistema.nome}.
+                </span>
+              </Banner>
+            </div>
           )}
 
           <div className="row wrapx pers-acoes">
@@ -552,6 +562,8 @@ export function Personagens() {
   useEffect(() => {
     document.title = tituloDaPagina('Personagens');
   }, []);
+  // No celular, o "Novo sobrevivente" fica no cabeçalho (Celular · 06).
+  useCelularProprio({ topo: true, barra: false });
 
   /** Busca a lista de novo sem piscar o esqueleto. */
   async function atualizar() {
@@ -601,109 +613,119 @@ export function Personagens() {
   };
 
   return (
-    <div className="wrap col pers">
-      {aceito && casoAceito && (
-        <Banner tone="ok">
-          Convite aceito. Você agora joga em <b>{casoAceito.nome}</b>. Falta só o personagem.
-        </Banner>
-      )}
-
-      <Async
-        uso={uso}
-        falha="Seus personagens não carregaram."
-        esqueleto={
-          <div className="g3" aria-busy="true">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} pad className="col">
-                <Skeleton variant="h" width="50%" />
-                <Skeleton />
-                <Skeleton width="70%" />
-              </Card>
-            ))}
-          </div>
+    <>
+      <TopoDoCelular
+        titulo="Personagens"
+        fim={
+          <Link className="btn red icon" to={linkDeCriar(aceito)} aria-label="Novo sobrevivente">
+            <Icon name="plus" />
+          </Link>
         }
-      >
-        {(todos) => {
-          const lista = todos.filter((p) => !ocultos.has(p.id));
-          if (lista.length === 0) {
+      />
+      <div className="wrap col pers">
+        {aceito && casoAceito && (
+          <Banner tone="ok">
+            Convite aceito. Você agora joga em <b>{casoAceito.nome}</b>. Falta só o personagem.
+          </Banner>
+        )}
+
+        <Async
+          uso={uso}
+          falha="Seus personagens não carregaram."
+          esqueleto={
+            <div className="g3" aria-busy="true">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} pad className="col">
+                  <Skeleton variant="h" width="50%" />
+                  <Skeleton />
+                  <Skeleton width="70%" />
+                </Card>
+              ))}
+            </div>
+          }
+        >
+          {(todos) => {
+            const lista = todos.filter((p) => !ocultos.has(p.id));
+            if (lista.length === 0) {
+              return (
+                <>
+                  <section className="col pers-titulo">
+                    <span className="lab">Personagens</span>
+                    <h1 className="h1">Seus sobreviventes</h1>
+                  </section>
+                  <Vazio caso={casoAceito} />
+                </>
+              );
+            }
+            const opcoes = opcoesDeFiltro(lista);
+            const ativa = opcoes.find((o) => o.value === filtro) ?? opcoes[0];
+            const visiveis = ordenar(lista.filter(ativa?.teste ?? (() => true)), ordem);
             return (
               <>
-                <section className="col pers-titulo">
-                  <span className="lab">Personagens</span>
-                  <h1 className="h1">Seus sobreviventes</h1>
+                <section className="row between wrapx pers-cabeca">
+                  <div className="col pers-titulo">
+                    <span className="lab">Personagens</span>
+                    <h1 className="h1">Seus sobreviventes</h1>
+                    <p className="muted">
+                      Cada personagem pertence a um caso. O que está “em uso” abre na mesa, no
+                      celular e na ficha.
+                    </p>
+                  </div>
+                  <Link className="btn red" to={linkDeCriar(aceito)}>
+                    <Icon name="plus" size="sm" />
+                    Novo sobrevivente
+                  </Link>
                 </section>
-                <Vazio caso={casoAceito} />
+
+                <div className="row between wrapx pers-filtros">
+                  <Segmented
+                    label="Filtrar por caso"
+                    value={ativa?.value ?? 'todos'}
+                    onChange={setFiltro}
+                    options={opcoes.map((o) => ({
+                      value: o.value,
+                      label: (
+                        <>
+                          {o.nome} <span className="pers-cnt">{o.total}</span>
+                        </>
+                      ),
+                    }))}
+                  />
+                  <Select
+                    className="pers-ordem"
+                    aria-label="Ordenar"
+                    value={ordem}
+                    onChange={(e) => {
+                      setOrdem(e.target.value as Ordem);
+                    }}
+                  >
+                    <option value="recentes">Jogados recentemente</option>
+                    <option value="nome">Nome</option>
+                  </Select>
+                </div>
+
+                <div className={cx('g3', 'pers-grade')}>
+                  {visiveis.map((p) => (
+                    <Cartao key={p.id} p={p} acoes={acoes} />
+                  ))}
+                </div>
               </>
             );
-          }
-          const opcoes = opcoesDeFiltro(lista);
-          const ativa = opcoes.find((o) => o.value === filtro) ?? opcoes[0];
-          const visiveis = ordenar(lista.filter(ativa?.teste ?? (() => true)), ordem);
-          return (
-            <>
-              <section className="row between wrapx pers-cabeca">
-                <div className="col pers-titulo">
-                  <span className="lab">Personagens</span>
-                  <h1 className="h1">Seus sobreviventes</h1>
-                  <p className="muted">
-                    Cada personagem pertence a um caso. O que está “em uso” abre na mesa, no celular
-                    e na ficha.
-                  </p>
-                </div>
-                <Link className="btn red" to={linkDeCriar(aceito)}>
-                  <Icon name="plus" size="sm" />
-                  Novo sobrevivente
-                </Link>
-              </section>
+          }}
+        </Async>
 
-              <div className="row between wrapx pers-filtros">
-                <Segmented
-                  label="Filtrar por caso"
-                  value={ativa?.value ?? 'todos'}
-                  onChange={setFiltro}
-                  options={opcoes.map((o) => ({
-                    value: o.value,
-                    label: (
-                      <>
-                        {o.nome} <span className="pers-cnt">{o.total}</span>
-                      </>
-                    ),
-                  }))}
-                />
-                <Select
-                  className="pers-ordem"
-                  aria-label="Ordenar"
-                  value={ordem}
-                  onChange={(e) => {
-                    setOrdem(e.target.value as Ordem);
-                  }}
-                >
-                  <option value="recentes">Jogados recentemente</option>
-                  <option value="nome">Nome</option>
-                </Select>
-              </div>
-
-              <div className={cx('g3', 'pers-grade')}>
-                {visiveis.map((p) => (
-                  <Cartao key={p.id} p={p} acoes={acoes} />
-                ))}
-              </div>
-            </>
-          );
-        }}
-      </Async>
-
-      <LevarParaCaso
-        personagem={levando}
-        campanhas={listaDeCasos}
-        aoFechar={() => {
-          setLevando(null);
-        }}
-        aoLevar={async (p, caso) => {
-          await escolherNoCaso(p, caso);
-          setLevando(null);
-        }}
-      />
-    </div>
+        <LevarParaCaso
+          personagem={levando}
+          campanhas={listaDeCasos}
+          aoFechar={() => {
+            setLevando(null);
+          }}
+          aoLevar={async (p, caso) => {
+            await escolherNoCaso(p, caso);
+            setLevando(null);
+          }}
+        />
+      </div>
+    </>
   );
 }
