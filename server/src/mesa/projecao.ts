@@ -1,6 +1,6 @@
 // O que cada pessoa recebe da mesa (aba Arquitetura técnica, "O que cada um recebe"). Segredo só
-// escondido na tela não é segredo: o jogador nunca recebe o que não pode ver, nem no estado
-// inicial, nem na reconexão, nem em evento nenhum. O mestre recebe tudo.
+// escondido na tela não é segredo: o jogador nunca recebe o que não pode ver (nem token nem prop
+// sob a névoa), nem no estado inicial, nem na reconexão, nem em evento nenhum. O mestre recebe tudo.
 // Campo secreto novo? Trate aqui e acrescente o segredo em projecao.test.ts.
 import {
   sobNevoa,
@@ -10,6 +10,7 @@ import {
   type Papel,
   type PistaNaMesa,
   type PistaParaJogador,
+  type PropNaMesa,
   type TokenNaMesa,
   type VisaoDaMesa,
 } from '@membrana/shared';
@@ -26,6 +27,11 @@ export function tokenVisivel(quem: Espectador, token: TokenNaMesa, estado: Estad
   if (quem.papel === 'mestre') return true;
   if (token.donoId !== null && token.donoId === quem.id) return true;
   return !token.oculto && !sobNevoa(estado.nevoa, token);
+}
+
+/** O jogador vê o prop que não está sob a névoa (vale o centro dele, como no token). */
+export function propVisivel(quem: Espectador, prop: PropNaMesa, estado: EstadoDaMesa): boolean {
+  return quem.papel === 'mestre' || !sobNevoa(estado.nevoa, prop);
 }
 
 /** Pista no mapa para o jogador: oculta some; não descoberta, só a tarja; nunca a nota do mestre. */
@@ -54,7 +60,6 @@ const itemVisivel = (
 export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaMesa {
   const comum = {
     mapa: estado.mapa,
-    props: estado.props,
     nevoa: estado.nevoa,
     rodada: estado.rodada,
     trilha: estado.trilha,
@@ -64,6 +69,7 @@ export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaM
       papel: 'mestre',
       ...comum,
       tokens: estado.tokens,
+      props: estado.props,
       pistas: estado.pistas,
       inventario: inventario(estado),
       salas: estado.salas,
@@ -75,6 +81,7 @@ export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaM
     papel: 'jogador',
     ...comum,
     tokens: estado.tokens.filter((t) => tokenVisivel(quem, t, estado)),
+    props: estado.props.filter((p) => propVisivel(quem, p, estado)),
     pistas: estado.pistas.map(pistaParaJogador).filter((p) => p !== null),
     inventario: inventario(estado).filter((i) => itemVisivel(quem, i)),
   };
@@ -97,6 +104,42 @@ function tokenParaJogador(
     return [{ type: 'token.changed', tokenId, token: null, seq }];
   }
   return [];
+}
+
+/** Um prop mudou: o jogador recebe o prop novo, ou `null` se ele acabou de sair da vista. */
+function propParaJogador(
+  quem: Espectador,
+  propId: string,
+  seq: number,
+  antes: EstadoDaMesa,
+  depois: EstadoDaMesa,
+): EventoDaMesa[] {
+  const agora = depois.props.find((p) => p.id === propId);
+  if (agora && propVisivel(quem, agora, depois)) {
+    return [{ type: 'prop.changed', propId, prop: agora, seq }];
+  }
+  const via = antes.props.find((p) => p.id === propId);
+  if (via && propVisivel(quem, via, antes)) {
+    return [{ type: 'prop.changed', propId, prop: null, seq }];
+  }
+  return [];
+}
+
+/** Os que mudaram de vista (por causa da névoa nova), cada um num evento: `null` se sumiu. */
+function quemMudouDeVista<T extends { id: string }>(
+  antes: readonly T[],
+  depois: readonly T[],
+  visivelAntes: (item: T) => boolean,
+  visivelDepois: (item: T) => boolean,
+): { id: string; item: T | null }[] {
+  return [...new Set([...antes, ...depois].map((i) => i.id))].flatMap((id) => {
+    const via = antes.find((i) => i.id === id);
+    const ve = depois.find((i) => i.id === id);
+    const viaAntes = via !== undefined && visivelAntes(via);
+    const veAgora = ve !== undefined && visivelDepois(ve);
+    if (viaAntes === veAgora) return [];
+    return [{ id, item: veAgora ? ve : null }];
+  });
 }
 
 /**
@@ -134,8 +177,6 @@ function projetarParaJogador(
     case 'presence.changed':
     case 'character.changed':
     case 'campaign.deleted':
-    case 'prop.changed':
-    case 'prop.dragging':
     case 'map.activated':
     case 'map.changed':
     case 'test.resolved':
@@ -166,26 +207,47 @@ function projetarParaJogador(
     case 'token.changed':
       return tokenParaJogador(quem, evento.tokenId, evento.seq, antes, depois);
 
+    case 'prop.changed':
+      return propParaJogador(quem, evento.propId, evento.seq, antes, depois);
+
+    case 'prop.dragging': {
+      // Só o que o jogador já tem e continua à vista; ao soltar, o `prop.changed` acerta o resto.
+      const prop = depois.props.find((p) => p.id === evento.propId);
+      const noArrasto = prop && { ...prop, x: evento.x, y: evento.y };
+      return prop &&
+        noArrasto &&
+        propVisivel(quem, prop, depois) &&
+        propVisivel(quem, noArrasto, depois)
+        ? [evento]
+        : [];
+    }
+
     case 'fog.changed': {
-      // A névoa nova pode esconder ou revelar tokens: cada um que mudou de vista vira um evento.
-      const derivados = [...new Set([...antes.tokens, ...depois.tokens].map((t) => t.id))].flatMap(
-        (tokenId) => {
-          const via = antes.tokens.find((t) => t.id === tokenId);
-          const ve = depois.tokens.find((t) => t.id === tokenId);
-          const viaAntes = via !== undefined && tokenVisivel(quem, via, antes);
-          const veAgora = ve !== undefined && tokenVisivel(quem, ve, depois);
-          if (viaAntes === veAgora) return [];
-          return [
-            {
-              type: 'token.changed' as const,
-              tokenId,
-              token: veAgora ? ve : null,
-              seq: evento.seq,
-            },
-          ];
-        },
-      );
-      return [evento, ...derivados];
+      // A névoa nova pode esconder ou revelar tokens e props: cada um que mudou de vista vira um
+      // evento.
+      const tokens = quemMudouDeVista(
+        antes.tokens,
+        depois.tokens,
+        (t) => tokenVisivel(quem, t, antes),
+        (t) => tokenVisivel(quem, t, depois),
+      ).map(({ id, item }) => ({
+        type: 'token.changed' as const,
+        tokenId: id,
+        token: item,
+        seq: evento.seq,
+      }));
+      const props = quemMudouDeVista(
+        antes.props,
+        depois.props,
+        (p) => propVisivel(quem, p, antes),
+        (p) => propVisivel(quem, p, depois),
+      ).map(({ id, item }) => ({
+        type: 'prop.changed' as const,
+        propId: id,
+        prop: item,
+        seq: evento.seq,
+      }));
+      return [evento, ...tokens, ...props];
     }
 
     case 'room.updated':

@@ -555,3 +555,108 @@ describe('arte pronta (mestre)', () => {
     expect(await within(doCaso).findByText('Porão')).toBeDefined();
   });
 });
+
+describe('névoa (mestre)', () => {
+  const RETANGULO = { tipo: 'retangulo', x: 10, y: 20, largura: 100, altura: 50 } as const;
+  const COBERTA = { id: 'nev_1', modo: 'cobrir', forma: RETANGULO } as const;
+  const SALA = {
+    id: 'sala_1',
+    nome: 'Estúdio B',
+    notasMestre: '',
+    area: [
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+      { x: 200, y: 100 },
+      { x: 0, y: 100 },
+    ],
+  };
+
+  async function abrirNevoa(campos: Partial<VisaoDaMesa> = {}) {
+    await naMesa(visao({ papel: 'mestre', salas: [], ...campos }));
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 'n' });
+    return screen.findByRole('complementary', { name: 'Névoa' });
+  }
+
+  it('N abre a ferramenta e o palco passa a desenhar; fechar tira o pincel', async () => {
+    const painel = await abrirNevoa();
+    expect(palco().pincelDaNevoa).toEqual({ modo: 'cobrir', forma: 'retangulo' });
+    fireEvent.click(within(painel).getByRole('button', { name: 'Polígono' }));
+    fireEvent.click(within(painel).getByRole('button', { name: 'Revelar' }));
+    expect(palco().pincelDaNevoa).toEqual({ modo: 'revelar', forma: 'poligono' });
+    fireEvent.keyDown(window, { key: 'n' });
+    await waitFor(() => {
+      expect(palco().pincelDaNevoa).toBeNull();
+    });
+  });
+
+  it('a forma desenhada cobre ou revela, conforme o pincel', async () => {
+    const painel = await abrirNevoa();
+    act(() => {
+      palco().aoDesenharNevoa?.(RETANGULO);
+    });
+    fireEvent.click(within(painel).getByRole('button', { name: 'Revelar' }));
+    act(() => {
+      palco().aoDesenharNevoa?.(RETANGULO);
+    });
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        { type: 'fog.add', forma: RETANGULO },
+        { type: 'fog.reveal', forma: RETANGULO },
+      ]);
+    });
+  });
+
+  it('cobrir tudo, desfazer a última e limpar', async () => {
+    const painel = await abrirNevoa({ nevoa: [COBERTA] });
+    fireEvent.click(within(painel).getByRole('button', { name: 'Cobrir tudo' }));
+    fireEvent.click(within(painel).getByRole('button', { name: 'Desfazer a última' }));
+    fireEvent.click(within(painel).getByRole('button', { name: 'Limpar névoa' }));
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        { type: 'fog.add', forma: { tipo: 'retangulo', x: 0, y: 0, largura: 1000, altura: 800 } },
+        { type: 'fog.remove', formaId: 'nev_1' },
+        { type: 'fog.remove', tudo: true },
+      ]);
+    });
+  });
+
+  it('sem névoa, limpar e desfazer ficam desligados e a legenda não aparece', async () => {
+    const painel = await abrirNevoa();
+    expect(within(painel).getByRole('button', { name: 'Limpar névoa' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    expect(screen.queryByText('Névoa: jogadores veem preto')).toBeNull();
+  });
+
+  it('com névoa, a legenda diz que os jogadores veem preto', async () => {
+    await naMesa(visao({ papel: 'mestre', nevoa: [COBERTA] }));
+    expect(await screen.findByText('Névoa: jogadores veem preto')).toBeDefined();
+  });
+
+  it('por sala: a sala sob a névoa se revela inteira; à vista, se cobre', async () => {
+    const sob = {
+      id: 'nev_t',
+      modo: 'cobrir',
+      forma: { ...RETANGULO, x: 0, y: 0, largura: 1000, altura: 800 },
+    } as const;
+    const painel = await abrirNevoa({ salas: [SALA], nevoa: [sob] });
+    expect(within(painel).getByText('sob a névoa')).toBeDefined();
+    fireEvent.click(within(painel).getByRole('button', { name: 'Revelar Estúdio B' }));
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        { type: 'fog.reveal', forma: { tipo: 'poligono', pontos: SALA.area } },
+      ]);
+    });
+  });
+
+  it('jogador: nem a ferramenta nem a legenda', async () => {
+    await naMesa(visao({ nevoa: [COBERTA] }));
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 'n' });
+    expect(screen.queryByRole('complementary', { name: 'Névoa' })).toBeNull();
+    expect(screen.queryByText('Névoa: jogadores veem preto')).toBeNull();
+    expect(palco().pincelDaNevoa).toBeNull();
+  });
+});

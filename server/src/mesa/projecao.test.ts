@@ -6,6 +6,7 @@ import {
   estadoVazioDaMesa,
   type EstadoDaMesa,
   type EventoDaMesa,
+  type PropNaMesa,
   type TokenNaMesa,
 } from '@membrana/shared';
 import { projetarEstado, projetarEventos, type Espectador } from './projecao.ts';
@@ -13,6 +14,7 @@ import { projetarEstado, projetarEventos, type Espectador } from './projecao.ts'
 const SEGREDOS = {
   tokenOculto: 'SEGREDO-TOKEN-OCULTO',
   tokenNaNevoa: 'SEGREDO-TOKEN-NA-NEVOA',
+  propNaNevoa: 'SEGREDO-PROP-NA-NEVOA',
   notaDaSala: 'SEGREDO-NOTA-DA-SALA',
   nomeDaSala: 'SEGREDO-NOME-DA-SALA',
   pistaNaoDescoberta: 'SEGREDO-PISTA-NAO-DESCOBERTA',
@@ -49,6 +51,17 @@ const token = (campos: Partial<TokenNaMesa> & { id: string }): TokenNaMesa => ({
   ...campos,
 });
 
+const prop = (campos: Partial<PropNaMesa> & { id: string }): PropNaMesa => ({
+  imagem: 'caixao',
+  x: 100,
+  y: 100,
+  tamanho: 1,
+  rotacao: 0,
+  travado: false,
+  ordem: 0,
+  ...campos,
+});
+
 /** Uma mesa com um segredo de cada tipo. */
 function mesaCheiaDeSegredos(): EstadoDaMesa {
   return {
@@ -61,6 +74,7 @@ function mesaCheiaDeSegredos(): EstadoDaMesa {
       // O token da própria Bia, mesmo sob a névoa, ela vê.
       token({ id: 'tok_bia_na_nevoa', personagemId: 'chr_davi', donoId: BIA.id, x: 650, y: 650 }),
     ],
+    props: [prop({ id: 'prp_mesa' }), prop({ id: SEGREDOS.propNaNevoa, x: 600, y: 600 })],
     salas: [
       { id: 'sala_1', nome: SEGREDOS.nomeDaSala, area: [], notasMestre: SEGREDOS.notaDaSala },
     ],
@@ -138,6 +152,13 @@ function eventosComSegredos(estado: EstadoDaMesa): EventoDaMesa[] {
       token: estado.tokens[1] ?? null,
       seq: 4,
     },
+    {
+      type: 'prop.changed',
+      propId: SEGREDOS.propNaNevoa,
+      prop: estado.props[1] ?? null,
+      seq: 4,
+    },
+    { type: 'prop.dragging', propId: SEGREDOS.propNaNevoa, x: 620, y: 620, seq: 4 },
     {
       type: 'room.updated',
       salaId: 'sala_1',
@@ -228,6 +249,7 @@ describe('o que o jogador recebe', () => {
     const visao = projetarEstado(BIA, mesaCheiaDeSegredos());
     expect(visao.papel).toBe('jogador');
     expect(visao.tokens.map((t) => t.id)).toEqual(['tok_davi', 'tok_bia_na_nevoa']);
+    expect(visao.props.map((p) => p.id)).toEqual(['prp_mesa']);
     expect(visao.nevoa).toEqual([NEVOA]);
     expect(visao.pistas).toEqual([
       {
@@ -384,5 +406,59 @@ describe('troca de mapa', () => {
       seq: 2,
     };
     expect(projetarEventos(BIA, [evento], estado, estado)).toEqual([evento]);
+  });
+});
+
+describe('props que entram e saem da vista', () => {
+  const comProp = (x: number, y: number, nevoa = [NEVOA]): EstadoDaMesa => ({
+    ...estadoVazioDaMesa(),
+    nevoa,
+    props: [prop({ id: 'prp_1', x, y })],
+  });
+  const mudou = (estado: EstadoDaMesa): EventoDaMesa[] => [
+    { type: 'prop.changed', propId: 'prp_1', prop: estado.props[0] ?? null, seq: 5 },
+  ];
+
+  it('prop posto na névoa não chega; que sai dela, chega inteiro; que entra, some', () => {
+    const naNevoa = comProp(600, 600);
+    const aVista = comProp(100, 100);
+    expect(projetarEventos(BIA, mudou(naNevoa), estadoVazioDaMesa(), naNevoa)).toEqual([]);
+    expect(projetarEventos(BIA, mudou(aVista), naNevoa, aVista)).toEqual(mudou(aVista));
+    expect(projetarEventos(BIA, mudou(naNevoa), aVista, naNevoa)).toEqual([
+      { type: 'prop.changed', propId: 'prp_1', prop: null, seq: 5 },
+    ]);
+    // Removido sob a névoa: o jogador nem sabia dele.
+    const removido: EventoDaMesa[] = [
+      { type: 'prop.changed', propId: 'prp_1', prop: null, seq: 5 },
+    ];
+    expect(projetarEventos(BIA, removido, naNevoa, { ...naNevoa, props: [] })).toEqual([]);
+    expect(projetarEventos(ANA, mudou(naNevoa), aVista, naNevoa)).toEqual(mudou(naNevoa));
+  });
+
+  it('o arrasto só chega enquanto o prop está à vista', () => {
+    const aVista = comProp(100, 100);
+    const arrasto = (x: number, y: number): EventoDaMesa[] => [
+      { type: 'prop.dragging', propId: 'prp_1', x, y, seq: 6 },
+    ];
+    expect(projetarEventos(BIA, arrasto(120, 120), aVista, aVista)).toEqual(arrasto(120, 120));
+    expect(projetarEventos(BIA, arrasto(600, 600), aVista, aVista)).toEqual([]);
+    const naNevoa = comProp(600, 600);
+    expect(projetarEventos(BIA, arrasto(100, 100), naNevoa, naNevoa)).toEqual([]);
+  });
+
+  it('névoa nova esconde e revela props com o mesmo número de sequência', () => {
+    const semNevoa = comProp(600, 600, []);
+    const comNevoa = comProp(600, 600);
+    const fog = (estado: EstadoDaMesa): EventoDaMesa[] => [
+      { type: 'fog.changed', nevoa: estado.nevoa, seq: 9 },
+    ];
+    expect(projetarEventos(BIA, fog(comNevoa), semNevoa, comNevoa)).toEqual([
+      ...fog(comNevoa),
+      { type: 'prop.changed', propId: 'prp_1', prop: null, seq: 9 },
+    ]);
+    expect(projetarEventos(BIA, fog(semNevoa), comNevoa, semNevoa)).toEqual([
+      ...fog(semNevoa),
+      { type: 'prop.changed', propId: 'prp_1', prop: semNevoa.props[0], seq: 9 },
+    ]);
   });
 });

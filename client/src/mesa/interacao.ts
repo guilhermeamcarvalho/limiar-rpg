@@ -1,6 +1,12 @@
-// Regras das interações com o palco (arrastar, setas, girar, redimensionar), sem Konva: o palco
-// só chama estas funções.
-import type { MapaNaMesa, PropNaMesa, TokenNaMesa } from '@membrana/shared';
+// Regras das interações com o palco (arrastar, setas, girar, redimensionar, desenhar a névoa), sem
+// Konva: o palco só chama estas funções.
+import type {
+  FormaDaNevoa,
+  MapaNaMesa,
+  PropNaMesa,
+  SalaNaMesa,
+  TokenNaMesa,
+} from '@membrana/shared';
 import type { Ponto } from './camera.ts';
 
 /** O arrasto manda a posição no máximo 20 vezes por segundo (a final vai sempre, no soltar). */
@@ -98,3 +104,74 @@ export function pontoLivre(
   }
   return dentroDoMapa(desejado, mapa);
 }
+
+/* ---------- Névoa (RF-22, RF-23) ---------- */
+
+/** Menor lado (em pixels do mapa) de um retângulo de névoa: menos que isso é um clique, não um desenho. */
+export const MENOR_LADO_DA_NEVOA = 4;
+
+/** O retângulo entre dois cantos quaisquer, sem sair do mapa; pequeno demais, nulo. */
+export function retanguloEntre(
+  a: Ponto,
+  b: Ponto,
+  mapa: Pick<MapaNaMesa, 'largura' | 'altura'>,
+): Extract<FormaDaNevoa, { tipo: 'retangulo' }> | null {
+  const p = dentroDoMapa(a, mapa);
+  const q = dentroDoMapa(b, mapa);
+  const largura = Math.abs(p.x - q.x);
+  const altura = Math.abs(p.y - q.y);
+  if (largura < MENOR_LADO_DA_NEVOA || altura < MENOR_LADO_DA_NEVOA) return null;
+  return { tipo: 'retangulo', x: Math.min(p.x, q.x), y: Math.min(p.y, q.y), largura, altura };
+}
+
+/** O mapa inteiro: "cobrir tudo". */
+export const mapaInteiro = (mapa: Pick<MapaNaMesa, 'largura' | 'altura'>): FormaDaNevoa => ({
+  tipo: 'retangulo',
+  x: 0,
+  y: 0,
+  largura: mapa.largura,
+  altura: mapa.altura,
+});
+
+/** Até 200 pontos por polígono (o que o servidor aceita). */
+export const MAIS_PONTOS_NO_POLIGONO = 200;
+
+/**
+ * Um clique no desenho do polígono: fecha (perto do primeiro ponto, com três ou mais), ignora
+ * (em cima do último: o segundo clique de um duplo) ou acrescenta. `raio` já em pixels do mapa.
+ */
+export function cliqueNoPoligono(
+  pontos: readonly Ponto[],
+  clique: Ponto,
+  raio: number,
+): 'fechar' | 'ignorar' | 'acrescentar' {
+  const perto = (p: Ponto | undefined) =>
+    p !== undefined && Math.hypot(p.x - clique.x, p.y - clique.y) <= raio;
+  if (pontos.length >= 3 && perto(pontos[0])) return 'fechar';
+  if (perto(pontos.at(-1))) return 'ignorar';
+  if (pontos.length >= MAIS_PONTOS_NO_POLIGONO) return 'ignorar';
+  return 'acrescentar';
+}
+
+/** O polígono desenhado, pronto para mandar; com menos de três pontos, nulo. */
+export function poligonoDe(pontos: readonly Ponto[]): FormaDaNevoa | null {
+  if (pontos.length < 3) return null;
+  return { tipo: 'poligono', pontos: pontos.slice(0, MAIS_PONTOS_NO_POLIGONO) };
+}
+
+/** A área de uma sala como forma da névoa ("revelar por sala"); sala sem área, nulo. */
+export function formaDaSala(sala: Pick<SalaNaMesa, 'area'>): FormaDaNevoa | null {
+  return poligonoDe(sala.area);
+}
+
+/** O meio da sala (média dos cantos): é por ele que o painel diz se a sala está sob a névoa. */
+export function meioDaSala(sala: Pick<SalaNaMesa, 'area'>): Ponto | null {
+  if (sala.area.length === 0) return null;
+  const soma = sala.area.reduce((s, p) => ({ x: s.x + p.x, y: s.y + p.y }), { x: 0, y: 0 });
+  return { x: soma.x / sala.area.length, y: soma.y / sala.area.length };
+}
+
+/** Tecla digitada num campo de texto não conta como atalho do mapa. */
+export const digitando = (alvo: EventTarget | null) =>
+  alvo instanceof HTMLElement &&
+  (alvo.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName));

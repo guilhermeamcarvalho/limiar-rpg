@@ -125,7 +125,7 @@ Segredo só escondido na tela não é segredo: qualquer amigo curioso abre o F12
 
 | Dado | Mestre | Jogador |
 | --- | --- | --- |
-| Tokens ocultos e tokens sob a névoa | Recebe | Não recebe |
+| Tokens ocultos, e tokens e props sob a névoa | Recebe | Não recebe |
 | Formas da névoa | Recebe | Recebe, para desenhar o preto |
 | Notas das salas e descrições contextuais | Recebe | Não recebe |
 | Pistas ainda não descobertas | Recebe | Recebe só a tarja |

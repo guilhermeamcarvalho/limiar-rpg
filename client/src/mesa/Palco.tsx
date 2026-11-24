@@ -3,7 +3,8 @@
 // Navegar: roda do mouse ou pinça para o zoom; botão do meio, espaço + arrasto ou dois dedos para
 // arrastar o mapa. Um dedo (ou o botão esquerdo) arrasta token e prop.
 // Clicar num token ou prop seleciona e mostra a barra dele; as setas movem o token uma célula;
-// Esc tira a seleção. Desempenho no celular: as camadas estáticas não escutam clique, a grade é um
+// Esc tira a seleção. Com a ferramenta da névoa aberta, o botão esquerdo desenha (Nevoa.tsx).
+// Desempenho no celular: as camadas estáticas não escutam clique, a grade é um
 // traço só e a densidade de pixels vai no máximo a 2.
 import {
   useCallback,
@@ -17,7 +18,13 @@ import {
 import Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { Stage } from 'react-konva';
-import type { ComandoDaMesa, MapaNaMesa, RespostaDoComando, VisaoDaMesa } from '@membrana/shared';
+import type {
+  ComandoDaMesa,
+  FormaDaNevoa,
+  MapaNaMesa,
+  RespostaDoComando,
+  VisaoDaMesa,
+} from '@membrana/shared';
 import { Icon, useToast } from '../ui/index.ts';
 import { BarraDoProp, BarraDoToken } from './Barras.tsx';
 import { CamadaDoMapa } from './camadas/Mapa.tsx';
@@ -35,7 +42,8 @@ import {
   type Ponto,
   type Tamanho,
 } from './camera.ts';
-import { dentroDoMapa, destinoDaSeta, podeArrastar } from './interacao.ts';
+import { dentroDoMapa, destinoDaSeta, digitando, podeArrastar } from './interacao.ts';
+import { CamadaDeDesenhoDaNevoa, type PincelDaNevoa } from './Nevoa.tsx';
 import { CamadaDeProps } from './Props.tsx';
 import { CamadaDeTokens, raioDoToken } from './Tokens.tsx';
 
@@ -58,6 +66,10 @@ export interface PalcoProps {
   aoEscolherPonto?: ((ponto: Ponto) => void) | null;
   /** Uma imagem do computador solta sobre o mapa (RF-24), com o ponto do mapa onde caiu. */
   aoSoltarImagem?: (arquivo: File, ponto: Ponto) => void;
+  /** Ferramenta da névoa aberta (só o mestre): o botão esquerdo desenha com este pincel. */
+  pincelDaNevoa?: PincelDaNevoa | null;
+  /** A forma que o mestre acabou de desenhar, para cobrir ou revelar conforme o pincel. */
+  aoDesenharNevoa?: (forma: FormaDaNevoa) => void;
 }
 
 /** Os dois toques, na tela, relativos ao palco. */
@@ -70,11 +82,6 @@ function doisToques(evento: TouchEvent, palco: HTMLElement): [Ponto, Ponto] | nu
     { x: b.clientX - caixa.left, y: b.clientY - caixa.top },
   ];
 }
-
-/** Tecla digitada num campo de texto não conta como atalho do mapa. */
-const digitando = (alvo: EventTarget | null) =>
-  alvo instanceof HTMLElement &&
-  (alvo.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName));
 
 /** Altura da barra do item, para ela ficar acima dele sem cobrir. */
 const ALTURA_DA_BARRA = 52;
@@ -89,6 +96,8 @@ export function Palco({
   centroRef,
   aoEscolherPonto,
   aoSoltarImagem,
+  pincelDaNevoa,
+  aoDesenharNevoa,
 }: PalcoProps) {
   const { mapa } = visao;
   const avisos = useToast();
@@ -106,7 +115,15 @@ export function Palco({
   const stage = useRef<Konva.Stage>(null);
   const mestre = visao.papel === 'mestre';
   const escolhendo = Boolean(aoEscolherPonto);
-  const bloqueado = espaco || escolhendo;
+  const pincel = mestre && !escolhendo && aoDesenharNevoa ? (pincelDaNevoa ?? null) : null;
+  const bloqueado = espaco || escolhendo || pincel !== null;
+
+  // Começou a desenhar a névoa: a seleção sai (a barra do item ficaria no caminho).
+  const [pincelAberto, setPincelAberto] = useState(pincel !== null);
+  if (pincelAberto !== (pincel !== null)) {
+    setPincelAberto(pincel !== null);
+    if (pincel) setSelecao(null);
+  }
 
   // O palco ocupa o espaço que a página der, e acompanha quando ele muda.
   useEffect(() => {
@@ -315,6 +332,7 @@ export function Palco({
       data-arrastando={arrastandoMapa || undefined}
       data-espaco={espaco || undefined}
       data-escolhendo={escolhendo || undefined}
+      data-desenhando={(pincel && !espaco) || undefined}
       onDragOver={aoArrastarArquivo}
       onDrop={aoSoltarArquivo}
     >
@@ -370,6 +388,15 @@ export function Palco({
             aoRecusar={recusado}
             cancelarArrasto={cancelarArrasto}
           />
+          {pincel && aoDesenharNevoa && (
+            <CamadaDeDesenhoDaNevoa
+              pincel={pincel}
+              mapa={mapa}
+              escala={camera.escala}
+              pausado={espaco}
+              aoDesenhar={aoDesenharNevoa}
+            />
+          )}
         </Stage>
       )}
 

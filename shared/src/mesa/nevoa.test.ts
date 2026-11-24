@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AreaDaNevoa, FormaDaNevoa } from '../schemas/mesa.ts';
-import { formaContem, sobNevoa } from './nevoa.ts';
+import { cobreOMapa, formaContem, sobNevoa } from './nevoa.ts';
 
 const quadrado: FormaDaNevoa = { tipo: 'retangulo', x: 100, y: 100, largura: 200, altura: 100 };
 /** Um "L": o canto de cima à direita fica de fora. */
@@ -61,5 +61,28 @@ describe('sobNevoa', () => {
 
   it('fora de todas as áreas, à vista', () => {
     expect(sobNevoa([cobrir('n1', quadrado)], { x: 900, y: 900 })).toBe(false);
+  });
+});
+
+describe('cobreOMapa', () => {
+  const mapa = { largura: 300, altura: 200 };
+  it('só o retângulo que pega os quatro cantos', () => {
+    expect(cobreOMapa({ tipo: 'retangulo', x: 0, y: 0, largura: 300, altura: 200 }, mapa)).toBe(
+      true,
+    );
+    expect(cobreOMapa({ tipo: 'retangulo', x: 0, y: 0, largura: 400, altura: 400 }, mapa)).toBe(
+      true,
+    );
+    expect(cobreOMapa(quadrado, mapa)).toBe(false);
+    const todo: FormaDaNevoa = {
+      tipo: 'poligono',
+      pontos: [
+        { x: 0, y: 0 },
+        { x: 300, y: 0 },
+        { x: 300, y: 200 },
+        { x: 0, y: 200 },
+      ],
+    };
+    expect(cobreOMapa(todo, mapa)).toBe(false);
   });
 });

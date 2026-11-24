@@ -1,27 +1,37 @@
 // Névoa: o mestre cobre e revela; cada comando manda a lista inteira de áreas (é curta).
-import { podeConduzirMesa } from '@membrana/shared';
+// Cobrir (ou revelar) o mapa inteiro troca a lista por essa forma só: o que estava embaixo não
+// conta mais, e a lista não cresce a cada "cobrir tudo".
+import { cobreOMapa, podeConduzirMesa, type FormaDaNevoa } from '@membrana/shared';
 import { novoId } from '../../db/ids.ts';
 import { exigirMapa, Recusa, type Contexto, type Tratadores } from './contexto.ts';
 
 function exigirMestre(ctx: Contexto) {
   if (!podeConduzirMesa(ctx.quem, ctx.campanha)) throw new Recusa('Só o mestre mexe na névoa.');
   // A névoa é do mapa: sem mapa na mesa, não há o que cobrir.
-  exigirMapa(ctx);
+  return exigirMapa(ctx);
 }
 
 const mudou = (ctx: Contexto) => [{ type: 'fog.changed' as const, nevoa: ctx.estado.nevoa }];
 
+function empilhar(ctx: Contexto, modo: 'cobrir' | 'revelar', forma: FormaDaNevoa) {
+  const mapa = exigirMestre(ctx);
+  const area = { id: novoId('nev'), modo, forma };
+  if (cobreOMapa(forma, mapa)) {
+    // Revelar tudo é limpar; cobrir tudo é uma área só.
+    ctx.estado.nevoa = modo === 'cobrir' ? [area] : [];
+  } else {
+    ctx.estado.nevoa.push(area);
+  }
+  return mudou(ctx);
+}
+
 export const tratadoresDaNevoa: Tratadores = {
   'fog.add'(ctx, { forma }) {
-    exigirMestre(ctx);
-    ctx.estado.nevoa.push({ id: novoId('nev'), modo: 'cobrir', forma });
-    return mudou(ctx);
+    return empilhar(ctx, 'cobrir', forma);
   },
 
   'fog.reveal'(ctx, { forma }) {
-    exigirMestre(ctx);
-    ctx.estado.nevoa.push({ id: novoId('nev'), modo: 'revelar', forma });
-    return mudou(ctx);
+    return empilhar(ctx, 'revelar', forma);
   },
 
   'fog.remove'(ctx, { formaId }) {
