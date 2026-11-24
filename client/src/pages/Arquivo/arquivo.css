@@ -94,6 +94,11 @@
   background: none;
   cursor: pointer;
 }
+.arq-filtros .chip:hover:not(.on) {
+  border-color: var(--line-3);
+  background: var(--panel-3);
+  color: var(--white);
+}
 .arq-filtros .chip.on {
   border-color: var(--red);
   color: var(--white);

@@ -56,3 +56,4 @@ export { Async, useCarga, type AsyncProps, type Carga, type UsoDaCarga } from '.
 export { ErrorBlock, valeTentarDeNovo, type ErrorBlockProps } from './ErrorBlock.tsx';
 export { useEnvio } from './useEnvio.ts';
 export { cx } from './cx.ts';
+export { Dicas, ESPERA_DA_DICA_MS } from './Dicas.tsx';
