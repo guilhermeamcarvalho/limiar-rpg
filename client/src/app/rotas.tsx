@@ -62,10 +62,7 @@ const FichaEmBranco = pagina(() => import('../pages/Ficha/index.tsx'), 'FichaEmB
 const FichaDoPersonagem = pagina(() => import('../pages/Ficha/index.tsx'), 'FichaDoPersonagem');
 const Arquivo = pagina(() => import('../pages/Arquivo/index.tsx'), 'Arquivo');
 const Perfil = pagina(() => import('../pages/Perfil.tsx'), 'Perfil');
-const Mesa = lazy(async () => {
-  const { PaginaDaCampanhaEmBreve } = await carregarModulo(() => import('../pages/EmBreve.tsx'));
-  return { default: () => <PaginaDaCampanhaEmBreve pagina="mesa" /> };
-});
+const Mesa = pagina(() => import('../pages/Mesa/index.tsx'), 'Mesa');
 const Escudo = lazy(async () => {
   const { PaginaDaCampanhaEmBreve } = await carregarModulo(() => import('../pages/EmBreve.tsx'));
   return { default: () => <PaginaDaCampanhaEmBreve pagina="escudo" /> };
@@ -100,6 +97,8 @@ export function Rotas() {
         {Componentes && <Route path="/dev/componentes" element={<Componentes />} />}
         {/* Daqui para baixo, só com login, dentro do cabeçalho comum. */}
         <Route element={<ExigirLogin />}>
+          {/* A mesa é tela cheia, com o topo próprio. */}
+          <Route path="/campanhas/:id/mesa" element={<Mesa />} />
           <Route element={<AppLayout />}>
             <Route path="/" element={<Central />} />
             <Route path="/casos" element={<Casos />} />
@@ -111,7 +110,6 @@ export function Rotas() {
             <Route path="/personagens/:id/ficha" element={<FichaDoPersonagem />} />
             <Route path="/arquivo" element={<Arquivo />} />
             <Route path="/perfil" element={<Perfil />} />
-            <Route path="/campanhas/:id/mesa" element={<Mesa />} />
             <Route path="/campanhas/:id/escudo" element={<Escudo />} />
             <Route path="/campanhas/:id/ficha" element={<Ficha />} />
             <Route path="*" element={<NaoEncontrada />} />

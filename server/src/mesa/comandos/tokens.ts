@@ -9,7 +9,7 @@ import {
   type TokenNaMesa,
 } from '@membrana/shared';
 import { novoId } from '../../db/ids.ts';
-import { Recusa, type Contexto, type Tratadores } from './contexto.ts';
+import { exigirMapa, Recusa, type Contexto, type Tratadores } from './contexto.ts';
 
 function acharToken(ctx: Contexto, tokenId: string): TokenNaMesa {
   const token = ctx.estado.tokens.find((t) => t.id === tokenId);
@@ -53,6 +53,7 @@ export const tratadoresDeTokens: Tratadores = {
 
   'token.create'(ctx, comando) {
     exigirMestre(ctx, 'Só o mestre cria tokens.');
+    exigirMapa(ctx);
     conferirDestino(ctx, comando.x, comando.y);
     const personagemId = comando.personagemId ?? null;
     let donoId: string | null = null;

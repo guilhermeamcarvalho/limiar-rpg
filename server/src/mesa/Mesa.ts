@@ -11,7 +11,7 @@ import {
   type EventoDaMesaSemSeq,
   type TipoDeEvento,
 } from '@membrana/shared';
-import { Recusa, tratar } from './comandos/index.ts';
+import { Recusa, tratar, type Contexto } from './comandos/index.ts';
 
 /** Não mudam o estado: não pedem para salvar. */
 const TRANSITORIOS: ReadonlySet<TipoDeEvento> = new Set(['token.dragging']);
@@ -44,6 +44,13 @@ export interface DependenciasDaMesa {
   membros: () => CampanhaComMembros['membros'];
   /** O dono do personagem, se ele for deste caso. */
   personagem: (personagemId: string) => { donoId: string } | null;
+  /** Um mapa deste caso, como está salvo. */
+  mapa: Contexto['mapa'];
+  /**
+   * Grava o mapa que está saindo, antes de uma troca: o que entra é lido do banco, e o que sai
+   * deixa de estar em memória. Se falhar, a troca não acontece.
+   */
+  guardarMapa?: (estado: EstadoDaMesa) => void;
   /** O estado mudou: hora de agendar o salvamento. */
   aoMudar?: () => void;
   /** Grava os eventos importantes. Se falhar, o comando inteiro falha e nada muda. */
@@ -90,7 +97,13 @@ export class Mesa {
     let saida: EventoDaMesaSemSeq[];
     try {
       saida = tratar(
-        { quem, campanha, estado: rascunho, personagem: this.#deps.personagem },
+        {
+          quem,
+          campanha,
+          estado: rascunho,
+          personagem: this.#deps.personagem,
+          mapa: this.#deps.mapa,
+        },
         validacao.comando,
       );
     } catch (erro) {
@@ -98,8 +111,16 @@ export class Mesa {
       throw erro;
     }
 
+    // Nada a fazer (como ativar o mapa que já está na mesa): o estado fica como está.
+    if (saida.length === 0) {
+      return { ok: true, eventos: [], antes: this.#estado, depois: this.#estado };
+    }
+
     let seq = this.#seq;
     const eventos = saida.map((evento) => ({ ...evento, seq: ++seq }));
+    if (this.#estado.mapa && eventos.some((e) => e.type === 'map.activated')) {
+      this.#deps.guardarMapa?.(this.#estado);
+    }
     const importantes = eventos.filter((e) => REGISTRADOS.has(e.type));
     if (importantes.length > 0) this.#deps.registrar?.(importantes);
 

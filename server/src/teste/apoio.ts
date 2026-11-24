@@ -1,9 +1,9 @@
 // Apoio para os testes do servidor: config válida e banco em memória já migrado.
-import { fichaDoDavi, ID_OP2, type Rng } from '@membrana/shared';
+import { fichaDoDavi, GRADE_PADRAO, ID_OP2, type Rng } from '@membrana/shared';
 import { criarApp } from '../app.ts';
 import { carregarConfig } from '../config.ts';
 import { abrirBanco, migrar, type Banco } from '../db/index.ts';
-import { campaigns, characters, memberships, users } from '../db/schema.ts';
+import { campaigns, characters, maps, memberships, users } from '../db/schema.ts';
 import { criarSessao } from '../http/auth/sessao.ts';
 import { semear } from '../db/seed.ts';
 import type { ClienteDiscord } from '../http/auth/discord.ts';
@@ -72,4 +72,58 @@ export function casoDeTeste(app: { db: Banco }) {
     ])
     .run();
   return { caso, davi, ana, bia, caio, estranho };
+}
+
+/** Um mapa de 2000 × 1500 no caso (com `ativo: true`, é o que a mesa carrega ao abrir). */
+export function mapaDeTeste(
+  app: { db: Banco },
+  caso: string,
+  campos: Partial<typeof maps.$inferInsert> = {},
+) {
+  return app.db
+    .insert(maps)
+    .values({
+      campaignId: caso,
+      nome: 'Rádio, 2º andar',
+      imagem: `${'a'.repeat(64)}.webp`,
+      largura: 2000,
+      altura: 1500,
+      grade: GRADE_PADRAO,
+      ...campos,
+    })
+    .returning()
+    .get();
+}
+
+export interface ArquivoDeTeste {
+  nome: string;
+  tipo: string;
+  conteudo: Buffer;
+}
+
+/** Monta o corpo multipart/form-data à mão, como o navegador manda. */
+export function formulario(campos: Record<string, string>, arquivo?: ArquivoDeTeste) {
+  const fronteira = '----membrana-teste';
+  const partes: Buffer[] = [];
+  for (const [nome, valor] of Object.entries(campos)) {
+    partes.push(
+      Buffer.from(
+        `--${fronteira}\r\nContent-Disposition: form-data; name="${nome}"\r\n\r\n${valor}\r\n`,
+      ),
+    );
+  }
+  if (arquivo) {
+    partes.push(
+      Buffer.from(
+        `--${fronteira}\r\nContent-Disposition: form-data; name="arquivo"; filename="${arquivo.nome}"\r\nContent-Type: ${arquivo.tipo}\r\n\r\n`,
+      ),
+      arquivo.conteudo,
+      Buffer.from('\r\n'),
+    );
+  }
+  partes.push(Buffer.from(`--${fronteira}--\r\n`));
+  return {
+    payload: Buffer.concat(partes),
+    headers: { 'content-type': `multipart/form-data; boundary=${fronteira}` },
+  };
 }

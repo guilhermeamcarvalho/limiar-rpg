@@ -1,7 +1,8 @@
 // Todos os tratadores, por tipo de comando. Comando do contrato sem tratador ainda (pistas, dados,
-// testes, chat, trilha, mapa: chegam nas próximas issues) é recusado com aviso.
+// testes, chat, trilha: chegam nas próximas issues) é recusado com aviso.
 import type { ComandoValidado, EventoDaMesaSemSeq } from '@membrana/shared';
 import { Recusa, type Contexto, type Tratadores } from './contexto.ts';
+import { tratadoresDoMapa } from './mapa.ts';
 import { tratadoresDaNevoa } from './nevoa.ts';
 import { tratadoresDeProps } from './props.ts';
 import { tratadoresDaRodada } from './rodada.ts';
@@ -12,6 +13,7 @@ const TRATADORES: Tratadores = {
   ...tratadoresDeProps,
   ...tratadoresDaNevoa,
   ...tratadoresDaRodada,
+  ...tratadoresDoMapa,
 };
 
 export function tratar(ctx: Contexto, comando: ComandoValidado): EventoDaMesaSemSeq[] {

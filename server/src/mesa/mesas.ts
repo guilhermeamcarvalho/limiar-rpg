@@ -5,8 +5,10 @@ import { membrosDe } from '../http/campanhas/dados.ts';
 import {
   donoDoPersonagemNoCaso,
   gravarEstado,
+  gravarMapa,
   lerEstadoSalvo,
   lerEstadosSalvos,
+  lerMapa,
   registrarEventos,
   ultimoSeqRegistrado,
   type EstadoSalvo,
@@ -57,6 +59,26 @@ export class Mesas {
     return this.#mesas.get(campanhaId);
   }
 
+  /** Os casos cuja mesa em memória usa o arquivo (mapa, token ou prop), salvo ou não. */
+  casosQueUsam(nome: string): string[] {
+    const casos: string[] = [];
+    for (const mesa of this.#mesas.values()) {
+      const { mapa, tokens, props } = mesa.estado;
+      if (
+        mapa?.imagem === nome ||
+        tokens.some((t) => t.imagem === nome) ||
+        props.some((p) => p.imagem === nome)
+      ) {
+        casos.push(mesa.campanhaId);
+      }
+    }
+    return casos;
+  }
+
+  usaArquivo(nome: string): boolean {
+    return this.casosQueUsam(nome).length > 0;
+  }
+
   /** Salva agora o que estiver pendente. Chame ao fechar o servidor. */
   salvarTudo() {
     this.#agendador.descarregar();
@@ -76,6 +98,10 @@ export class Mesas {
       {
         membros: () => membrosDe(db, campanhaId),
         personagem: (personagemId) => donoDoPersonagemNoCaso(db, campanhaId, personagemId),
+        mapa: (mapaId) => lerMapa(db, campanhaId, mapaId),
+        guardarMapa: (estado) => {
+          gravarMapa(db, estado);
+        },
         aoMudar: () => {
           this.#agendador.agendar(campanhaId);
         },

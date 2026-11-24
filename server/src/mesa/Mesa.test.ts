@@ -2,24 +2,23 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import type { EventoDaMesa, TokenNaMesa } from '@membrana/shared';
 import { sessionLog } from '../db/schema.ts';
-import { bancoDeTeste, casoDeTeste } from '../teste/apoio.ts';
+import { bancoDeTeste, casoDeTeste, mapaDeTeste } from '../teste/apoio.ts';
 import type { ResultadoDoComando } from './Mesa.ts';
 import { Mesas } from './mesas.ts';
 
-let fechar: (() => void) | undefined;
+const bancos: { close: () => void }[] = [];
 afterEach(() => {
-  fechar?.();
-  fechar = undefined;
+  for (const banco of bancos.splice(0)) banco.close();
 });
 
-function montar() {
+/** O caso com um mapa de 2000 × 1500 já na mesa (salvo como ativo: a mesa abre com ele). */
+function montar({ comMapa = true } = {}) {
   const { db, sqlite } = bancoDeTeste();
-  fechar = () => {
-    sqlite.close();
-  };
+  bancos.push(sqlite);
   const pessoas = casoDeTeste({ db });
+  const mapa = comMapa ? mapaDeTeste({ db }, pessoas.caso, { ativo: true }) : null;
   const mesas = new Mesas(db);
-  return { db, mesas, mesa: mesas.obter(pessoas.caso), ...pessoas };
+  return { db, mesas, mapa, mesa: mesas.obter(pessoas.caso), ...pessoas };
 }
 
 function eventos(r: ResultadoDoComando): EventoDaMesa[] {
@@ -146,23 +145,29 @@ describe('tokens', () => {
     expect(m.mesa.estado).toEqual(salvo);
   });
 
-  it('com mapa ativo, posição fora dele é recusada', () => {
+  it('posição fora do mapa é recusada; a borda vale', () => {
     const m = montar();
     const token = criarToken(m);
-    // O comando que ativa o mapa chega com o #63; aqui o mapa entra direto no estado.
-    m.mesa.estado.mapa = {
-      id: 'map_1',
-      imagem: 'x.webp',
-      largura: 1000,
-      altura: 800,
-      grade: { celula: 50, deslocamentoX: 0, deslocamentoY: 0 },
-    };
     expect(
-      motivo(m.mesa.aplicar(m.ana, { type: 'token.move', tokenId: token.id, x: 1001, y: 10 })),
+      motivo(m.mesa.aplicar(m.ana, { type: 'token.move', tokenId: token.id, x: 2001, y: 10 })),
     ).toBe('Fora do mapa.');
     expect(
-      eventos(m.mesa.aplicar(m.ana, { type: 'token.move', tokenId: token.id, x: 1000, y: 800 })),
+      eventos(m.mesa.aplicar(m.ana, { type: 'token.move', tokenId: token.id, x: 2000, y: 1500 })),
     ).toHaveLength(1);
+  });
+
+  it('sem mapa na mesa, não há onde pôr token, prop ou névoa', () => {
+    const m = montar({ comMapa: false });
+    const semMapa = 'Ponha um mapa na mesa antes.';
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'token.create', nome: 'V', x: 1, y: 1 }))).toBe(
+      semMapa,
+    );
+    const imagem = `${'a'.repeat(64)}.webp`;
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'prop.create', imagem, x: 1, y: 1 }))).toBe(
+      semMapa,
+    );
+    expect(motivo(m.mesa.aplicar(m.ana, NEVOA_NO_CANTO))).toBe(semMapa);
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'fog.remove', tudo: true }))).toBe(semMapa);
   });
 
   it('só o mestre cria e remove; personagem precisa ser do caso e ter um token só', () => {
@@ -283,5 +288,72 @@ describe('props, névoa e rodada', () => {
     const m = montar();
     criarToken(m);
     expect(m.db.select().from(sessionLog).all()).toEqual([]);
+  });
+});
+
+describe('mapa', () => {
+  it('trocar o mapa traz o que está sobre ele e guarda o que estava no outro', () => {
+    const m = montar();
+    const primeiro = m.mapa?.id ?? '';
+    criarToken(m, { nome: 'No primeiro' });
+    const segundo = mapaDeTeste(m, m.caso, { nome: 'Porão', largura: 800, altura: 600 });
+
+    const trocou = eventos(m.mesa.aplicar(m.ana, { type: 'map.activate', mapaId: segundo.id }));
+    expect(trocou).toMatchObject([
+      { type: 'map.activated', mapa: { id: segundo.id, nome: 'Porão' } },
+    ]);
+    expect(m.mesa.estado.mapa).toMatchObject({ id: segundo.id, largura: 800, altura: 600 });
+    expect(m.mesa.estado.tokens).toEqual([]);
+
+    criarToken(m, { nome: 'No porão' });
+    eventos(m.mesa.aplicar(m.ana, { type: 'map.activate', mapaId: primeiro }));
+    expect(m.mesa.estado.tokens.map((t) => t.nome)).toEqual(['No primeiro']);
+    eventos(m.mesa.aplicar(m.ana, { type: 'map.activate', mapaId: segundo.id }));
+    expect(m.mesa.estado.tokens.map((t) => t.nome)).toEqual(['No porão']);
+  });
+
+  it('a troca entra no registro da sessão; ativar o mapa que já está na mesa não faz nada', () => {
+    const m = montar();
+    const segundo = mapaDeTeste(m, m.caso, { nome: 'Porão' });
+    eventos(m.mesa.aplicar(m.ana, { type: 'map.activate', mapaId: segundo.id }));
+    expect(m.db.select().from(sessionLog).all()).toMatchObject([{ tipo: 'map.activated' }]);
+
+    const estado = m.mesa.estado;
+    expect(eventos(m.mesa.aplicar(m.ana, { type: 'map.activate', mapaId: segundo.id }))).toEqual(
+      [],
+    );
+    expect(m.mesa.estado).toBe(estado);
+  });
+
+  it('só o mestre troca o mapa; mapa de outro caso ou apagado não existe', () => {
+    const m = montar();
+    const segundo = mapaDeTeste(m, m.caso);
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'map.activate', mapaId: segundo.id }))).toBe(
+      'Só o mestre mexe no mapa.',
+    );
+    const outroCaso = casoDeTeste(m);
+    const deFora = mapaDeTeste(m, outroCaso.caso);
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'map.activate', mapaId: deFora.id }))).toBe(
+      'Esse mapa não existe mais.',
+    );
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'map.activate', mapaId: 'map_nenhum' }))).toBe(
+      'Esse mapa não existe mais.',
+    );
+  });
+
+  it('a grade do mapa ativo muda pelo mestre', () => {
+    const m = montar();
+    const grade = { celula: 70, deslocamentoX: 12, deslocamentoY: 4 };
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'map.grid', grade }))).toBe(
+      'Só o mestre mexe no mapa.',
+    );
+    expect(eventos(m.mesa.aplicar(m.ana, { type: 'map.grid', grade }))).toMatchObject([
+      { type: 'map.changed', mapa: { grade } },
+    ]);
+    expect(m.mesa.estado.mapa?.grade).toEqual(grade);
+    const semMapa = montar({ comMapa: false });
+    expect(motivo(semMapa.mesa.aplicar(semMapa.ana, { type: 'map.grid', grade }))).toBe(
+      'Ponha um mapa na mesa antes.',
+    );
   });
 });

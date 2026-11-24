@@ -1,7 +1,7 @@
 // Props: imagens sobre o mapa. Todos veem; só o mestre altera.
 import { podeConduzirMesa, type PropNaMesa } from '@membrana/shared';
 import { novoId } from '../../db/ids.ts';
-import { Recusa, type Contexto, type Tratadores } from './contexto.ts';
+import { exigirMapa, Recusa, type Contexto, type Tratadores } from './contexto.ts';
 
 function exigirMestre(ctx: Contexto) {
   if (!podeConduzirMesa(ctx.quem, ctx.campanha)) throw new Recusa('Só o mestre mexe nos props.');
@@ -16,6 +16,7 @@ function acharProp(ctx: Contexto, propId: string): PropNaMesa {
 export const tratadoresDeProps: Tratadores = {
   'prop.create'(ctx, { imagem, x, y, tamanho, rotacao }) {
     exigirMestre(ctx);
+    exigirMapa(ctx);
     const prop: PropNaMesa = {
       id: novoId('prp'),
       imagem,

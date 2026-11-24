@@ -334,3 +334,55 @@ describe('tokens que entram e saem da vista', () => {
     expect(projetarEventos(BIA, [evento], base, escondida)).toEqual([{ ...evento, pista: null }]);
   });
 });
+
+describe('troca de mapa', () => {
+  it('cada um recebe o mapa novo inteiro, do jeito que pode ver, com o mesmo número', () => {
+    const antes = estadoVazioDaMesa();
+    const mapa = {
+      id: 'map_2',
+      nome: 'Porão',
+      imagem: `${'a'.repeat(64)}.webp`,
+      largura: 800,
+      altura: 600,
+      grade: { celula: 50, deslocamentoX: 0, deslocamentoY: 0 },
+    };
+    const depois: EstadoDaMesa = {
+      ...antes,
+      mapa,
+      tokens: [token({ id: 'tok_npc' }), token({ id: SEGREDOS.tokenOculto, oculto: true })],
+    };
+    const trocou: EventoDaMesa[] = [{ type: 'map.activated', mapa, seq: 5 }];
+
+    const paraBia = projetarEventos(BIA, trocou, antes, depois);
+    expect(paraBia).toEqual([
+      { type: 'map.activated', mapa, seq: 5 },
+      { type: 'mesa.estado', estado: projetarEstado(BIA, depois), seq: 5 },
+    ]);
+    expect(vazados(paraBia)).toEqual([]);
+
+    const paraAna = projetarEventos(ANA, trocou, antes, depois);
+    expect(paraAna[1]).toEqual({
+      type: 'mesa.estado',
+      estado: projetarEstado(ANA, depois),
+      seq: 5,
+    });
+    expect(vazados(paraAna)).toEqual([SEGREDOS.tokenOculto]);
+  });
+
+  it('a grade nova vai para todos como está', () => {
+    const estado = mesaCheiaDeSegredos();
+    const evento: EventoDaMesa = {
+      type: 'map.changed',
+      mapa: {
+        id: 'map_1',
+        nome: 'Rádio',
+        imagem: 'x',
+        largura: 1,
+        altura: 1,
+        grade: { celula: 70, deslocamentoX: 0, deslocamentoY: 0 },
+      },
+      seq: 2,
+    };
+    expect(projetarEventos(BIA, [evento], estado, estado)).toEqual([evento]);
+  });
+});
