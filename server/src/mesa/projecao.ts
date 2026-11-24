@@ -133,6 +133,7 @@ function projetarParaJogador(
     // Sem nada secreto: vão para todos como estão.
     case 'presence.changed':
     case 'character.changed':
+    case 'campaign.deleted':
     case 'prop.changed':
     case 'map.activated':
     case 'map.changed':

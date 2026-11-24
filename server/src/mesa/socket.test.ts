@@ -344,3 +344,28 @@ describe('troca de mapa', () => {
     }
   });
 });
+
+describe('caso excluído', () => {
+  it('quem está na mesa recebe o aviso e é desconectado, sem tentar voltar', async () => {
+    const { a, url, caso, ana, bia } = await servidor();
+    const jogadora = abrir(url, bia, caso);
+    await conectado(jogadora);
+    await jogadora.esperar(ehDo('mesa.estado'));
+    const caiu = new Promise<string>((pronto) => {
+      jogadora.cliente.once('disconnect', pronto);
+    });
+
+    const r = await a.inject({
+      method: 'DELETE',
+      url: `/api/campanhas/${caso}`,
+      cookies: ana.cookies,
+      payload: { nome: 'O Sinal de Santa Ermida' },
+    });
+    expect(r.statusCode).toBe(204);
+    expect(await jogadora.esperar(ehDo('campaign.deleted'))).toMatchObject({ campanhaId: caso });
+    expect(await caiu).toBe('io server disconnect');
+
+    // E não entra de novo: o caso não existe mais.
+    expect((await recusado(abrir(url, bia, caso))).codigo).toBe('CASO_NAO_ENCONTRADO');
+  });
+});

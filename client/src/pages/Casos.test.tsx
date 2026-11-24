@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { CampanhaNaLista } from '@membrana/shared';
-import { abrir, caso, detalhe, endereco, json, servidor } from '../teste/apoio.tsx';
+import { abrir, caso, detalhe, endereco, json, servidor, type Respostas } from '../teste/apoio.tsx';
 import { filtrarCasos, type Filtros } from './Casos.tsx';
 
 afterEach(() => {
@@ -52,8 +52,9 @@ describe('filtrarCasos', () => {
   });
 });
 
-function servidorDeCasos() {
+function servidorDeCasos(extra: Respostas = {}) {
   return servidor({
+    ...extra,
     'GET /api/campanhas': json(200, { campanhas: LISTA }),
     'GET /api/campanhas/c1': json(200, { campanha: detalhe({ ...LISTA[0] }) }),
     'GET /api/campanhas/c2': json(200, {
@@ -179,5 +180,68 @@ describe('página Casos', () => {
 
     expect(await screen.findByText('O dossiê não carregou.')).toBeDefined();
     expect(within(await listaDeCasos()).getAllByRole('link')).toHaveLength(4);
+  });
+});
+
+describe('excluir caso', () => {
+  async function abrirExclusao() {
+    const dossie = await screen.findByRole('region', { name: 'Dossiê do caso' });
+    fireEvent.click(await within(dossie).findByRole('button', { name: 'Excluir caso' }));
+    return screen.findByRole('dialog', { name: 'Excluir caso' });
+  }
+
+  it('o jogador não vê a opção', async () => {
+    servidorDeCasos();
+    abrir('/casos/c1');
+    const dossie = await screen.findByRole('region', { name: 'Dossiê do caso' });
+    await within(dossie).findByRole('heading', { name: 'O Sinal de Santa Ermida' });
+    expect(within(dossie).queryByRole('button', { name: 'Excluir caso' })).toBeNull();
+  });
+
+  it('só libera com o nome digitado; exclui, tira da lista e volta para Casos', async () => {
+    const chamadas = servidorDeCasos({ 'DELETE /api/campanhas/c2': json(204) });
+    abrir('/casos/c2?sistema=ordem');
+    const janela = await abrirExclusao();
+    const botao = within(janela).getByRole('button', { name: 'Excluir para sempre' });
+    const campo = within(janela).getByLabelText('Digite o nome do caso para confirmar');
+
+    fireEvent.change(campo, { target: { value: 'Maré' } });
+    expect(botao).toHaveProperty('disabled', true);
+    fireEvent.change(campo, { target: { value: 'Maré de Concreto' } });
+    expect(botao).toHaveProperty('disabled', false);
+    fireEvent.click(botao);
+
+    await waitFor(() => {
+      expect(endereco()).toBe('/casos?sistema=ordem');
+    });
+    expect(await screen.findByText('Caso excluído')).toBeDefined();
+    expect(chamadas.find((c) => c.metodo === 'DELETE')?.corpo).toEqual({
+      nome: 'Maré de Concreto',
+    });
+    const lista = await listaDeCasos();
+    expect(within(lista).queryByText(/Maré de Concreto/)).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Excluir caso' })).toBeNull();
+  });
+
+  it('se o servidor recusar o nome, o erro aparece no campo e nada sai da lista', async () => {
+    servidorDeCasos({
+      'DELETE /api/campanhas/c2': json(400, {
+        erro: {
+          codigo: 'DADOS_INVALIDOS',
+          mensagem: 'Confira os campos destacados.',
+          campos: { nome: 'Digite o nome do caso exatamente como está.' },
+        },
+      }),
+    });
+    abrir('/casos/c2');
+    const janela = await abrirExclusao();
+    fireEvent.change(within(janela).getByLabelText('Digite o nome do caso para confirmar'), {
+      target: { value: 'Maré de Concreto' },
+    });
+    fireEvent.click(within(janela).getByRole('button', { name: 'Excluir para sempre' }));
+    expect(
+      await within(janela).findByText('Digite o nome do caso exatamente como está.'),
+    ).toBeDefined();
+    expect(endereco()).toBe('/casos/c2');
   });
 });

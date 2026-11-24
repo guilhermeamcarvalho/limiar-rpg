@@ -11,6 +11,8 @@ export interface Agendador {
   agendar(chave: string): void;
   /** Salva agora tudo o que está pendente (ao fechar o servidor). */
   descarregar(): void;
+  /** Esquece o salvamento pendente (o caso foi excluído: não há mais onde salvar). */
+  cancelar(chave: string): void;
   /** Quantas mesas esperam para ser salvas. */
   readonly pendentes: number;
 }
@@ -51,6 +53,10 @@ export function criarAgendador(
         timers.delete(chave);
         salvarSemDerrubar(chave);
       }
+    },
+    cancelar(chave) {
+      clearTimeout(timers.get(chave));
+      timers.delete(chave);
     },
     get pendentes() {
       return timers.size;

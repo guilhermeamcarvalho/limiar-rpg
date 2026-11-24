@@ -175,10 +175,16 @@ export function ligarMesaAoVivo(app: FastifyInstance): ServidorDaMesa {
   });
 
   // Mudanças que nascem nas rotas HTTP (uma ficha editada) vão para a sala, se houver alguém.
+  // Caso excluído: avisa a sala e fecha as conexões ("o servidor desconectou você": o cliente não
+  // tenta voltar, porque não há mais mesa).
   const pararDeOuvir = app.mesa.ouvir((evento) => {
-    if (!io.sockets.adapter.rooms.has(salaDa(evento.campanhaId))) return;
-    const mesa = app.mesas.obter(evento.campanhaId);
+    const sala = salaDa(evento.campanhaId);
+    if (!io.sockets.adapter.rooms.has(sala)) return;
+    // Com alguém na sala, a mesa já está em memória (a conexão a abriu).
+    const mesa = app.mesas.existente(evento.campanhaId);
+    if (!mesa) return;
     transmitir(evento.campanhaId, [mesa.carimbar(evento)], mesa.estado, mesa.estado);
+    if (evento.type === 'campaign.deleted') io.in(sala).disconnectSockets(true);
   });
 
   // Conexões abertas seguram o servidor HTTP: ao fechar, derruba todas antes do Fastify parar.

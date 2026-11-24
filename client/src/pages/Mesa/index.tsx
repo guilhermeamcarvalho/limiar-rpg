@@ -143,6 +143,26 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     }
   }
 
+  if (situacao.estado === 'excluido') {
+    return (
+      <div className="mesa">
+        <div className="mesa-vazia">
+          <EmptyState
+            icon={<Icon name="folder" size="xl" />}
+            title="Caso excluído"
+            action={
+              <Link className="btn" to="/">
+                Voltar para a Central
+              </Link>
+            }
+          >
+            O mestre excluiu este caso. A mesa foi fechada para todos.
+          </EmptyState>
+        </div>
+      </div>
+    );
+  }
+
   if (situacao.estado === 'recusada') {
     return (
       <div className="mesa">

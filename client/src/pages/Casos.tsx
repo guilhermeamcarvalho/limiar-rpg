@@ -3,8 +3,9 @@
 // O caso aberto fica na URL (/casos/:id) e os filtros também (?sistema=ordem&q=...), então
 // voltar, recarregar e mandar o link mantêm o que a pessoa estava vendo.
 import { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
+  confirmaExclusao,
   FORMATOS,
   TONS,
   tituloDaPagina,
@@ -29,6 +30,7 @@ import {
   Button,
   Card,
   EmptyState,
+  Field,
   Icon,
   Input,
   Modal,
@@ -369,7 +371,104 @@ function EncerrarCaso({ uso, caso }: { uso: UsoDaCarga<CampanhaDetalhe>; caso: C
   );
 }
 
-function Dossie({ id }: { id: string }) {
+/** Excluir de vez (issue 151): o mestre confirma digitando o nome do caso. */
+function ExcluirCaso({ caso, aoExcluir }: { caso: CampanhaDetalhe; aoExcluir: () => void }) {
+  const avisos = useToast();
+  const [confirmando, setConfirmando] = useState(false);
+  const [digitado, setDigitado] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const confere = confirmaExclusao(digitado, caso.nome);
+  const fechar = () => {
+    setConfirmando(false);
+    setDigitado('');
+    setErro(null);
+  };
+  const envio = useEnvio(async () => {
+    try {
+      await pedir(`/api/campanhas/${encodeURIComponent(caso.id)}`, {
+        method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ nome: digitado }),
+      });
+      avisos.show({ type: 'ok', title: 'Caso excluído', text: caso.nome });
+      fechar();
+      aoExcluir();
+    } catch (e) {
+      if (e instanceof ErroDaApi && e.campos?.nome) {
+        setErro(e.campos.nome);
+        return;
+      }
+      avisos.show({
+        type: 'err',
+        title: 'Não deu para excluir o caso',
+        text: e instanceof ErroDaApi ? e.message : 'Sem conexão. Tente de novo.',
+      });
+    }
+  });
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="no-papel"
+        icon={<Icon name="trash" size="sm" />}
+        onClick={() => {
+          setConfirmando(true);
+        }}
+      >
+        Excluir caso
+      </Button>
+      <Modal
+        open={confirmando}
+        onClose={fechar}
+        title="Excluir caso"
+        footer={
+          <>
+            <Button variant="ghost" onClick={fechar}>
+              Cancelar
+            </Button>
+            <Button
+              variant="danger"
+              disabled={!confere}
+              loading={envio.enviando}
+              onClick={() => void envio.enviar()}
+            >
+              Excluir para sempre
+            </Button>
+          </>
+        }
+      >
+        <form
+          className="col"
+          style={{ gap: 14 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (confere) void envio.enviar();
+          }}
+        >
+          <p>
+            {caso.nome} some de vez para todos: mapas, convites, mesa e registro da sessão. Os
+            personagens continuam com quem os criou. Isso não dá para desfazer; para só arquivar,
+            use “Encerrar caso”.
+          </p>
+          <Field label="Digite o nome do caso para confirmar" error={erro}>
+            <Input
+              value={digitado}
+              autoComplete="off"
+              placeholder={caso.nome}
+              onChange={(e) => {
+                setDigitado(e.target.value);
+                setErro(null);
+              }}
+            />
+          </Field>
+        </form>
+      </Modal>
+    </>
+  );
+}
+
+function Dossie({ id, aoExcluir }: { id: string; aoExcluir: (id: string) => void }) {
   const [params] = useSearchParams();
   const uso = useCarga(`/api/campanhas/${id}`, (signal) =>
     pedir<{ campanha: CampanhaDetalhe }>(`/api/campanhas/${encodeURIComponent(id)}`, {
@@ -381,6 +480,7 @@ function Dossie({ id }: { id: string }) {
     if (nome) document.title = tituloDaPagina(nome);
   }, [nome]);
   const voltar = params.toString() ? `/casos?${params.toString()}` : '/casos';
+  const navegar = useNavigate();
 
   return (
     <Paper className="casos-dossie" role="region" aria-label="Dossiê do caso">
@@ -403,7 +503,16 @@ function Dossie({ id }: { id: string }) {
           </div>
         }
       >
-        {(caso) => <ConteudoDoDossie uso={uso} caso={caso} />}
+        {(caso) => (
+          <ConteudoDoDossie
+            uso={uso}
+            caso={caso}
+            aoExcluir={() => {
+              aoExcluir(caso.id);
+              void navegar(voltar);
+            }}
+          />
+        )}
       </Async>
     </Paper>
   );
@@ -412,9 +521,11 @@ function Dossie({ id }: { id: string }) {
 function ConteudoDoDossie({
   uso,
   caso,
+  aoExcluir,
 }: {
   uso: UsoDaCarga<CampanhaDetalhe>;
   caso: CampanhaDetalhe;
+  aoExcluir: () => void;
 }) {
   const papel = PAPEL[caso.papel];
   const mestra = caso.papel === 'mestre';
@@ -460,6 +571,7 @@ function ConteudoDoDossie({
           {mestra ? 'Escudo' : 'Ficha'}
         </Link>
         {mestra && <EncerrarCaso uso={uso} caso={caso} />}
+        {mestra && <ExcluirCaso caso={caso} aoExcluir={aoExcluir} />}
       </div>
 
       {caso.gancho && <p className="type dossie-texto">{caso.gancho}</p>}
@@ -591,7 +703,13 @@ export function Casos() {
         </Async>
 
         {id ? (
-          <Dossie key={id} id={id} />
+          <Dossie
+            key={id}
+            id={id}
+            aoExcluir={(excluido) => {
+              casos.mudar((lista) => lista.filter((c) => c.id !== excluido));
+            }}
+          />
         ) : casos.carga.estado === 'pronto' && casos.carga.dados.length === 0 ? null : (
           <Paper className="casos-dossie">
             <EmptyState icon={<Icon name="folder" size="xl" />} title="Escolha um caso">

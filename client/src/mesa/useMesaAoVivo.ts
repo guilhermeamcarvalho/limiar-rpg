@@ -20,7 +20,12 @@ export type SituacaoDaConexao =
   /** Caiu e está tentando voltar. */
   | { estado: 'caiu' }
   /** O servidor recusou (sem login, ou não é do caso): não adianta tentar de novo. */
-  | { estado: 'recusada'; codigo: RecusaDaConexao['codigo']; mensagem: string };
+  | { estado: 'recusada'; codigo: RecusaDaConexao['codigo']; mensagem: string }
+  /** O mestre excluiu o caso enquanto a mesa estava aberta. */
+  | { estado: 'excluido' };
+
+/** Depois de recusada ou excluída, a queda que vem em seguida não muda a situação. */
+const definitiva = (s: SituacaoDaConexao) => s.estado === 'recusada' || s.estado === 'excluido';
 
 /** Quanto esperar a resposta de um comando antes de desistir. */
 const ESPERA_DA_RESPOSTA_MS = 10_000;
@@ -37,7 +42,7 @@ export function useMesaAoVivo(campanhaId: string) {
       setSituacao({ estado: 'conectada' });
     });
     socket.on('disconnect', () => {
-      setSituacao({ estado: 'caiu' });
+      setSituacao((s) => (definitiva(s) ? s : { estado: 'caiu' }));
     });
     socket.on('connect_error', (erro: Error & { data?: RecusaDaConexao }) => {
       // Recusa do servidor vem com o motivo; erro de rede não (e o Socket.IO tenta de novo).
@@ -47,7 +52,10 @@ export function useMesaAoVivo(campanhaId: string) {
         setSituacao({ estado: 'caiu' });
       }
     });
-    socket.on('evt', aplicar);
+    socket.on('evt', (evento) => {
+      if (evento.type === 'campaign.deleted') setSituacao({ estado: 'excluido' });
+      aplicar(evento);
+    });
     return () => {
       socket.disconnect();
       conexao.current = null;
