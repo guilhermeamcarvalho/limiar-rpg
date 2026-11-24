@@ -1,40 +1,107 @@
 // /campanhas/:id/mesa: a mesa ao vivo (artboards "10 · Mesa" e "11 · Mesa-Mestre"). Tela cheia,
-// sem o cabeçalho comum. Por enquanto: o palco com o mapa e, para o mestre, a ferramenta "Mapa e
-// grade". Os painéis laterais, o chat e a barra completa chegam com o layout da mesa (#74).
-import { useEffect, useState } from 'react';
+// sem o cabeçalho comum. O palco com o mapa e, para o mestre, as ferramentas "Tokens e NPCs" (T),
+// "Props" (O) e "Mapa e grade" (G). Os painéis laterais, o chat e a barra completa chegam com o
+// layout da mesa (#74).
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import {
-  LIMITE_DA_IMAGEM,
   tituloDaPagina,
   type CampanhaDetalhe,
   type MapaNaMesa,
   type VisaoDaMesa,
 } from '@membrana/shared';
-import { ErroDaApi, pedir } from '../../auth/api.ts';
+import { pedir } from '../../auth/api.ts';
 import { useMe } from '../../auth/sessao.tsx';
 import type { Ponto } from '../../mesa/camera.ts';
+import { enviarImagemDaMesa, nomeDoArquivoSemExtensao } from '../../mesa/imagens.ts';
+import { dentroDoMapa } from '../../mesa/interacao.ts';
 import { MapaUpload } from '../../mesa/MapaUpload.tsx';
+import { NovoProp } from '../../mesa/painel/NovoProp.tsx';
+import { Npcs } from '../../mesa/painel/Npcs.tsx';
 import { Palco } from '../../mesa/Palco.tsx';
 import { useMesaAoVivo, type SituacaoDaConexao } from '../../mesa/useMesaAoVivo.ts';
-import { Banner, Button, Chip, EmptyState, Icon, useCarga, useToast } from '../../ui/index.ts';
+import {
+  Banner,
+  Button,
+  Chip,
+  cx,
+  EmptyState,
+  Icon,
+  useCarga,
+  useToast,
+  type NomeDoIcone,
+} from '../../ui/index.ts';
 import './mesa.css';
 
-/** "retrato-do-vulto.png" → "retrato-do-vulto" (o nome do token criado pela imagem solta). */
-export function nomeDoToken(arquivo: string): string {
-  return (
-    arquivo
-      .replace(/\.[^.]+$/, '')
-      .trim()
-      .slice(0, 60) || 'Token'
-  );
-}
+type Ferramenta = 'tokens' | 'props' | 'mapa';
 
-const limitar = (valor: number, maximo: number) => Math.min(maximo, Math.max(0, valor));
+const FERRAMENTAS: {
+  id: Ferramenta;
+  titulo: string;
+  tecla: string;
+  icone: NomeDoIcone;
+  rotulo: string;
+  /** Precisa de um mapa na mesa. */
+  comMapa: boolean;
+}[] = [
+  {
+    id: 'tokens',
+    titulo: 'Tokens e NPCs',
+    tecla: 't',
+    icone: 'token',
+    rotulo: 'Tokens e NPCs, ferramenta do mestre',
+    comMapa: true,
+  },
+  {
+    id: 'props',
+    titulo: 'Props',
+    tecla: 'o',
+    icone: 'image',
+    rotulo: 'Props, ferramenta do mestre',
+    comMapa: true,
+  },
+  {
+    id: 'mapa',
+    titulo: 'Mapa e grade',
+    tecla: 'g',
+    icone: 'grid',
+    rotulo: 'Mapa e grade, ferramenta do mestre',
+    comMapa: false,
+  },
+];
 
 function TextoDaSituacao({ situacao }: { situacao: SituacaoDaConexao }) {
   if (situacao.estado === 'conectada') return <Chip status="online">Ao vivo</Chip>;
   if (situacao.estado === 'conectando') return <Chip status="away">Conectando…</Chip>;
   return <Chip status="off">Sem conexão</Chip>;
+}
+
+function TelaFechada({
+  icone,
+  titulo,
+  children,
+}: {
+  icone: NomeDoIcone;
+  titulo: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="mesa">
+      <div className="mesa-vazia">
+        <EmptyState
+          icon={<Icon name={icone} size="xl" />}
+          title={titulo}
+          action={
+            <Link className="btn" to="/">
+              Voltar para a Central
+            </Link>
+          }
+        >
+          {children}
+        </EmptyState>
+      </div>
+    </div>
+  );
 }
 
 export function Mesa() {
@@ -47,36 +114,49 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const { sessao } = useMe();
   const avisos = useToast();
   const { mesa, situacao, enviar } = useMesaAoVivo(campanhaId);
-  const [painelAberto, setPainelAberto] = useState(false);
+  const [painel, setPainel] = useState<Ferramenta | null>(null);
+  const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
+  const centroRef = useRef<Ponto | null>(null);
   const caso = useCarga(`/api/campanhas/${campanhaId}`, (signal) =>
     pedir<{ campanha: CampanhaDetalhe }>(`/api/campanhas/${encodeURIComponent(campanhaId)}`, {
       signal,
     }).then((r) => r.campanha),
   );
-  const nomeDoCaso = caso.carga.estado === 'pronto' ? caso.carga.dados.nome : null;
+  const detalhe = caso.carga.estado === 'pronto' ? caso.carga.dados : null;
+  const nomeDoCaso = detalhe?.nome ?? null;
+  const nomes = useMemo(
+    () => Object.fromEntries((detalhe?.membros ?? []).map((m) => [m.id, m.nome])),
+    [detalhe],
+  );
   const { visao } = mesa;
   const mestre = visao?.papel === 'mestre';
+  const temMapa = Boolean(visao?.mapa);
   const meuId = sessao.estado === 'logado' ? sessao.usuario.id : '';
 
   useEffect(() => {
     document.title = tituloDaPagina(nomeDoCaso ? `Mesa · ${nomeDoCaso}` : 'Mesa');
   }, [nomeDoCaso]);
 
-  // G abre e fecha a ferramenta de mapa (só o mestre).
+  // T, O e G abrem e fecham as ferramentas do mestre; Esc cancela a escolha do ponto.
   useEffect(() => {
     if (!mestre) return;
     const aoTeclar = (e: KeyboardEvent) => {
       const alvo = e.target as HTMLElement | null;
       if (alvo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return;
-      if (e.key.toLowerCase() === 'g' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        setPainelAberto((aberto) => !aberto);
+      if (e.key === 'Escape') {
+        setEscolhendoGrupo(false);
+        return;
       }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const ferramenta = FERRAMENTAS.find((f) => f.tecla === e.key.toLowerCase());
+      if (!ferramenta || (ferramenta.comMapa && !temMapa)) return;
+      setPainel((aberto) => (aberto === ferramenta.id ? null : ferramenta.id));
     };
     window.addEventListener('keydown', aoTeclar);
     return () => {
       window.removeEventListener('keydown', aoTeclar);
     };
-  }, [mestre]);
+  }, [mestre, temMapa]);
 
   /** RF-24: imagem solta sobre o mapa vira token ali (mestre) ou a imagem do próprio token. */
   async function aoSoltarImagem(
@@ -84,24 +164,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     ponto: Ponto,
     atual: VisaoDaMesa & { mapa: MapaNaMesa },
   ) {
-    if (!arquivo.type.startsWith('image/')) {
-      avisos.show({
-        type: 'err',
-        title: 'Isso não é uma imagem',
-        text: 'Solte um JPG, PNG ou WebP.',
-      });
-      return;
-    }
-    if (arquivo.size > LIMITE_DA_IMAGEM) {
-      avisos.show({
-        type: 'err',
-        title: 'Imagem grande demais',
-        text: 'A imagem passa de 5 MB. Diminua o tamanho e tente de novo.',
-      });
-      return;
-    }
     const meuToken = atual.tokens.find((t) => t.donoId === meuId);
-    if (!mestre && !meuToken) {
+    if (!mestre && !meuToken && arquivo.type.startsWith('image/')) {
       avisos.show({
         type: 'info',
         title: 'Você ainda não tem um token neste mapa',
@@ -109,81 +173,49 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       });
       return;
     }
-
-    const corpo = new FormData();
-    corpo.append('uso', 'token');
-    corpo.append('arquivo', arquivo);
-    let imagem: string;
-    try {
-      ({ nome: imagem } = await pedir<{ nome: string }>(
-        `/api/campanhas/${encodeURIComponent(campanhaId)}/imagens`,
-        { method: 'POST', body: corpo },
-      ));
-    } catch (erro) {
-      avisos.show({
-        type: 'err',
-        title: 'Não deu para enviar a imagem',
-        text: erro instanceof ErroDaApi ? erro.message : 'Sem conexão. Tente de novo.',
-      });
+    const envio = await enviarImagemDaMesa(campanhaId, arquivo, 'token');
+    if (!envio.ok) {
+      avisos.show({ type: 'err', title: envio.titulo, text: envio.texto });
       return;
     }
-
     const resposta =
       mestre || !meuToken
         ? await enviar({
             type: 'token.create',
-            nome: nomeDoToken(arquivo.name),
-            imagem,
-            x: limitar(ponto.x, atual.mapa.largura),
-            y: limitar(ponto.y, atual.mapa.altura),
+            nome: nomeDoArquivoSemExtensao(arquivo.name),
+            imagem: envio.nome,
+            ...dentroDoMapa(ponto, atual.mapa),
           })
-        : await enviar({ type: 'token.update', tokenId: meuToken.id, imagem });
+        : await enviar({ type: 'token.update', tokenId: meuToken.id, imagem: envio.nome });
     if (!resposta.ok) {
       avisos.show({ type: 'err', title: 'Não deu para usar a imagem', text: resposta.motivo });
     }
   }
 
+  async function trazerGrupo(ponto: Ponto) {
+    setEscolhendoGrupo(false);
+    const r = await enviar({ type: 'token.gather', ...ponto });
+    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para trazer o grupo', text: r.motivo });
+  }
+
   if (situacao.estado === 'excluido') {
     return (
-      <div className="mesa">
-        <div className="mesa-vazia">
-          <EmptyState
-            icon={<Icon name="folder" size="xl" />}
-            title="Caso excluído"
-            action={
-              <Link className="btn" to="/">
-                Voltar para a Central
-              </Link>
-            }
-          >
-            O mestre excluiu este caso. A mesa foi fechada para todos.
-          </EmptyState>
-        </div>
-      </div>
+      <TelaFechada icone="folder" titulo="Caso excluído">
+        O mestre excluiu este caso. A mesa foi fechada para todos.
+      </TelaFechada>
     );
   }
 
   if (situacao.estado === 'recusada') {
     return (
-      <div className="mesa">
-        <div className="mesa-vazia">
-          <EmptyState
-            icon={<Icon name="lock" size="xl" />}
-            title="Não deu para abrir a mesa"
-            action={
-              <Link className="btn" to="/">
-                Voltar para a Central
-              </Link>
-            }
-          >
-            {situacao.mensagem}
-          </EmptyState>
-        </div>
-      </div>
+      <TelaFechada icone="lock" titulo="Não deu para abrir a mesa">
+        {situacao.mensagem}
+      </TelaFechada>
     );
   }
 
   const comMapa = visao?.mapa ? (visao as VisaoDaMesa & { mapa: MapaNaMesa }) : null;
+  const aberta = FERRAMENTAS.find((f) => f.id === painel && (!f.comMapa || comMapa));
 
   return (
     <div className="mesa">
@@ -223,6 +255,11 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
             visao={comMapa}
             arrastando={mesa.arrastando}
             meuId={meuId}
+            nomes={nomes}
+            campanhaId={campanhaId}
+            enviar={enviar}
+            centroRef={centroRef}
+            aoEscolherPonto={escolhendoGrupo ? (ponto) => void trazerGrupo(ponto) : null}
             aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
           />
         ) : (
@@ -236,7 +273,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                     variant="primary"
                     icon={<Icon name="upload" size="sm" />}
                     onClick={() => {
-                      setPainelAberto(true);
+                      setPainel('mapa');
                     }}
                   >
                     Escolher mapa
@@ -251,38 +288,75 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           </div>
         )}
 
-        {mestre && (
-          <div className="tool" role="toolbar" aria-label="Ferramentas">
-            <button
-              type="button"
-              className={`tbtn gm${painelAberto ? ' on' : ''}`}
-              aria-pressed={painelAberto}
-              aria-label="Mapa e grade, ferramenta do mestre"
-              title="Mapa (G)"
+        {/* Flutua sobre o mapa: uma faixa no fluxo empurraria o mapa bem na hora do clique. */}
+        {escolhendoGrupo && (
+          <div className="mesa-dica" role="status">
+            <span className="small">Clique no mapa onde o grupo deve ficar.</span>
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => {
-                setPainelAberto((aberto) => !aberto);
+                setEscolhendoGrupo(false);
               }}
             >
-              <Icon name="grid" />
-            </button>
+              Cancelar
+            </Button>
           </div>
         )}
 
-        {mestre && painelAberto && (
-          <aside className="mesa-painel" aria-label="Mapa e grade">
+        {mestre && (
+          <div className="tool" role="toolbar" aria-label="Ferramentas">
+            {FERRAMENTAS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={cx('tbtn gm', painel === f.id && 'on')}
+                aria-pressed={painel === f.id}
+                aria-label={f.rotulo}
+                title={`${f.titulo} (${f.tecla.toUpperCase()})`}
+                disabled={f.comMapa && !comMapa}
+                onClick={() => {
+                  setPainel((agora) => (agora === f.id ? null : f.id));
+                }}
+              >
+                <Icon name={f.icone} />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {mestre && aberta && (
+          <aside className="mesa-painel" aria-label={aberta.titulo}>
             <div className="row between">
-              <h2 className="h3">Mapa e grade</h2>
+              <h2 className="h3">{aberta.titulo}</h2>
               <Button
                 variant="ghost"
                 size="sm"
                 icon={<Icon name="close" size="sm" />}
-                aria-label="Fechar mapa e grade"
+                aria-label={`Fechar ${aberta.titulo.toLowerCase()}`}
                 onClick={() => {
-                  setPainelAberto(false);
+                  setPainel(null);
                 }}
               />
             </div>
-            <MapaUpload campanhaId={campanhaId} mapaNaMesa={visao.mapa} enviar={enviar} />
+            {aberta.id === 'mapa' && (
+              <MapaUpload campanhaId={campanhaId} mapaNaMesa={visao.mapa} enviar={enviar} />
+            )}
+            {aberta.id === 'tokens' && (
+              <Npcs
+                campanhaId={campanhaId}
+                visao={visao}
+                enviar={enviar}
+                centroRef={centroRef}
+                nomes={nomes}
+                aoTrazerGrupo={() => {
+                  setEscolhendoGrupo(true);
+                }}
+              />
+            )}
+            {aberta.id === 'props' && (
+              <NovoProp campanhaId={campanhaId} enviar={enviar} centroRef={centroRef} />
+            )}
           </aside>
         )}
       </section>

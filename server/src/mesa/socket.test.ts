@@ -369,3 +369,21 @@ describe('caso excluído', () => {
     expect((await recusado(abrir(url, bia, caso))).codigo).toBe('CASO_NAO_ENCONTRADO');
   });
 });
+
+describe('arrasto', () => {
+  it('os outros veem o arrasto; quem arrasta não recebe o próprio eco', async () => {
+    const { url, caso, ana, bia } = await servidor();
+    const mestre = abrir(url, ana, caso);
+    const jogadora = abrir(url, bia, caso);
+    await Promise.all([conectado(mestre), conectado(jogadora)]);
+    await mestre.emitir({ type: 'token.create', nome: 'Vulto', x: 100, y: 100 });
+    const criado = await mestre.esperar(ehDo('token.changed'));
+    if (criado.type !== 'token.changed' || !criado.token) throw new Error('sem token');
+
+    await mestre.emitir({ type: 'token.drag', tokenId: criado.token.id, x: 150, y: 120 });
+    await mestre.emitir({ type: 'round.end' });
+    expect(await jogadora.esperar(ehDo('token.dragging'))).toMatchObject({ x: 150, y: 120 });
+    await mestre.esperar(ehDo('round.started'));
+    expect(mestre.eventos.some((e) => e.type === 'token.dragging')).toBe(false);
+  });
+});

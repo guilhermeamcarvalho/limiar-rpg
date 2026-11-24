@@ -1,0 +1,227 @@
+// Ferramenta "Tokens e NPCs" do mestre (RF-18, RF-19): traz o grupo para um ponto do mapa, cria
+// NPCs (com nome, imagem e tamanho; ocultos ou não) e lista o que está no mapa, com ocultar,
+// revelar e remover. Tamanho e imagem de um token também mudam pela barra dele, no mapa.
+import { useRef, useState, type RefObject } from 'react';
+import type { ComandoDaMesa, RespostaDoComando, TokenNaMesa, VisaoDaMesa } from '@membrana/shared';
+import { iniciais } from '../../casos/formatos.ts';
+import {
+  Button,
+  Checkbox,
+  Field,
+  Icon,
+  Input,
+  Select,
+  useEnvio,
+  useToast,
+} from '../../ui/index.ts';
+import type { Ponto } from '../camera.ts';
+import { enviarImagemDaMesa } from '../imagens.ts';
+
+interface Props {
+  campanhaId: string;
+  visao: VisaoDaMesa;
+  enviar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
+  /** O meio da tela, em pixels do mapa: onde o NPC novo aparece. */
+  centroRef: RefObject<Ponto | null>;
+  nomes: Readonly<Record<string, string>>;
+  /** "Trazer o grupo": a página pede um ponto no mapa e manda o comando. */
+  aoTrazerGrupo: () => void;
+}
+
+function NovoNpc({
+  campanhaId,
+  enviar,
+  centroRef,
+}: Pick<Props, 'campanhaId' | 'enviar' | 'centroRef'>) {
+  const avisos = useToast();
+  const arquivo = useRef<HTMLInputElement>(null);
+  const [nome, setNome] = useState('');
+  const [tamanho, setTamanho] = useState('1');
+  const [oculto, setOculto] = useState(false);
+  const [imagem, setImagem] = useState<File | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const criar = useEnvio(async () => {
+    if (!nome.trim()) {
+      setErro('Dê um nome.');
+      return;
+    }
+    let nomeDaImagem: string | undefined;
+    if (imagem) {
+      const envio = await enviarImagemDaMesa(campanhaId, imagem, 'token');
+      if (!envio.ok) {
+        avisos.show({ type: 'err', title: envio.titulo, text: envio.texto });
+        return;
+      }
+      nomeDaImagem = envio.nome;
+    }
+    const ponto = centroRef.current ?? { x: 0, y: 0 };
+    const r = await enviar({
+      type: 'token.create',
+      nome: nome.trim(),
+      ...ponto,
+      tamanho: Number(tamanho),
+      oculto,
+      ...(nomeDaImagem && { imagem: nomeDaImagem }),
+    });
+    if (!r.ok) {
+      setErro(r.motivo);
+      return;
+    }
+    avisos.show({ type: 'ok', title: 'NPC no mapa', text: nome.trim() });
+    setNome('');
+    setImagem(null);
+    setErro(null);
+  });
+
+  return (
+    <form
+      className="col"
+      style={{ gap: 10 }}
+      aria-label="Novo NPC"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void criar.enviar();
+      }}
+    >
+      <span className="lab">Novo NPC</span>
+      <Field label="Nome" error={erro}>
+        <Input
+          value={nome}
+          maxLength={60}
+          placeholder="Segurança Brito"
+          onChange={(e) => {
+            setNome(e.target.value);
+            setErro(null);
+          }}
+        />
+      </Field>
+      <div className="row" style={{ gap: 10, alignItems: 'flex-end' }}>
+        <Field label="Tamanho">
+          <Select
+            value={tamanho}
+            onChange={(e) => {
+              setTamanho(e.target.value);
+            }}
+          >
+            <option value="1">1×1</option>
+            <option value="2">2×2</option>
+            <option value="3">3×3</option>
+          </Select>
+        </Field>
+        <Checkbox
+          label="Começa oculto"
+          checked={oculto}
+          onChange={(e) => {
+            setOculto(e.target.checked);
+          }}
+        />
+      </div>
+      <input
+        ref={arquivo}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif"
+        hidden
+        aria-label="Imagem do NPC"
+        onChange={(e) => {
+          setImagem(e.target.files?.[0] ?? null);
+          e.target.value = '';
+        }}
+      />
+      <div className="row" style={{ gap: 8 }}>
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<Icon name="image" size="sm" />}
+          onClick={() => arquivo.current?.click()}
+        >
+          {imagem ? 'Trocar imagem' : 'Imagem (opcional)'}
+        </Button>
+        {imagem && <span className="small muted mesa-arquivo">{imagem.name}</span>}
+      </div>
+      <Button type="submit" size="sm" variant="primary" loading={criar.enviando}>
+        Pôr no mapa
+      </Button>
+    </form>
+  );
+}
+
+function TokenNaLista({
+  token,
+  nomes,
+  enviar,
+}: {
+  token: TokenNaMesa;
+  nomes: Props['nomes'];
+  enviar: Props['enviar'];
+}) {
+  const avisos = useToast();
+  const responder = (r: RespostaDoComando) => {
+    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu', text: r.motivo });
+  };
+  const dono = token.donoId === null ? 'NPC' : `de ${nomes[token.donoId] ?? 'um jogador'}`;
+  return (
+    <li className="mapa-na-lista">
+      <span className="mesa-avatar" aria-hidden="true">
+        {iniciais(token.nome)}
+      </span>
+      <div className="mapa-info">
+        <b title={token.nome}>{token.nome}</b>
+        <div className="small muted">
+          {dono}
+          {token.oculto && ' · oculto'}
+        </div>
+      </div>
+      <Button
+        size="sm"
+        variant="ghost"
+        icon={<Icon name={token.oculto ? 'eyeoff' : 'eye'} size="sm" />}
+        aria-label={token.oculto ? `Revelar ${token.nome}` : `Ocultar ${token.nome}`}
+        aria-pressed={token.oculto}
+        onClick={() =>
+          void enviar({ type: 'token.update', tokenId: token.id, oculto: !token.oculto }).then(
+            responder,
+          )
+        }
+      />
+      <Button
+        size="sm"
+        variant="ghost"
+        icon={<Icon name="trash" size="sm" />}
+        aria-label={`Remover ${token.nome}`}
+        onClick={() => void enviar({ type: 'token.delete', tokenId: token.id }).then(responder)}
+      />
+    </li>
+  );
+}
+
+export function Npcs({ campanhaId, visao, enviar, centroRef, nomes, aoTrazerGrupo }: Props) {
+  return (
+    <div className="col" style={{ gap: 18 }}>
+      <div className="col" style={{ gap: 6 }}>
+        <Button icon={<Icon name="users" size="sm" />} onClick={aoTrazerGrupo}>
+          Trazer o grupo
+        </Button>
+        <p className="small muted">
+          Escolha um ponto no mapa: os personagens do grupo vão para lá. Quem ainda não está neste
+          mapa entra.
+        </p>
+      </div>
+
+      <NovoNpc campanhaId={campanhaId} enviar={enviar} centroRef={centroRef} />
+
+      <section aria-label="Tokens no mapa" className="col" style={{ gap: 8 }}>
+        <span className="lab">No mapa</span>
+        {visao.tokens.length === 0 ? (
+          <p className="small muted">Nenhum token ainda.</p>
+        ) : (
+          <ul className="mesa-mapas">
+            {visao.tokens.map((token) => (
+              <TokenNaLista key={token.id} token={token} nomes={nomes} enviar={enviar} />
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}

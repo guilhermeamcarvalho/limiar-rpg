@@ -14,7 +14,7 @@ import {
 import { Recusa, tratar, type Contexto } from './comandos/index.ts';
 
 /** Não mudam o estado: não pedem para salvar. */
-const TRANSITORIOS: ReadonlySet<TipoDeEvento> = new Set(['token.dragging']);
+const TRANSITORIOS: ReadonlySet<TipoDeEvento> = new Set(['token.dragging', 'prop.dragging']);
 
 /** Vão para o registro da sessão (`session_log`): a aba Acontecimentos e o resumo. */
 const REGISTRADOS: ReadonlySet<TipoDeEvento> = new Set([
@@ -28,6 +28,7 @@ const REGISTRADOS: ReadonlySet<TipoDeEvento> = new Set([
 ]);
 
 export const ehRegistrado = (tipo: TipoDeEvento) => REGISTRADOS.has(tipo);
+export const ehTransitorio = (tipo: TipoDeEvento) => TRANSITORIOS.has(tipo);
 
 export type ResultadoDoComando =
   | {
@@ -46,6 +47,8 @@ export interface DependenciasDaMesa {
   personagem: (personagemId: string) => { donoId: string } | null;
   /** Um mapa deste caso, como está salvo. */
   mapa: Contexto['mapa'];
+  /** Os personagens que o grupo usa neste caso. */
+  grupo: Contexto['grupo'];
   /**
    * Grava o mapa que está saindo, antes de uma troca: o que entra é lido do banco, e o que sai
    * deixa de estar em memória. Se falhar, a troca não acontece.
@@ -102,6 +105,7 @@ export class Mesa {
           campanha,
           estado: rascunho,
           personagem: this.#deps.personagem,
+          grupo: this.#deps.grupo,
           mapa: this.#deps.mapa,
         },
         validacao.comando,

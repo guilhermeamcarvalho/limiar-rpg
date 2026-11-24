@@ -6,6 +6,9 @@ import {
   podeConduzirMesa,
   podeMoverToken,
   sobNevoa,
+  NOME_DE_ARQUIVO,
+  type EventoDaMesaSemSeq,
+  type Ponto,
   type TokenNaMesa,
 } from '@membrana/shared';
 import { novoId } from '../../db/ids.ts';
@@ -34,6 +37,31 @@ function conferirMovimento(ctx: Contexto, token: TokenNaMesa, x: number, y: numb
 
 function exigirMestre(ctx: Contexto, mensagem: string) {
   if (!podeConduzirMesa(ctx.quem, ctx.campanha)) throw new Recusa(mensagem);
+}
+
+/**
+ * As casas em volta de um ponto, de dentro para fora: o centro, o anel de 8 em volta, o de 16...
+ * Cada uma a `passo` pixels da vizinha, sem sair do mapa.
+ */
+export function casasEmVolta(
+  centro: Ponto,
+  quantas: number,
+  passo: number,
+  limite: { largura: number; altura: number },
+): Ponto[] {
+  const casas: Ponto[] = [];
+  for (let anel = 0; casas.length < quantas; anel++) {
+    for (let dy = -anel; dy <= anel && casas.length < quantas; dy++) {
+      for (let dx = -anel; dx <= anel && casas.length < quantas; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== anel) continue;
+        casas.push({
+          x: Math.min(limite.largura, Math.max(0, centro.x + dx * passo)),
+          y: Math.min(limite.altura, Math.max(0, centro.y + dy * passo)),
+        });
+      }
+    }
+  }
+  return casas;
 }
 
 export const tratadoresDeTokens: Tratadores = {
@@ -97,6 +125,42 @@ export const tratadoresDeTokens: Tratadores = {
     if (tamanho !== undefined) token.tamanho = tamanho;
     if (oculto !== undefined) token.oculto = oculto;
     return [{ type: 'token.changed', tokenId, token }];
+  },
+
+  // "Trazer o grupo" (RF-19): cada personagem do grupo vai para uma casa em volta do ponto. Quem
+  // ainda não tem token neste mapa (como num mapa novo) ganha um, com o token da ficha.
+  'token.gather'(ctx, { x, y }) {
+    exigirMestre(ctx, 'Só o mestre traz o grupo.');
+    const mapa = exigirMapa(ctx);
+    const grupo = ctx.grupo();
+    if (grupo.length === 0) throw new Recusa('Ninguém do grupo escolheu um personagem ainda.');
+    const casas = casasEmVolta({ x, y }, grupo.length, mapa.grade.celula, mapa);
+    const eventos: EventoDaMesaSemSeq[] = [];
+    grupo.forEach((personagem, i) => {
+      const casa = casas[i] ?? { x, y };
+      const token = ctx.estado.tokens.find((t) => t.personagemId === personagem.personagemId);
+      if (token) {
+        token.x = casa.x;
+        token.y = casa.y;
+        eventos.push({ type: 'token.moved', tokenId: token.id, x: casa.x, y: casa.y });
+        return;
+      }
+      const novo: TokenNaMesa = {
+        id: novoId('tok'),
+        nome: personagem.nome.slice(0, 60) || 'Sem nome',
+        imagem:
+          personagem.imagem && NOME_DE_ARQUIVO.test(personagem.imagem) ? personagem.imagem : null,
+        x: casa.x,
+        y: casa.y,
+        tamanho: 1,
+        oculto: false,
+        personagemId: personagem.personagemId,
+        donoId: personagem.donoId,
+      };
+      ctx.estado.tokens.push(novo);
+      eventos.push({ type: 'token.changed', tokenId: novo.id, token: novo });
+    });
+    return eventos;
   },
 
   'token.delete'(ctx, { tokenId }) {

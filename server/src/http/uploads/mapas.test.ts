@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import sharp from 'sharp';
 import { urlDoArquivo, type MapaDoCaso } from '@membrana/shared';
-import { maps, tokens } from '../../db/schema.ts';
+import { maps, props, tokens } from '../../db/schema.ts';
 import {
   appDeTeste,
   casoDeTeste,
@@ -228,5 +228,59 @@ describe('imagens da mesa', () => {
       });
     expect((await enviar(bia, 'mapa')).statusCode).toBe(400);
     expect((await enviar(estranho, 'token')).statusCode).toBe(404);
+  });
+});
+
+describe('imagem de prop', () => {
+  async function pngTransparente(lado: number): Promise<ArquivoDeTeste> {
+    const conteudo = await sharp({
+      create: {
+        width: lado,
+        height: lado,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .png()
+      .toBuffer();
+    return { nome: 'caixa.png', tipo: 'image/png', conteudo };
+  }
+
+  it('só o mestre envia; fica com até 1024 px e com o fundo transparente', async () => {
+    const { a, pasta, caso, ana, bia } = await montar();
+    const enviar = async (quem: Pessoa) =>
+      a.inject({
+        method: 'POST',
+        url: `/api/campanhas/${caso}/imagens`,
+        cookies: quem.cookies,
+        ...formulario({ uso: 'prop' }, await pngTransparente(2000)),
+      });
+    const doJogador = await enviar(bia);
+    expect(doJogador.statusCode).toBe(403);
+    expect(doJogador.json<{ erro: { mensagem: string } }>().erro.mensagem).toBe(
+      'Só o mestre põe props na mesa.',
+    );
+
+    const r = await enviar(ana);
+    expect(r.statusCode).toBe(201);
+    const salvo = await sharp(join(pasta, r.json<{ nome: string }>().nome)).metadata();
+    expect([salvo.format, salvo.width, salvo.height, salvo.hasAlpha]).toEqual([
+      'webp',
+      1024,
+      1024,
+      true,
+    ]);
+  });
+
+  it('apagar um mapa com prop pronto não tenta apagar arquivo nenhum', async () => {
+    const { a, caso, ana } = await montar();
+    const mapa = mapaDeTeste(a, caso);
+    a.db.insert(props).values({ mapId: mapa.id, imagem: 'pronto:caixote', x: 1, y: 1 }).run();
+    const r = await a.inject({
+      method: 'DELETE',
+      url: `/api/campanhas/${caso}/mapas/${mapa.id}`,
+      cookies: ana.cookies,
+    });
+    expect(r.statusCode).toBe(204);
   });
 });

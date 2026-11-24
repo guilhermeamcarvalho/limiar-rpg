@@ -7,7 +7,7 @@ import type {
   EventoDaMesaSemSeq,
   TipoDeComando,
 } from '@membrana/shared';
-import type { ConteudoDoMapa } from '../dados.ts';
+import type { ConteudoDoMapa, PersonagemDoGrupo } from '../dados.ts';
 
 /** Recusa esperada: a mensagem vai, em português, para quem mandou o comando. */
 export class Recusa extends Error {
@@ -21,6 +21,8 @@ export interface Contexto {
   estado: EstadoDaMesa;
   /** O dono do personagem, se o personagem for deste caso. */
   personagem: (personagemId: string) => { donoId: string } | null;
+  /** Os personagens que o grupo usa neste caso (para "Trazer o grupo"). */
+  grupo: () => PersonagemDoGrupo[];
   /** Um mapa deste caso, como está salvo (com tokens, props e névoa); ou nulo. */
   mapa: (mapaId: string) => ConteudoDoMapa | null;
 }

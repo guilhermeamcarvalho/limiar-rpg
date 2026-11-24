@@ -10,7 +10,7 @@ import type {
 } from '@membrana/shared';
 import type { PalcoProps } from '../../mesa/Palco.tsx';
 import { abrir, detalhe, json, MARTA, servidor } from '../../teste/apoio.tsx';
-import { nomeDoToken } from './index.tsx';
+import { nomeDoArquivoSemExtensao as nomeDoToken } from '../../mesa/imagens.ts';
 
 type Ouvinte = (...args: unknown[]) => void;
 
@@ -362,5 +362,125 @@ describe('caso excluído com a mesa aberta', () => {
       screen.getByText('O mestre excluiu este caso. A mesa foi fechada para todos.'),
     ).toBeDefined();
     expect(screen.queryByText('Conexão perdida. Tentando voltar…')).toBeNull();
+  });
+});
+
+describe('ferramentas de tokens e props (mestre)', () => {
+  const doMestre = (rotas: Parameters<typeof servidor>[0] = {}) =>
+    naMesa(visao({ papel: 'mestre', tokens: [token()] }), rotas);
+
+  /** O palco de verdade diz onde é o meio da tela; o de mentira, aqui. */
+  function meioDaTela(ponto: { x: number; y: number }) {
+    const ref = palco().centroRef;
+    if (ref) ref.current = ponto;
+  }
+
+  it('sem mapa, tokens e props ficam desligados; o mapa, não', async () => {
+    await naMesa(visao({ papel: 'mestre', mapa: null }));
+    const barra = await screen.findByRole('toolbar', { name: 'Ferramentas' });
+    const botao = (nome: string) => within(barra).getByRole('button', { name: nome });
+    expect(botao('Tokens e NPCs, ferramenta do mestre')).toHaveProperty('disabled', true);
+    expect(botao('Props, ferramenta do mestre')).toHaveProperty('disabled', true);
+    expect(botao('Mapa e grade, ferramenta do mestre')).toHaveProperty('disabled', false);
+  });
+
+  it('T abre os tokens; O troca para os props (um painel por vez)', async () => {
+    await doMestre();
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 't' });
+    expect(await screen.findByRole('complementary', { name: 'Tokens e NPCs' })).toBeDefined();
+    fireEvent.keyDown(window, { key: 'o' });
+    expect(await screen.findByRole('complementary', { name: 'Props' })).toBeDefined();
+    expect(screen.queryByRole('complementary', { name: 'Tokens e NPCs' })).toBeNull();
+  });
+
+  it('novo NPC entra no meio da tela, com o tamanho e oculto', async () => {
+    await doMestre();
+    await screen.findByTestId('palco');
+    meioDaTela({ x: 320, y: 240 });
+    fireEvent.keyDown(window, { key: 't' });
+    const painel = await screen.findByRole('complementary', { name: 'Tokens e NPCs' });
+    fireEvent.change(within(painel).getByLabelText('Nome'), { target: { value: ' A Voz ' } });
+    fireEvent.change(within(painel).getByLabelText('Tamanho'), { target: { value: '2' } });
+    fireEvent.click(within(painel).getByLabelText('Começa oculto'));
+    fireEvent.click(within(painel).getByRole('button', { name: 'Pôr no mapa' }));
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        { type: 'token.create', nome: 'A Voz', x: 320, y: 240, tamanho: 2, oculto: true },
+      ]);
+    });
+  });
+
+  it('NPC sem nome não sai; a lista oculta e remove', async () => {
+    await doMestre();
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 't' });
+    const painel = await screen.findByRole('complementary', { name: 'Tokens e NPCs' });
+    fireEvent.click(within(painel).getByRole('button', { name: 'Pôr no mapa' }));
+    expect(await within(painel).findByText('Dê um nome.')).toBeDefined();
+    fireEvent.click(within(painel).getByRole('button', { name: 'Ocultar Davi' }));
+    fireEvent.click(within(painel).getByRole('button', { name: 'Remover Davi' }));
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        { type: 'token.update', tokenId: 'tok_1', oculto: true },
+        { type: 'token.delete', tokenId: 'tok_1' },
+      ]);
+    });
+  });
+
+  it('trazer o grupo: escolhe o ponto no mapa e manda o comando; Esc cancela', async () => {
+    await doMestre();
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 't' });
+    const painel = await screen.findByRole('complementary', { name: 'Tokens e NPCs' });
+    fireEvent.click(within(painel).getByRole('button', { name: 'Trazer o grupo' }));
+    expect(await screen.findByText('Clique no mapa onde o grupo deve ficar.')).toBeDefined();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByText('Clique no mapa onde o grupo deve ficar.')).toBeNull();
+    });
+    expect(palco().aoEscolherPonto).toBeNull();
+
+    fireEvent.click(within(painel).getByRole('button', { name: 'Trazer o grupo' }));
+    await screen.findByText('Clique no mapa onde o grupo deve ficar.');
+    act(() => {
+      palco().aoEscolherPonto?.({ x: 400, y: 300 });
+    });
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([{ type: 'token.gather', x: 400, y: 300 }]);
+    });
+    expect(screen.queryByText('Clique no mapa onde o grupo deve ficar.')).toBeNull();
+  });
+
+  it('props prontos e imagem própria entram no meio da tela', async () => {
+    const nome = `${'d'.repeat(64)}.webp`;
+    const chamadas = await doMestre({ 'POST /api/campanhas/cmp_1/imagens': json(201, { nome }) });
+    await screen.findByTestId('palco');
+    meioDaTela({ x: 100, y: 200 });
+    fireEvent.keyDown(window, { key: 'o' });
+    const painel = await screen.findByRole('complementary', { name: 'Props' });
+    expect(within(painel).getAllByRole('button', { name: /^Pôr .* no mapa$/ })).toHaveLength(5);
+    fireEvent.click(within(painel).getByRole('button', { name: 'Pôr Contorno no mapa' }));
+    fireEvent.change(within(painel).getByLabelText('Imagem do prop'), {
+      target: { files: [new File(['x'], 'caixa.png', { type: 'image/png' })] },
+    });
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        { type: 'prop.create', imagem: 'pronto:contorno', x: 100, y: 200, tamanho: 2 },
+        { type: 'prop.create', imagem: nome, x: 100, y: 200, tamanho: 1 },
+      ]);
+    });
+    expect(chamadas.find((c) => c.metodo === 'POST')?.corpo).toEqual({
+      uso: 'prop',
+      arquivo: { nome: 'caixa.png', tipo: 'image/png' },
+    });
+  });
+
+  it('o palco recebe o nome de cada pessoa do caso (para mostrar de quem é o token)', async () => {
+    await doMestre();
+    await screen.findByTestId('palco');
+    await waitFor(() => {
+      expect(palco().nomes).toMatchObject({ usr_9: 'Helena Duarte' });
+    });
   });
 });

@@ -274,3 +274,28 @@ export function donoDoPersonagemNoCaso(
     .get();
   return linha ?? null;
 }
+
+/** Um personagem que o grupo usa no caso, com o que o token dele precisa. */
+export interface PersonagemDoGrupo {
+  personagemId: string;
+  donoId: string;
+  nome: string;
+  /** O token do personagem (`<hash>.webp`), se ele tiver um. */
+  imagem: string | null;
+}
+
+/** Os personagens que os jogadores escolheram para jogar neste caso, por nome. */
+export function personagensDoGrupo(db: Banco, campanhaId: string): PersonagemDoGrupo[] {
+  return db
+    .select({
+      personagemId: characters.id,
+      donoId: characters.ownerId,
+      nome: sql<string>`coalesce(json_extract(${characters.ficha}, '$.nome'), 'Sem nome')`,
+      imagem: characters.tokenImg,
+    })
+    .from(memberships)
+    .innerJoin(characters, eq(characters.id, memberships.characterId))
+    .where(and(eq(memberships.campaignId, campanhaId), eq(memberships.papel, 'jogador')))
+    .orderBy(sql`json_extract(${characters.ficha}, '$.nome')`)
+    .all();
+}

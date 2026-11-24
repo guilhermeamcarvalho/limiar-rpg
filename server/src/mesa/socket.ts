@@ -19,7 +19,7 @@ import type {
 import { campaigns, memberships } from '../db/schema.ts';
 import { buscarSessao, COOKIE_DA_SESSAO, type Usuario } from '../http/auth/sessao.ts';
 import { registrarErro } from '../observabilidade.ts';
-import type { Mesa } from './Mesa.ts';
+import { ehTransitorio, type Mesa } from './Mesa.ts';
 import { projetarEstado, projetarEventos, type Espectador } from './projecao.ts';
 
 interface DadosDaConexao {
@@ -105,6 +105,8 @@ export function ligarMesaAoVivo(app: FastifyInstance): ServidorDaMesa {
     eventos: readonly EventoDaMesa[],
     antes: EstadoDaMesa,
     depois: EstadoDaMesa,
+    /** Quem mandou o comando: não recebe de volta o próprio arrasto (já vê o movimento na tela). */
+    autor?: string,
   ) {
     const ids = io.sockets.adapter.rooms.get(salaDa(campanhaId));
     if (!ids) return;
@@ -112,6 +114,7 @@ export function ligarMesaAoVivo(app: FastifyInstance): ServidorDaMesa {
       const conexao = io.sockets.sockets.get(id);
       if (!conexao) continue;
       for (const evento of projetarEventos(espectador(conexao.data), eventos, antes, depois)) {
+        if (id === autor && ehTransitorio(evento.type)) continue;
         conexao.emit('evt', evento);
       }
     }
@@ -165,7 +168,7 @@ export function ligarMesaAoVivo(app: FastifyInstance): ServidorDaMesa {
         return;
       }
       responda({ ok: true });
-      transmitir(campanhaId, resultado.eventos, resultado.antes, resultado.depois);
+      transmitir(campanhaId, resultado.eventos, resultado.antes, resultado.depois, conexao.id);
     });
 
     conexao.on('disconnect', () => {

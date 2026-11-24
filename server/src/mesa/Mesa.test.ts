@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import type { EventoDaMesa, TokenNaMesa } from '@membrana/shared';
-import { sessionLog } from '../db/schema.ts';
+import { characters, memberships, sessionLog } from '../db/schema.ts';
 import { bancoDeTeste, casoDeTeste, mapaDeTeste } from '../teste/apoio.ts';
 import type { ResultadoDoComando } from './Mesa.ts';
+import { casasEmVolta } from './comandos/tokens.ts';
 import { Mesas } from './mesas.ts';
 
 const bancos: { close: () => void }[] = [];
@@ -355,5 +356,125 @@ describe('mapa', () => {
     expect(motivo(semMapa.mesa.aplicar(semMapa.ana, { type: 'map.grid', grade }))).toBe(
       'Ponha um mapa na mesa antes.',
     );
+  });
+});
+
+describe('trazer o grupo', () => {
+  it('cria o token de quem falta (com o token da ficha) e põe em volta do ponto', () => {
+    const m = montar();
+    m.db
+      .update(characters)
+      .set({ tokenImg: `${'f'.repeat(64)}.webp` })
+      .where(eq(characters.id, m.davi))
+      .run();
+    const r = eventos(m.mesa.aplicar(m.ana, { type: 'token.gather', x: 500, y: 400 }));
+    expect(r).toMatchObject([
+      {
+        type: 'token.changed',
+        token: {
+          nome: 'Davi Rocha',
+          personagemId: m.davi,
+          donoId: m.bia.id,
+          imagem: `${'f'.repeat(64)}.webp`,
+          x: 500,
+          y: 400,
+        },
+      },
+    ]);
+  });
+
+  it('quem já está no mapa vai para perto do ponto; NPC fica onde está', () => {
+    const m = montar();
+    criarToken(m, { personagemId: m.davi, x: 10, y: 10 });
+    const npc = criarToken(m, { nome: 'Vulto', x: 30, y: 30 });
+    expect(eventos(m.mesa.aplicar(m.ana, { type: 'token.gather', x: 700, y: 600 }))).toMatchObject([
+      { type: 'token.moved', x: 700, y: 600 },
+    ]);
+    expect(m.mesa.estado.tokens.find((t) => t.id === npc.id)).toMatchObject({ x: 30, y: 30 });
+  });
+
+  it('só o mestre; sem mapa ou sem ninguém no grupo, não há o que trazer', () => {
+    const m = montar();
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'token.gather', x: 1, y: 1 }))).toBe(
+      'Só o mestre traz o grupo.',
+    );
+    m.db
+      .update(memberships)
+      .set({ characterId: null })
+      .where(eq(memberships.userId, m.bia.id))
+      .run();
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'token.gather', x: 1, y: 1 }))).toBe(
+      'Ninguém do grupo escolheu um personagem ainda.',
+    );
+    const semMapa = montar({ comMapa: false });
+    expect(motivo(semMapa.mesa.aplicar(semMapa.ana, { type: 'token.gather', x: 1, y: 1 }))).toBe(
+      'Ponha um mapa na mesa antes.',
+    );
+  });
+
+  it('as casas vão do centro para fora, uma célula de distância, sem sair do mapa', () => {
+    const limite = { largura: 1000, altura: 1000 };
+    expect(casasEmVolta({ x: 500, y: 500 }, 3, 50, limite)).toEqual([
+      { x: 500, y: 500 },
+      { x: 450, y: 450 },
+      { x: 500, y: 450 },
+    ]);
+    expect(casasEmVolta({ x: 0, y: 0 }, 9, 50, limite)).toHaveLength(9);
+    expect(casasEmVolta({ x: 0, y: 0 }, 9, 50, limite).every((c) => c.x >= 0 && c.y >= 0)).toBe(
+      true,
+    );
+  });
+});
+
+describe('props: prontos, trava e arrasto', () => {
+  function criarProp(m: ReturnType<typeof montar>, imagem = 'pronto:caixote') {
+    const [evento] = eventos(
+      m.mesa.aplicar(m.ana, { type: 'prop.create', imagem, x: 100, y: 100 }),
+    );
+    if (evento?.type !== 'prop.changed' || !evento.prop) throw new Error('prop não criado');
+    return evento.prop;
+  }
+
+  it('aceita os props prontos e as imagens enviadas; recusa o resto', () => {
+    const m = montar();
+    expect(criarProp(m).imagem).toBe('pronto:caixote');
+    expect(criarProp(m, `${'a'.repeat(64)}.webp`).imagem).toMatch(/\.webp$/);
+    expect(
+      motivo(m.mesa.aplicar(m.ana, { type: 'prop.create', imagem: 'pronto:piano', x: 1, y: 1 })),
+    ).toBe('Use um prop pronto ou uma imagem enviada pelo app.');
+  });
+
+  it('travado não sai do lugar até destravar; trazer à frente continua valendo', () => {
+    const m = montar();
+    const prop = criarProp(m);
+    eventos(m.mesa.aplicar(m.ana, { type: 'prop.update', propId: prop.id, travado: true }));
+    const travado = 'O prop está travado. Destrave para mexer nele.';
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'prop.update', propId: prop.id, x: 5 }))).toBe(
+      travado,
+    );
+    expect(
+      motivo(m.mesa.aplicar(m.ana, { type: 'prop.update', propId: prop.id, rotacao: 45 })),
+    ).toBe(travado);
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'prop.drag', propId: prop.id, x: 5, y: 5 }))).toBe(
+      travado,
+    );
+    eventos(m.mesa.aplicar(m.ana, { type: 'prop.update', propId: prop.id, ordem: 9 }));
+    // Destravar e mover no mesmo pedido vale.
+    eventos(m.mesa.aplicar(m.ana, { type: 'prop.update', propId: prop.id, travado: false, x: 5 }));
+    expect(m.mesa.estado.props[0]).toMatchObject({ x: 5, ordem: 9, travado: false });
+  });
+
+  it('o arrasto do prop é do mestre, avisa todos e não grava', () => {
+    const m = montar();
+    const prop = criarProp(m);
+    m.mesas.salvarTudo();
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'prop.drag', propId: prop.id, x: 5, y: 5 }))).toBe(
+      'Só o mestre mexe nos props.',
+    );
+    expect(
+      eventos(m.mesa.aplicar(m.ana, { type: 'prop.drag', propId: prop.id, x: 50, y: 60 })),
+    ).toMatchObject([{ type: 'prop.dragging', propId: prop.id, x: 50, y: 60 }]);
+    expect(m.mesa.estado.props[0]).toMatchObject({ x: 100, y: 100 });
+    expect(m.mesas.pendentes).toBe(0);
   });
 });

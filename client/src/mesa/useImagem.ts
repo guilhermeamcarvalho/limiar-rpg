@@ -1,7 +1,7 @@
-// Carrega uma imagem enviada (mapa, token, prop) para o canvas. O nome é o hash do conteúdo: a
+// Carrega uma imagem (mapa, token, prop enviado ou pronto) para o canvas. O nome é o hash do conteúdo: a
 // mesma imagem nunca muda, então fica guardada enquanto a página estiver aberta.
 import { useEffect, useState } from 'react';
-import { urlDoArquivo } from '@membrana/shared';
+import { urlDaImagem } from './props-prontos/index.ts';
 
 const carregadas = new Map<string, HTMLImageElement>();
 
@@ -18,7 +18,7 @@ export function useImagem(nome: string | null): HTMLImageElement | undefined {
       carregadas.set(nome, imagem);
       if (vivo) setVersao((v) => v + 1);
     };
-    imagem.src = urlDoArquivo(nome);
+    imagem.src = urlDaImagem(nome);
     return () => {
       vivo = false;
     };

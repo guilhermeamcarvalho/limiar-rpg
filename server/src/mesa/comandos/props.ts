@@ -1,4 +1,5 @@
-// Props: imagens sobre o mapa. Todos veem; só o mestre altera.
+// Props: imagens sobre o mapa. Todos veem; só o mestre altera. Travado, o prop não sai do lugar
+// (nem muda de tamanho ou giro) até ser destravado; trazer à frente e remover continuam valendo.
 import { podeConduzirMesa, type PropNaMesa } from '@membrana/shared';
 import { novoId } from '../../db/ids.ts';
 import { exigirMapa, Recusa, type Contexto, type Tratadores } from './contexto.ts';
@@ -6,6 +7,8 @@ import { exigirMapa, Recusa, type Contexto, type Tratadores } from './contexto.t
 function exigirMestre(ctx: Contexto) {
   if (!podeConduzirMesa(ctx.quem, ctx.campanha)) throw new Recusa('Só o mestre mexe nos props.');
 }
+
+const TRAVADO = 'O prop está travado. Destrave para mexer nele.';
 
 function acharProp(ctx: Contexto, propId: string): PropNaMesa {
   const prop = ctx.estado.props.find((p) => p.id === propId);
@@ -35,6 +38,9 @@ export const tratadoresDeProps: Tratadores = {
   'prop.update'(ctx, { propId, x, y, tamanho, rotacao, travado, ordem }) {
     exigirMestre(ctx);
     const prop = acharProp(ctx, propId);
+    const mexe = [x, y, tamanho, rotacao].some((v) => v !== undefined);
+    // Destravar e mexer no mesmo pedido vale; mexer num travado, não.
+    if (prop.travado && mexe && travado !== false) throw new Recusa(TRAVADO);
     if (x !== undefined) prop.x = x;
     if (y !== undefined) prop.y = y;
     if (tamanho !== undefined) prop.tamanho = tamanho;
@@ -42,6 +48,12 @@ export const tratadoresDeProps: Tratadores = {
     if (travado !== undefined) prop.travado = travado;
     if (ordem !== undefined) prop.ordem = ordem;
     return [{ type: 'prop.changed', propId, prop }];
+  },
+
+  'prop.drag'(ctx, { propId, x, y }) {
+    exigirMestre(ctx);
+    if (acharProp(ctx, propId).travado) throw new Recusa(TRAVADO);
+    return [{ type: 'prop.dragging', propId, x, y }];
   },
 
   'prop.delete'(ctx, { propId }) {
