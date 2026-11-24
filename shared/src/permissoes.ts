@@ -69,3 +69,44 @@ export function podeVerFicha(
     podeVerCampanha(quem, campanha)
   );
 }
+
+/* ---------- Mesa ao vivo ---------- */
+
+/** O token visto pelas permissões: de quem é (nulo num NPC). */
+export interface TokenMinimo {
+  donoId: string | null;
+}
+
+/** Mover (e arrastar) um token: o dono do personagem dele, ou o mestre. */
+export function podeMoverToken(
+  quem: Quem,
+  token: TokenMinimo,
+  campanha: CampanhaComMembros,
+): boolean {
+  const papel = papelNa(quem, campanha);
+  if (papel === 'mestre') return true;
+  return papel === 'jogador' && token.donoId !== null && token.donoId === quem?.id;
+}
+
+/** O que o jogador pode trocar no próprio token; o resto (nome, ocultar) é do mestre. */
+export const CAMPOS_DO_TOKEN_DO_JOGADOR = ['imagem', 'tamanho'] as const;
+
+/** Mudar um token: o mestre muda tudo; o jogador, só a imagem e o tamanho do próprio. */
+export function podeAlterarToken(
+  quem: Quem,
+  token: TokenMinimo,
+  campos: readonly string[],
+  campanha: CampanhaComMembros,
+): boolean {
+  if (ehMestre(quem, campanha)) return true;
+  const permitidos: readonly string[] = CAMPOS_DO_TOKEN_DO_JOGADOR;
+  return podeMoverToken(quem, token, campanha) && campos.every((c) => permitidos.includes(c));
+}
+
+/**
+ * Ferramentas do mestre na mesa: criar e remover tokens, props, névoa, mapa ativo, salas, pistas,
+ * trilha e passar a rodada.
+ */
+export function podeConduzirMesa(quem: Quem, campanha: CampanhaComMembros): boolean {
+  return ehMestre(quem, campanha);
+}

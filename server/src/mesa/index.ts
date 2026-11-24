@@ -1,6 +1,6 @@
-// Mesa ao vivo (Socket.IO): comandos do cliente, eventos do servidor. A mesa entra na Fase 2.
-// Já existe o canal por onde as rotas HTTP avisam a mesa de uma mudança (como uma ficha editada):
-// a Fase 2 só precisa ouvir aqui e repassar para a sala da campanha.
+// O canal por onde as rotas HTTP avisam a mesa ao vivo de uma mudança (como uma ficha editada).
+// O socket.ts ouve aqui e repassa para a sala da campanha, com número de sequência.
+// A mesa em si: Mesa.ts (estado e comandos), projecao.ts (o que cada um recebe), socket.ts.
 import type { EventoPersonagemMudou } from '@membrana/shared';
 
 /** Eventos que nascem fora da mesa (numa rota HTTP) e vão para a sala de uma campanha. */

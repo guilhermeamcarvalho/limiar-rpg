@@ -14,6 +14,7 @@ import {
   hora,
   linkDaCampanha,
   linkDoDossie,
+  mesaAbertaHa,
   numeroDoCaso,
   quandoCurto,
   sessaoFutura,
@@ -24,6 +25,7 @@ import {
   Async,
   Button,
   Card,
+  Chip,
   EmptyState,
   Icon,
   Skeleton,
@@ -61,9 +63,14 @@ function ContinuarInvestigacao({ caso }: { caso: CampanhaNaLista }) {
   return (
     <article className="card hl central-continuar" aria-labelledby="continuar-titulo">
       <div className="card-b">
-        <div className="row wrapx">
-          <Tag tone="red">Continuar investigação</Tag>
-          <Tag tone={papel.tom}>{papel.voce}</Tag>
+        <div className="row between wrapx">
+          <div className="row wrapx">
+            <Tag tone="red">Continuar investigação</Tag>
+            <Tag tone={papel.tom}>{papel.voce}</Tag>
+          </div>
+          {caso.mesaAbertaDesde && (
+            <Chip status="online">{mesaAbertaHa(caso.mesaAbertaDesde)}</Chip>
+          )}
         </div>
         <h2 id="continuar-titulo" className="h1 central-continuar-titulo">
           {caso.nome}

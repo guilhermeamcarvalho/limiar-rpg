@@ -6,6 +6,8 @@ import {
   DT_PADRAO,
   type Agenda,
   type ConfigDeSistema,
+  type EstadoDaMesa,
+  type EventoDaMesa,
   type Formato,
   type Tom,
 } from '@membrana/shared';
@@ -227,4 +229,38 @@ export const testLog = sqliteTable(
     index('test_log_character').on(t.characterId, t.criadoEm),
     check('test_log_origem', sql`${t.origem} in ('virtual', 'fisico')`),
   ],
+);
+
+/**
+ * O último estado de cada mesa ao vivo (tokens, props, névoa, rodada...), salvo no máximo 1 s
+ * depois de uma mudança. Ao subir, o servidor carrega daqui; `seq` é o último número de evento.
+ */
+export const tableStates = sqliteTable('table_states', {
+  campaignId: text('campaign_id')
+    .primaryKey()
+    .references(() => campaigns.id, { onDelete: 'cascade' }),
+  estado: text('estado', { mode: 'json' }).$type<EstadoDaMesa>().notNull(),
+  seq: integer('seq').notNull(),
+  atualizadoEm: integer('atualizado_em', { mode: 'timestamp_ms' }).notNull(),
+});
+
+/**
+ * Registro da sessão: os eventos importantes da mesa (rolagens, testes, pistas apresentadas,
+ * conversa, mudança de rodada, de cena e de trilha), para a aba Acontecimentos e o resumo.
+ * Guarda o evento inteiro; quem lê filtra pelo que cada pessoa pode ver.
+ */
+export const sessionLog = sqliteTable(
+  'session_log',
+  {
+    campaignId: text('campaign_id')
+      .notNull()
+      .references(() => campaigns.id, { onDelete: 'cascade' }),
+    seq: integer('seq').notNull(),
+    tipo: text('tipo').notNull(),
+    dados: text('dados', { mode: 'json' }).$type<EventoDaMesa>().notNull(),
+    em: integer('em', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch('subsec') * 1000)`),
+  },
+  (t) => [primaryKey({ columns: [t.campaignId, t.seq] })],
 );

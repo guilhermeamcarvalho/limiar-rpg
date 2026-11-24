@@ -75,6 +75,6 @@ export function rotaMeuPersonagem(app: FastifyInstance) {
       usarNoCaso(tx, campanha.id, usuario.id, personagemId);
     });
 
-    return { campanha: detalharPara(app.db, campanha.id, usuario, comMembros) };
+    return { campanha: detalharPara(app.db, campanha.id, usuario, comMembros, app.presenca) };
   });
 }

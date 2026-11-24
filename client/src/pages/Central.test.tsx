@@ -53,6 +53,21 @@ describe('Continuar investigação', () => {
     expect(within(cartao).queryByRole('link', { name: 'Escudo' })).toBeNull();
   });
 
+  it('mostra "Mesa aberta" enquanto o mestre está na mesa', async () => {
+    const haCincoMin = new Date(Date.now() - 5 * 60_000).toISOString();
+    servidor({
+      'GET /api/campanhas': json(200, { campanhas: [caso({ mesaAbertaDesde: haCincoMin })] }),
+    });
+    abrir('/');
+    expect(within(await continuar()).getByText('Mesa aberta há 5 min')).toBeDefined();
+  });
+
+  it('sem o mestre na mesa, não mostra "Mesa aberta"', async () => {
+    servidor({ 'GET /api/campanhas': json(200, { campanhas: [caso()] }) });
+    abrir('/');
+    expect(within(await continuar()).queryByText(/Mesa aberta/)).toBeNull();
+  });
+
   it('mestre: Abrir mesa e Escudo', async () => {
     servidor({
       'GET /api/campanhas': json(200, { campanhas: [caso({ papel: 'mestre', mestre: null })] }),

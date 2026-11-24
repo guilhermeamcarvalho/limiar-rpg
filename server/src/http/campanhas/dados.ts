@@ -12,6 +12,7 @@ import type {
 } from '@membrana/shared';
 import { papelNa, podeVerCampanha } from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
+import type { Presenca } from '../../mesa/presenca.ts';
 import {
   campaigns,
   characters,
@@ -21,6 +22,9 @@ import {
   users,
 } from '../../db/schema.ts';
 import { ErroDaApi } from '../erros.ts';
+
+/** Quem diz se a mesa de cada caso está aberta agora (o mestre conectado). */
+export type MesaAberta = Pick<Presenca, 'mesaAbertaDesde'>;
 
 /** 404, e não 403: quem não participa nem fica sabendo que o caso existe. */
 export const CASO_NAO_ENCONTRADO = new ErroDaApi(
@@ -56,7 +60,11 @@ function mestresDe(db: Banco, ids: string[]) {
   return new Map(linhas.map(({ campaignId, ...mestre }) => [campaignId, mestre]));
 }
 
-export function listarDoUsuario(db: Banco, userId: string): CampanhaNaLista[] {
+export function listarDoUsuario(
+  db: Banco,
+  userId: string,
+  mesaAberta: MesaAberta,
+): CampanhaNaLista[] {
   const contagem = contagemDeJogadores(db);
   const linhas = db
     .select({
@@ -88,6 +96,7 @@ export function listarDoUsuario(db: Banco, userId: string): CampanhaNaLista[] {
     situacao: situacao(encerradoEm),
     proximaSessao: iso(proximaSessao),
     contagens: { jogadores },
+    mesaAbertaDesde: iso(mesaAberta.mesaAbertaDesde(resto.id)),
   }));
 }
 
@@ -113,7 +122,13 @@ export function campanhaVisivel(db: Banco, id: string, quem: Quem) {
 }
 
 /** O caso como `userId` o vê: com o papel e o personagem dele neste caso. */
-export function detalhar(db: Banco, id: string, papel: Papel, userId: string): CampanhaDetalhe {
+export function detalhar(
+  db: Banco,
+  id: string,
+  papel: Papel,
+  userId: string,
+  mesaAberta: MesaAberta,
+): CampanhaDetalhe {
   const contagem = contagemDeJogadores(db);
   const linha = db
     .select({
@@ -158,6 +173,7 @@ export function detalhar(db: Banco, id: string, papel: Papel, userId: string): C
     situacao: situacao(encerradoEm),
     proximaSessao: iso(proximaSessao),
     contagens: { jogadores },
+    mesaAbertaDesde: iso(mesaAberta.mesaAbertaDesde(id)),
     membros,
     meuPersonagem: personagemEmUso(db, id, userId),
   };
@@ -184,9 +200,10 @@ export function detalharPara(
   id: string,
   quem: { id: string },
   comMembros: CampanhaComMembros,
+  mesaAberta: MesaAberta,
 ) {
   const papel = papelNa(quem, comMembros) ?? 'jogador';
-  const campanha = detalhar(db, id, papel, quem.id);
+  const campanha = detalhar(db, id, papel, quem.id, mesaAberta);
   if (papel !== 'mestre') return campanha;
   return { ...campanha, convites: convitesDoMestre(db, id) };
 }

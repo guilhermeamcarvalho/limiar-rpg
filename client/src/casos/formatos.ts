@@ -22,6 +22,14 @@ export function hora(d: Date): string {
   return `${String(d.getHours())}h${m ? String(m).padStart(2, '0') : ''}`;
 }
 
+/** O chip da Central quando o mestre está na mesa: "Mesa aberta há 5 min". */
+export function mesaAbertaHa(desde: string, agora = Date.now()): string {
+  const minutos = Math.floor((agora - new Date(desde).getTime()) / 60_000);
+  if (minutos < 1) return 'Mesa aberta agora';
+  if (minutos < 60) return `Mesa aberta há ${String(minutos)} min`;
+  return `Mesa aberta há ${String(Math.floor(minutos / 60))} h`;
+}
+
 /** "sex 21/11, 21h". */
 export function quandoCurto(iso: string): string {
   const d = new Date(iso);

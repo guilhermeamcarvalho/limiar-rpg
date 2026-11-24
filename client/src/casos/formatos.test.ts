@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { caso } from '../teste/apoio.tsx';
-import { agendaEmTexto, casoParaContinuar, linkDaCampanha, numeroDoCaso } from './formatos.ts';
+import {
+  agendaEmTexto,
+  casoParaContinuar,
+  linkDaCampanha,
+  mesaAbertaHa,
+  numeroDoCaso,
+} from './formatos.ts';
 
 describe('formatos de caso', () => {
   it('número com três dígitos', () => {
@@ -45,5 +51,17 @@ describe('formatos de caso', () => {
       )?.id,
     ).toBe('novo');
     expect(casoParaContinuar([caso({ situacao: 'encerrado' })], agora)).toBeNull();
+  });
+});
+
+describe('mesaAbertaHa', () => {
+  const agora = new Date('2026-11-24T21:30:00Z').getTime();
+  const ha = (minutos: number) => new Date(agora - minutos * 60_000).toISOString();
+
+  it('agora, em minutos e em horas', () => {
+    expect(mesaAbertaHa(ha(0), agora)).toBe('Mesa aberta agora');
+    expect(mesaAbertaHa(ha(5), agora)).toBe('Mesa aberta há 5 min');
+    expect(mesaAbertaHa(ha(59), agora)).toBe('Mesa aberta há 59 min');
+    expect(mesaAbertaHa(ha(135), agora)).toBe('Mesa aberta há 2 h');
   });
 });

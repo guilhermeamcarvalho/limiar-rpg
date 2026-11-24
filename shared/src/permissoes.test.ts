@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   ehMestre,
   papelNa,
+  podeAlterarToken,
+  podeConduzirMesa,
   podeConvidar,
   podeEditarCampanha,
   podeEditarFicha,
+  podeMoverToken,
   podeVerCampanha,
   podeVerFicha,
   type CampanhaComMembros,
@@ -99,5 +102,47 @@ describe('ficha', () => {
     expect(podeVerFicha(estranho, fichaDaBia, { ...sinal, fichasVisiveis: true })).toBe(false);
     expect(podeVerFicha(null, fichaDaBia, { ...sinal, fichasVisiveis: true })).toBe(false);
     expect(podeVerFicha(bia, fichaDaBia, sinal)).toBe(true);
+  });
+});
+
+describe('mesa ao vivo', () => {
+  const tokenDaBia = { donoId: bia.id };
+  const npc = { donoId: null };
+
+  it('o dono move o próprio token; o mestre move qualquer um', () => {
+    expect(podeMoverToken(bia, tokenDaBia, sinal)).toBe(true);
+    expect(podeMoverToken(ana, tokenDaBia, sinal)).toBe(true);
+    expect(podeMoverToken(ana, npc, sinal)).toBe(true);
+  });
+
+  it('jogador não move o token de outro nem NPC; quem não participa não move nada', () => {
+    expect(podeMoverToken(caio, tokenDaBia, sinal)).toBe(false);
+    expect(podeMoverToken(caio, npc, sinal)).toBe(false);
+    expect(podeMoverToken(estranho, { donoId: estranho.id }, sinal)).toBe(false);
+    expect(podeMoverToken(null, tokenDaBia, sinal)).toBe(false);
+  });
+
+  it('o token vale na campanha: mestre noutra mesa é só jogador aqui', () => {
+    expect(podeMoverToken(ana, { donoId: bia.id }, mare)).toBe(false);
+  });
+
+  it('jogador troca só imagem e tamanho do próprio token', () => {
+    expect(podeAlterarToken(bia, tokenDaBia, ['imagem'], sinal)).toBe(true);
+    expect(podeAlterarToken(bia, tokenDaBia, ['imagem', 'tamanho'], sinal)).toBe(true);
+    expect(podeAlterarToken(bia, tokenDaBia, ['oculto'], sinal)).toBe(false);
+    expect(podeAlterarToken(bia, tokenDaBia, ['nome'], sinal)).toBe(false);
+    expect(podeAlterarToken(caio, tokenDaBia, ['imagem'], sinal)).toBe(false);
+  });
+
+  it('o mestre muda qualquer campo de qualquer token', () => {
+    expect(podeAlterarToken(ana, tokenDaBia, ['nome', 'oculto'], sinal)).toBe(true);
+    expect(podeAlterarToken(ana, npc, ['oculto'], sinal)).toBe(true);
+  });
+
+  it('só o mestre conduz a mesa', () => {
+    expect(podeConduzirMesa(ana, sinal)).toBe(true);
+    expect(podeConduzirMesa(bia, sinal)).toBe(false);
+    expect(podeConduzirMesa(estranho, sinal)).toBe(false);
+    expect(podeConduzirMesa(null, sinal)).toBe(false);
   });
 });
