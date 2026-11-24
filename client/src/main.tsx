@@ -5,8 +5,9 @@ import { BarreiraDeErro, iniciarObservabilidade } from './observabilidade.ts';
 import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/base.css';
+import './styles/controles.css';
 import './styles/utilities.css';
-import { ToastProvider } from './ui/index.ts';
+import { Dicas, ToastProvider } from './ui/index.ts';
 
 iniciarObservabilidade();
 
@@ -39,6 +40,7 @@ createRoot(raiz).render(
     <BarreiraDeErro fallback={<TelaDeErro />}>
       <ToastProvider>
         <App />
+        <Dicas />
       </ToastProvider>
     </BarreiraDeErro>
   </StrictMode>,

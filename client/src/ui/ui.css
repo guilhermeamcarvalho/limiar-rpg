@@ -69,9 +69,19 @@
   border-color: transparent;
   color: var(--muted);
 }
+/* Sem borda em repouso; no hover, ganha o fundo e a borda de um botão para dizer que é clicável. */
 .btn.ghost:hover {
   color: var(--white);
-  border-color: var(--line-2);
+  border-color: var(--line-3);
+  background: var(--panel-3);
+}
+.btn.ghost:disabled:hover {
+  background: transparent;
+}
+.btn.danger:hover:not(:disabled) {
+  border-color: var(--red-hi);
+  background: var(--red-a18);
+  color: var(--white);
 }
 .btn.danger {
   border-color: var(--red-dark);
@@ -213,7 +223,6 @@ textarea.fld {
   width: 20px;
   height: 20px;
   margin: 0;
-  accent-color: var(--red);
 }
 .switch-row {
   display: inline-flex;
@@ -1190,5 +1199,47 @@ textarea.fld {
   /* Numa linha apertada, o botão de ícone não encolhe abaixo dos 44 px. */
   .btn.icon {
     flex: none;
+  }
+}
+
+/* Dica (tooltip): Dicas.tsx troca a caixinha do navegador por esta. */
+.dica {
+  position: fixed;
+  z-index: var(--z-toast);
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 6px 10px;
+  border: 1px solid var(--line-3);
+  border-radius: var(--r);
+  background: var(--panel-3);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  font: 700 12px/1.35 var(--f-ui);
+  pointer-events: none;
+  animation: dica-entra 0.12s ease-out;
+}
+/* A setinha aponta para o elemento. */
+.dica::after {
+  position: absolute;
+  left: var(--seta, 50%);
+  width: 8px;
+  height: 8px;
+  border: solid var(--line-3);
+  background: var(--panel-3);
+  content: '';
+  translate: -50% 0;
+}
+.dica[data-lado='cima']::after {
+  bottom: -5px;
+  border-width: 0 1px 1px 0;
+  rotate: 45deg;
+}
+.dica[data-lado='baixo']::after {
+  top: -5px;
+  border-width: 1px 0 0 1px;
+  rotate: 45deg;
+}
+@keyframes dica-entra {
+  from {
+    opacity: 0;
   }
 }
