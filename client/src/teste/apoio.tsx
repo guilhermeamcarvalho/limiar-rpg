@@ -98,6 +98,7 @@ export function caso(campos: Partial<CampanhaNaLista> = {}): CampanhaNaLista {
     agenda: null,
     proximaSessao: null,
     contagens: { jogadores: 3 },
+    mesaAbertaDesde: null,
     ...campos,
   };
 }

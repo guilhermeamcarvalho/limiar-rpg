@@ -1,0 +1,118 @@
+// Uma mesa ao vivo por campanha: o estado em memória, a sequência dos eventos e `aplicar`, por onde
+// passa todo comando. A ordem é sempre: valida o contrato, confere a permissão, aplica num
+// rascunho, numera os eventos e, só então, troca o estado. Recusado, nada muda.
+import {
+  estadoVazioDaMesa,
+  podeVerCampanha,
+  validarComando,
+  type CampanhaComMembros,
+  type EstadoDaMesa,
+  type EventoDaMesa,
+  type EventoDaMesaSemSeq,
+  type TipoDeEvento,
+} from '@membrana/shared';
+import { Recusa, tratar } from './comandos/index.ts';
+
+/** Não mudam o estado: não pedem para salvar. */
+const TRANSITORIOS: ReadonlySet<TipoDeEvento> = new Set(['token.dragging']);
+
+/** Vão para o registro da sessão (`session_log`): a aba Acontecimentos e o resumo. */
+const REGISTRADOS: ReadonlySet<TipoDeEvento> = new Set([
+  'chat.message',
+  'dice.rolled',
+  'test.resolved',
+  'clue.presented',
+  'map.activated',
+  'audio.changed',
+  'round.started',
+]);
+
+export const ehRegistrado = (tipo: TipoDeEvento) => REGISTRADOS.has(tipo);
+
+export type ResultadoDoComando =
+  | {
+      ok: true;
+      eventos: EventoDaMesa[];
+      /** O estado antes e depois: a projeção usa os dois (um token que sumiu da vista, por exemplo). */
+      antes: EstadoDaMesa;
+      depois: EstadoDaMesa;
+    }
+  | { ok: false; motivo: string };
+
+export interface DependenciasDaMesa {
+  /** Os membros do caso agora, lidos a cada comando: quem saiu perde o acesso na hora. */
+  membros: () => CampanhaComMembros['membros'];
+  /** O dono do personagem, se ele for deste caso. */
+  personagem: (personagemId: string) => { donoId: string } | null;
+  /** O estado mudou: hora de agendar o salvamento. */
+  aoMudar?: () => void;
+  /** Grava os eventos importantes. Se falhar, o comando inteiro falha e nada muda. */
+  registrar?: (eventos: EventoDaMesa[]) => void;
+}
+
+export class Mesa {
+  readonly campanhaId: string;
+  #estado: EstadoDaMesa;
+  #seq: number;
+  readonly #deps: DependenciasDaMesa;
+
+  constructor(
+    campanhaId: string,
+    deps: DependenciasDaMesa,
+    salvo?: { estado?: EstadoDaMesa; seq: number },
+  ) {
+    this.campanhaId = campanhaId;
+    this.#deps = deps;
+    // Campos que vieram depois do último salvamento (uma versão nova do app) nascem vazios.
+    this.#estado = { ...estadoVazioDaMesa(), ...salvo?.estado };
+    this.#seq = salvo?.seq ?? 0;
+  }
+
+  /** O estado atual. Nunca é mudado no lugar: cada comando troca por um novo. */
+  get estado(): EstadoDaMesa {
+    return this.#estado;
+  }
+
+  /** O número do último evento. */
+  get seq(): number {
+    return this.#seq;
+  }
+
+  /** Valida, confere a permissão e aplica o comando de `quem`. */
+  aplicar(quem: { id: string }, entrada: unknown): ResultadoDoComando {
+    const validacao = validarComando(entrada);
+    if (!validacao.ok) return validacao;
+
+    const campanha: CampanhaComMembros = { id: this.campanhaId, membros: this.#deps.membros() };
+    if (!podeVerCampanha(quem, campanha)) return { ok: false, motivo: 'Você não está neste caso.' };
+
+    const rascunho = structuredClone(this.#estado);
+    let saida: EventoDaMesaSemSeq[];
+    try {
+      saida = tratar(
+        { quem, campanha, estado: rascunho, personagem: this.#deps.personagem },
+        validacao.comando,
+      );
+    } catch (erro) {
+      if (erro instanceof Recusa) return { ok: false, motivo: erro.message };
+      throw erro;
+    }
+
+    let seq = this.#seq;
+    const eventos = saida.map((evento) => ({ ...evento, seq: ++seq }));
+    const importantes = eventos.filter((e) => REGISTRADOS.has(e.type));
+    if (importantes.length > 0) this.#deps.registrar?.(importantes);
+
+    const antes = this.#estado;
+    this.#estado = rascunho;
+    this.#seq = seq;
+    if (eventos.some((e) => !TRANSITORIOS.has(e.type))) this.#deps.aoMudar?.();
+    return { ok: true, eventos, antes, depois: rascunho };
+  }
+
+  /** Dá número a um evento que não nasceu de um comando (presença, ficha editada numa rota). */
+  carimbar(evento: EventoDaMesaSemSeq): EventoDaMesa {
+    this.#seq += 1;
+    return { ...evento, seq: this.#seq };
+  }
+}

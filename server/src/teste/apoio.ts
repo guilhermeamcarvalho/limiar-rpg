@@ -1,9 +1,9 @@
 // Apoio para os testes do servidor: config válida e banco em memória já migrado.
-import type { Rng } from '@membrana/shared';
+import { fichaDoDavi, ID_OP2, type Rng } from '@membrana/shared';
 import { criarApp } from '../app.ts';
 import { carregarConfig } from '../config.ts';
 import { abrirBanco, migrar, type Banco } from '../db/index.ts';
-import { users } from '../db/schema.ts';
+import { campaigns, characters, memberships, users } from '../db/schema.ts';
 import { criarSessao } from '../http/auth/sessao.ts';
 import { semear } from '../db/seed.ts';
 import type { ClienteDiscord } from '../http/auth/discord.ts';
@@ -42,4 +42,34 @@ export async function appDeTeste(
 export function pessoaLogada(app: { db: Banco }, nome: string) {
   const { id } = app.db.insert(users).values({ nome }).returning({ id: users.id }).get();
   return { id, nome, cookies: { membrana_sessao: criarSessao(app.db, id, false) } };
+}
+
+/**
+ * Um caso pronto para a mesa: Ana mestra o Sinal; Bia joga com a Davi; Caio joga sem personagem;
+ * Estranho não participa. Gravado direto no banco, sem passar pelas rotas.
+ */
+export function casoDeTeste(app: { db: Banco }) {
+  const ana = pessoaLogada(app, 'Ana');
+  const bia = pessoaLogada(app, 'Bia');
+  const caio = pessoaLogada(app, 'Caio');
+  const estranho = pessoaLogada(app, 'Estranho');
+  const { id: caso } = app.db
+    .insert(campaigns)
+    .values({ nome: 'O Sinal de Santa Ermida', systemId: ID_OP2, criadoPor: ana.id })
+    .returning({ id: campaigns.id })
+    .get();
+  const { id: davi } = app.db
+    .insert(characters)
+    .values({ ownerId: bia.id, campaignId: caso, systemId: ID_OP2, ficha: fichaDoDavi() })
+    .returning({ id: characters.id })
+    .get();
+  app.db
+    .insert(memberships)
+    .values([
+      { campaignId: caso, userId: ana.id, papel: 'mestre' },
+      { campaignId: caso, userId: bia.id, papel: 'jogador', characterId: davi },
+      { campaignId: caso, userId: caio.id, papel: 'jogador' },
+    ])
+    .run();
+  return { caso, davi, ana, bia, caio, estranho };
 }

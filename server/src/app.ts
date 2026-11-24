@@ -18,6 +18,10 @@ import { rotas as rotasDeConvites } from './http/convites/index.ts';
 import { rotas as rotasDePersonagens } from './http/personagens/index.ts';
 import { rotas as rotasDeUploads } from './http/uploads/index.ts';
 import { criarAvisosDaMesa, type AvisosDaMesa } from './mesa/index.ts';
+import { Mesas } from './mesa/mesas.ts';
+import { Presenca } from './mesa/presenca.ts';
+import { ligarMesaAoVivo } from './mesa/socket.ts';
+import { registrarErro } from './observabilidade.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -25,6 +29,10 @@ declare module 'fastify' {
     db: Banco;
     /** Por onde as rotas avisam a mesa ao vivo de uma mudança. */
     mesa: AvisosDaMesa;
+    /** As mesas ao vivo em memória, uma por campanha. */
+    mesas: Mesas;
+    /** Quem está conectado em cada mesa; a Central mostra "Mesa aberta" a partir daqui. */
+    presenca: Presenca;
     /** O sorteio dos testes: criptográfico; os testes do servidor passam um com semente. */
     sorteio: Rng;
   }
@@ -96,6 +104,16 @@ export async function criarApp({ config, db, logger, discord, sorteio }: Depende
   app.decorate('db', db);
   app.decorate('mesa', criarAvisosDaMesa());
   app.decorate('sorteio', sorteio ?? rngCripto());
+  app.decorate(
+    'mesas',
+    new Mesas(db, {
+      aoFalhar: (erro, campanhaId) => {
+        app.log.error({ err: erro, campanhaId }, 'não deu para salvar a mesa');
+        registrarErro(erro, { metodo: 'MESA', url: '/mesa/salvar' });
+      },
+    }),
+  );
+  app.decorate('presenca', new Presenca());
   registrarTratadorDeErros(app);
 
   await app.register(helmet, {
@@ -116,6 +134,15 @@ export async function criarApp({ config, db, logger, discord, sorteio }: Depende
   await app.register(rotasDeConvites, { prefix: '/api' });
   await app.register(rotasDePersonagens, { prefix: '/api' });
   await app.register(rotasDeUploads, { prefix: '/api' });
+
+  // Mesa ao vivo: carrega o último estado de cada caso em curso e abre o Socket.IO. Ao fechar
+  // (SIGTERM do systemd), as conexões caem antes e o que estiver pendente é salvo depois.
+  app.mesas.carregarSalvas();
+  ligarMesaAoVivo(app);
+  app.addHook('onClose', (_instancia, pronto) => {
+    app.mesas.salvarTudo();
+    pronto();
+  });
 
   const servirClient = config.NODE_ENV === 'production' && existsSync(PASTA_DO_CLIENT);
   if (servirClient) await app.register(estaticos, { root: PASTA_DO_CLIENT, wildcard: false });

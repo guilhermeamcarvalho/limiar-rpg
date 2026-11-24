@@ -34,7 +34,9 @@ function exigirSistema(db: Banco, sistemaId: string) {
 export const rotas: FastifyPluginAsync = (app) => {
   app.addHook('preHandler', exigirLogin);
 
-  app.get('/', (request) => ({ campanhas: listarDoUsuario(app.db, usuarioLogado(request).id) }));
+  app.get('/', (request) => ({
+    campanhas: listarDoUsuario(app.db, usuarioLogado(request).id, app.presenca),
+  }));
 
   app.post('/', (request, reply) => {
     const usuario = usuarioLogado(request);
@@ -86,7 +88,7 @@ export const rotas: FastifyPluginAsync = (app) => {
 
     return reply.status(201).send({
       campanha: {
-        ...detalhar(app.db, id, 'mestre', usuario.id),
+        ...detalhar(app.db, id, 'mestre', usuario.id, app.presenca),
         convites: convitesDoMestre(app.db, id),
       },
     });
@@ -96,7 +98,7 @@ export const rotas: FastifyPluginAsync = (app) => {
     const usuario = usuarioLogado(request);
     const { comMembros } = campanhaVisivel(app.db, request.params.id, usuario);
     // O mestre recebe a mais os convites e quem entrou por cada um.
-    return { campanha: detalharPara(app.db, request.params.id, usuario, comMembros) };
+    return { campanha: detalharPara(app.db, request.params.id, usuario, comMembros, app.presenca) };
   });
 
   app.patch<{ Params: { id: string } }>('/:id', (request) => {
@@ -122,7 +124,7 @@ export const rotas: FastifyPluginAsync = (app) => {
       .run();
     return {
       campanha: {
-        ...detalhar(app.db, request.params.id, 'mestre', usuario.id),
+        ...detalhar(app.db, request.params.id, 'mestre', usuario.id, app.presenca),
         convites: convitesDoMestre(app.db, request.params.id),
       },
     };

@@ -43,6 +43,13 @@
       "when": 1795442408140,
       "tag": "0005_test_log",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795523443653,
+      "tag": "0006_mesa_ao_vivo",
+      "breakpoints": true
     }
   ]
 }

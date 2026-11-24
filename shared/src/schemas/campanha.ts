@@ -140,6 +140,8 @@ export interface CampanhaNaLista {
   agenda: Agenda | null;
   proximaSessao: string | null;
   contagens: { jogadores: number };
+  /** A mesa ao vivo está aberta (o mestre está conectado) desde quando, em ISO; ou nulo. */
+  mesaAbertaDesde: string | null;
 }
 
 export interface Membro {
