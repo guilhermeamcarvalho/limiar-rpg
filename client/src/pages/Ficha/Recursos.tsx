@@ -156,7 +156,9 @@ export function VidaESanidade({
     <Card pad className="col" style={{ gap: 12 }}>
       <div className="row between">
         <span className="lab">Vida e sanidade</span>
-        {podeMudar && <span className="small muted">Clique numa caixa para marcar</span>}
+        {podeMudar && (
+          <span className="small muted ficha-dica-caixas">Clique numa caixa para marcar</span>
+        )}
       </div>
       <LinhaDeRecurso
         tipo="pv"

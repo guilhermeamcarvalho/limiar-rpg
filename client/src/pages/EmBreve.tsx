@@ -1,6 +1,6 @@
 // Páginas que o menu já aponta, mas que chegam em fases seguintes. Mostram onde a pessoa está
 // e como voltar, em vez de uma página não encontrada.
-import { useEffect, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router';
 import { tituloDaPagina, type CampanhaDetalhe } from '@membrana/shared';
 import { pedir } from '../auth/api.ts';
@@ -14,46 +14,6 @@ import {
   useCarga,
   type NomeDoIcone,
 } from '../ui/index.ts';
-
-function EmBreve({
-  titulo,
-  icone,
-  children,
-  acao,
-}: {
-  titulo: string;
-  icone: NomeDoIcone;
-  children: string;
-  acao?: ReactNode;
-}) {
-  useEffect(() => {
-    document.title = tituloDaPagina(titulo);
-  }, [titulo]);
-  return (
-    <div className="wrap col" style={{ paddingTop: 40, paddingBottom: 64, gap: 24 }}>
-      <h1 className="h1">{titulo}</h1>
-      <Card pad>
-        <EmptyState icon={<Icon name={icone} size="xl" />} title="Em breve" action={acao}>
-          {children}
-        </EmptyState>
-      </Card>
-    </div>
-  );
-}
-
-const VOLTAR = (
-  <Link className="btn" to="/">
-    Voltar para a Central
-  </Link>
-);
-
-export function Arquivo() {
-  return (
-    <EmBreve titulo="Arquivo" icone="book" acao={VOLTAR}>
-      As regras de consulta rápida e os itens chegam junto com a ficha.
-    </EmBreve>
-  );
-}
 
 const DA_CAMPANHA = {
   mesa: { titulo: 'Mesa', icone: 'map', texto: 'A mesa ao vivo, com mapa, tokens e dados.' },

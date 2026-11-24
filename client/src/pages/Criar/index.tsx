@@ -19,6 +19,7 @@ import {
   type FichaOp2,
   type Personagem,
 } from '@membrana/shared';
+import { TopoDoCelular, useCelularProprio } from '../../app/celular.tsx';
 import { ErroDaApi, pedir } from '../../auth/api.ts';
 import { useMe } from '../../auth/sessao.tsx';
 import { linkDaCampanha } from '../../casos/formatos.ts';
@@ -456,6 +457,8 @@ export function Criar() {
   useEffect(() => {
     document.title = tituloDaPagina('Novo sobrevivente');
   }, []);
+  // Celular · 07: cabeçalho com o passo e, no lugar da barra do app, os botões fixos embaixo.
+  useCelularProprio({ topo: !criado, barra: !criado });
 
   // Ao trocar de passo, o foco vai para o título (o leitor de tela anuncia o passo novo).
   const primeiraVez = useRef(true);
@@ -550,186 +553,214 @@ export function Criar() {
   // Veio de um caso que ainda não carregou (ou falhou): criar agora salvaria o personagem sem caso.
   const bloqueado = (casoId !== null && caso === null) || outroSistema;
 
+  const passoAtual = PASSOS[passo];
   return (
-    <div className="wrap col criar">
-      <div className="row between wrapx criar-topo">
-        <nav className="crumb" aria-label="Você está em">
-          <Link to="/personagens">Personagens</Link>
-          <Icon name="next" size="sm" />
-          <b aria-current="page">Novo sobrevivente</b>
-        </nav>
-        <div className="row">
-          <Link className="btn ghost sm" to={linkDaFichaEmBranco(casoId)}>
-            Preferir ficha em branco
-          </Link>
+    <>
+      <TopoDoCelular
+        inicio={
+          passo === 0 ? (
+            <Link className="btn icon ghost" to="/personagens" aria-label="Voltar para Personagens">
+              <Icon name="back" />
+            </Link>
+          ) : (
+            <Button
+              variant="ghost"
+              icon={<Icon name="back" />}
+              aria-label={`Voltar para ${PASSOS[passo - 1]?.nome ?? 'o passo anterior'}`}
+              onClick={() => {
+                irPara(passo - 1);
+              }}
+            />
+          )
+        }
+        titulo="Novo sobrevivente"
+        subtitulo={`Passo ${String(passo + 1)} de ${String(PASSOS.length)}${passoAtual ? ` · ${passoAtual.nome}` : ''}`}
+        fim={
           <Link className="btn ghost sm" to="/personagens">
-            <Icon name="close" size="sm" />
-            Cancelar
+            Fechar
           </Link>
-        </div>
-      </div>
-
-      <div className="col criar-progresso">
-        <div className="row between wrapx">
-          <span className="lab">
-            {caso ? (
-              <>
-                Para o caso <b className="criar-caso">{caso.nome}</b> · {caso.sistema.nome} · nível{' '}
-                {nivel}
-              </>
-            ) : casoId ? (
-              <>Carregando o caso…</>
-            ) : (
-              <>Sem caso · Ordem Paranormal II · nível {nivel}</>
-            )}
-          </span>
-          <span className="lab">
-            Passo {passo + 1} de {PASSOS.length}
-          </span>
-        </div>
-        <div className="stepper" aria-hidden="true">
-          {PASSOS.map((p, i) => (
-            <i key={p.id} className={cx(i === passo && 'on', i < passo && valido(i) && 'done')} />
-          ))}
-        </div>
-        <nav className="row wrapx criar-passos" aria-label="Passos">
-          {PASSOS.map((p, i) => {
-            const feito = i < passo && valido(i);
-            const resumo =
-              i === 0 && r.perfil
-                ? `${p.nome}: ${NOME_DO_PERFIL[r.perfil]}`
-                : i === 1 && textoDaOcupacao(r)
-                  ? `${p.nome}: ${textoDaOcupacao(r)}`
-                  : `${String(i + 1)} · ${p.nome}`;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                className={cx('criar-passo', i === passo && 'on', feito && 'feito')}
-                aria-current={i === passo ? 'step' : undefined}
-                disabled={i !== passo && !alcancavel(i)}
-                onClick={() => {
-                  irPara(i);
-                }}
-              >
-                {feito && <Icon name="check" size="sm" />}
-                {feito ? resumo : `${String(i + 1)} · ${p.nome}`}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {casoFalhou && (
-        <Banner tone="err">
-          Não encontramos este caso. <Link to="/personagens">Voltar para Personagens</Link>
-        </Banner>
-      )}
-      {outroSistema && (
-        <Banner tone="warn">
-          {caso.nome} usa {caso.sistema.nome}. A criação guiada é de Ordem Paranormal II; peça ao
-          mestre a ficha do sistema do caso.
-        </Banner>
-      )}
-
-      <div className="split criar-split">
-        <section className="col criar-corpo" aria-labelledby="criar-titulo">
-          <div className="col" style={{ gap: 6 }}>
-            <h1 id="criar-titulo" className="h1" tabIndex={-1}>
-              {titulo.titulo}
-            </h1>
-            <p className="muted">{titulo.texto}</p>
+        }
+      />
+      <div className="wrap col criar">
+        <div className="row between wrapx criar-topo">
+          <nav className="crumb" aria-label="Você está em">
+            <Link to="/personagens">Personagens</Link>
+            <Icon name="next" size="sm" />
+            <b aria-current="page">Novo sobrevivente</b>
+          </nav>
+          <div className="row">
+            <Link className="btn ghost sm" to={linkDaFichaEmBranco(casoId)}>
+              Preferir ficha em branco
+            </Link>
+            <Link className="btn ghost sm criar-cancelar" to="/personagens">
+              <Icon name="close" size="sm" />
+              Cancelar
+            </Link>
           </div>
+        </div>
 
-          <form
-            className="col"
-            style={{ gap: 24 }}
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (bloqueado) return;
-              if (passo === ULTIMO) void criacao.enviar();
-              else avancar();
-            }}
-          >
-            {passo === 0 && <Perfil {...props} />}
-            {passo === 1 && <Ocupacao {...props} />}
-            {passo === 2 && (
-              <Atributos
-                ficha={ficha}
-                mudar={(atributos) => {
-                  mudar({ atributos });
-                }}
-              />
-            )}
-            {passo === 3 && (
-              <Pericias
-                ficha={ficha}
-                passos={r.passosDasPericias}
-                mudar={(passosDasPericias) => {
-                  mudar({ passosDasPericias });
-                }}
-              />
-            )}
-            {passo === ULTIMO && (
-              <>
-                <ToquesFinais {...props} />
-                <Revisao ficha={ficha} irPara={irPara} />
-              </>
-            )}
-
-            {falha && <Banner tone="err">{falha}</Banner>}
-
-            <div className="row between criar-rodape">
-              {passo === 0 ? (
-                <Link className="btn ghost" to="/personagens">
-                  Cancelar
-                </Link>
+        <div className="col criar-progresso">
+          <div className="row between wrapx">
+            <span className="lab">
+              {caso ? (
+                <>
+                  Para o caso <b className="criar-caso">{caso.nome}</b> · {caso.sistema.nome} ·
+                  nível {nivel}
+                </>
+              ) : casoId ? (
+                <>Carregando o caso…</>
               ) : (
-                <Button
-                  icon={<Icon name="back" size="sm" />}
+                <>Sem caso · Ordem Paranormal II · nível {nivel}</>
+              )}
+            </span>
+            <span className="lab">
+              Passo {passo + 1} de {PASSOS.length}
+            </span>
+          </div>
+          <div className="stepper" aria-hidden="true">
+            {PASSOS.map((p, i) => (
+              <i key={p.id} className={cx(i === passo && 'on', i < passo && valido(i) && 'done')} />
+            ))}
+          </div>
+          <nav className="row wrapx criar-passos" aria-label="Passos">
+            {PASSOS.map((p, i) => {
+              const feito = i < passo && valido(i);
+              const resumo =
+                i === 0 && r.perfil
+                  ? `${p.nome}: ${NOME_DO_PERFIL[r.perfil]}`
+                  : i === 1 && textoDaOcupacao(r)
+                    ? `${p.nome}: ${textoDaOcupacao(r)}`
+                    : `${String(i + 1)} · ${p.nome}`;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={cx('criar-passo', i === passo && 'on', feito && 'feito')}
+                  aria-current={i === passo ? 'step' : undefined}
+                  disabled={i !== passo && !alcancavel(i)}
                   onClick={() => {
-                    irPara(passo - 1);
+                    irPara(i);
                   }}
                 >
-                  {PASSOS[passo - 1]?.nome}
-                </Button>
-              )}
-              {passo === ULTIMO ? (
-                <Button
-                  type="submit"
-                  variant="primary"
-                  loading={criacao.enviando}
-                  disabled={bloqueado}
-                >
-                  <Icon name="check" size="sm" />
-                  Criar personagem
-                </Button>
-              ) : (
-                <Button type="submit" variant="primary" disabled={bloqueado}>
-                  Próximo: {PASSOS[passo + 1]?.nome.toLowerCase()}
-                  <Icon name="next" size="sm" />
-                </Button>
-              )}
-            </div>
-            {tentados.has(passo) && errosAqui.length > 0 && (
-              <p className="small red" role="alert">
-                {errosAqui.length === 1
-                  ? 'Corrija 1 campo para continuar.'
-                  : `Corrija ${String(errosAqui.length)} campos para continuar.`}
-              </p>
-            )}
-          </form>
-        </section>
+                  {feito && <Icon name="check" size="sm" />}
+                  {feito ? resumo : `${String(i + 1)} · ${p.nome}`}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-        <FichaAteAgora
-          ficha={ficha}
-          nome={r.nome}
-          mudarNome={(nome) => {
-            mudar({ nome });
-          }}
-        />
+        {casoFalhou && (
+          <Banner tone="err">
+            Não encontramos este caso. <Link to="/personagens">Voltar para Personagens</Link>
+          </Banner>
+        )}
+        {outroSistema && (
+          <Banner tone="warn">
+            {caso.nome} usa {caso.sistema.nome}. A criação guiada é de Ordem Paranormal II; peça ao
+            mestre a ficha do sistema do caso.
+          </Banner>
+        )}
+
+        <div className="split criar-split">
+          <section className="col criar-corpo" aria-labelledby="criar-titulo">
+            <div className="col" style={{ gap: 6 }}>
+              <h1 id="criar-titulo" className="h1" tabIndex={-1}>
+                {titulo.titulo}
+              </h1>
+              <p className="muted">{titulo.texto}</p>
+            </div>
+
+            <form
+              className="col"
+              style={{ gap: 24 }}
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (bloqueado) return;
+                if (passo === ULTIMO) void criacao.enviar();
+                else avancar();
+              }}
+            >
+              {passo === 0 && <Perfil {...props} />}
+              {passo === 1 && <Ocupacao {...props} />}
+              {passo === 2 && (
+                <Atributos
+                  ficha={ficha}
+                  mudar={(atributos) => {
+                    mudar({ atributos });
+                  }}
+                />
+              )}
+              {passo === 3 && (
+                <Pericias
+                  ficha={ficha}
+                  passos={r.passosDasPericias}
+                  mudar={(passosDasPericias) => {
+                    mudar({ passosDasPericias });
+                  }}
+                />
+              )}
+              {passo === ULTIMO && (
+                <>
+                  <ToquesFinais {...props} />
+                  <Revisao ficha={ficha} irPara={irPara} />
+                </>
+              )}
+
+              {falha && <Banner tone="err">{falha}</Banner>}
+
+              <div className="row between criar-rodape">
+                {passo === 0 ? (
+                  <Link className="btn ghost" to="/personagens">
+                    Cancelar
+                  </Link>
+                ) : (
+                  <Button
+                    icon={<Icon name="back" size="sm" />}
+                    onClick={() => {
+                      irPara(passo - 1);
+                    }}
+                  >
+                    {PASSOS[passo - 1]?.nome}
+                  </Button>
+                )}
+                {passo === ULTIMO ? (
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    loading={criacao.enviando}
+                    disabled={bloqueado}
+                  >
+                    <Icon name="check" size="sm" />
+                    Criar personagem
+                  </Button>
+                ) : (
+                  <Button type="submit" variant="primary" disabled={bloqueado}>
+                    Próximo: {PASSOS[passo + 1]?.nome.toLowerCase()}
+                    <Icon name="next" size="sm" />
+                  </Button>
+                )}
+              </div>
+              {tentados.has(passo) && errosAqui.length > 0 && (
+                <p className="small red" role="alert">
+                  {errosAqui.length === 1
+                    ? 'Corrija 1 campo para continuar.'
+                    : `Corrija ${String(errosAqui.length)} campos para continuar.`}
+                </p>
+              )}
+            </form>
+          </section>
+
+          <FichaAteAgora
+            ficha={ficha}
+            nome={r.nome}
+            mudarNome={(nome) => {
+              mudar({ nome });
+            }}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

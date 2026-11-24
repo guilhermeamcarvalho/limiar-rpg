@@ -237,3 +237,26 @@ describe('rascunho', () => {
     });
   });
 });
+
+describe('Criação no celular (#56)', () => {
+  it('o cabeçalho diz o passo, e a barra do app sai para os botões fixos', async () => {
+    montar();
+    abrir('/personagens/novo');
+    await titulo('Que tipo de sobrevivente');
+    const topo = document.querySelector('header.m-top') as HTMLElement;
+    expect(within(topo).getByText('Passo 1 de 5 · Perfil')).toBeDefined();
+    expect(within(topo).getByRole('link', { name: 'Fechar' }).getAttribute('href')).toBe(
+      '/personagens',
+    );
+    expect(document.querySelector('.m-tabbar')).toBeNull();
+
+    fireEvent.click(screen.getByRole('radio', { name: /Analista/ }));
+    fireEvent.click(proximo());
+    await titulo('O que fazia antes disso');
+    expect(within(topo).getByText('Passo 2 de 5 · Ocupação')).toBeDefined();
+
+    // No passo 2, a seta volta um passo em vez de sair.
+    fireEvent.click(within(topo).getByRole('button', { name: 'Voltar para Perfil' }));
+    await titulo('Que tipo de sobrevivente');
+  });
+});

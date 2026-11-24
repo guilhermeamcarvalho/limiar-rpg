@@ -1178,3 +1178,17 @@ textarea.fld {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Celular: nenhum alvo de toque abaixo de 44 px (#56). Os botões pequenos crescem só aqui. */
+@media (max-width: 720px) {
+  .btn.sm {
+    min-height: 44px;
+  }
+  .btn.icon.sm {
+    width: 44px;
+  }
+  /* Numa linha apertada, o botão de ícone não encolhe abaixo dos 44 px. */
+  .btn.icon {
+    flex: none;
+  }
+}

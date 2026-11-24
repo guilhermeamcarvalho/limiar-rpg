@@ -18,6 +18,7 @@ import {
   useCarga,
   type NomeDoIcone,
 } from '../ui/index.ts';
+import { ContextoDoCelular, NADA_PROPRIO, type CelularProprio } from './celular.tsx';
 import './app.css';
 
 interface ItemDoMenu {
@@ -141,6 +142,8 @@ export function AppLayout() {
   const caso = useCasoDaUrl();
   const casoAberto = caso.carga.estado === 'pronto' ? caso.carga.dados : null;
   const nome = sessao.estado === 'logado' ? sessao.usuario.nome : '';
+  // Criação e Ficha trazem o próprio cabeçalho e a própria barra no celular (celular.tsx).
+  const [proprio, setProprio] = useState<CelularProprio>(NADA_PROPRIO);
 
   return (
     <div className="app">
@@ -176,33 +179,43 @@ export function AppLayout() {
         </div>
       </header>
 
-      <header className="m-top">
-        <Marca compacta />
-        <div className="t">
-          <b>{casoAberto?.nome ?? tituloDaRota(local.pathname)}</b>
-        </div>
-        <Notificacoes />
-      </header>
+      {!proprio.topo && (
+        <header className="m-top">
+          <Marca compacta />
+          <div className="t">
+            <b>{casoAberto?.nome ?? tituloDaRota(local.pathname)}</b>
+          </div>
+          <Notificacoes />
+        </header>
+      )}
 
       <main id="conteudo" className="app-conteudo" tabIndex={-1}>
         <Suspense fallback={<CarregandoPagina />}>
-          <Outlet />
+          <ContextoDoCelular value={setProprio}>
+            <Outlet />
+          </ContextoDoCelular>
         </Suspense>
       </main>
 
-      <nav className="m-tabbar" aria-label="Principal">
-        {BARRA_DO_CELULAR.map((item) => (
-          <NavLink
-            key={item.para}
-            to={item.para}
-            end={item.para === '/'}
-            className={({ isActive }) => (isActive ? 'on' : '')}
-          >
-            <Icon name={item.icone} />
-            {item.rotulo}
-          </NavLink>
-        ))}
-      </nav>
+      {!proprio.barra && <BarraDoCelular />}
     </div>
+  );
+}
+
+function BarraDoCelular() {
+  return (
+    <nav className="m-tabbar" aria-label="Principal">
+      {BARRA_DO_CELULAR.map((item) => (
+        <NavLink
+          key={item.para}
+          to={item.para}
+          end={item.para === '/'}
+          className={({ isActive }) => (isActive ? 'on' : '')}
+        >
+          <Icon name={item.icone} />
+          {item.rotulo}
+        </NavLink>
+      ))}
+    </nav>
   );
 }

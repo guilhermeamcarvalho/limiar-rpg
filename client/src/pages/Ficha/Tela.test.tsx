@@ -574,3 +574,46 @@ describe('Ficha: abas Itens, Pistas, Anotações e Histórico (#54)', () => {
     expect(novoIdDeItem([], 10)).toBe('item-a');
   });
 });
+
+describe('Ficha no celular (#56)', () => {
+  const barra = () => screen.getByRole('navigation', { name: 'Partes da ficha' });
+
+  it('tem cabeçalho próprio, com voltar, caso e editar, no lugar do cabeçalho do app', async () => {
+    await abrirDavi();
+    const topo = document.querySelector('header.m-top') as HTMLElement;
+    expect(document.querySelectorAll('header.m-top')).toHaveLength(1);
+    expect(within(topo).getByText('O Sinal de Santa Ermida · Ordem Paranormal II')).toBeDefined();
+    expect(
+      within(topo).getByRole('link', { name: 'Voltar para Personagens' }).getAttribute('href'),
+    ).toBe('/personagens');
+
+    fireEvent.click(within(topo).getByRole('button', { name: 'Editar a ficha de Davi' }));
+    expect(await screen.findByText('Editando a ficha de Davi')).toBeDefined();
+    // Na edição, volta o cabeçalho do app e a barra principal.
+    expect(screen.queryByRole('navigation', { name: 'Partes da ficha' })).toBeNull();
+  });
+
+  it('a barra de baixo troca a barra do app: Ficha, Itens, Pistas e Mesa', async () => {
+    await abrirDavi();
+    expect(screen.getAllByRole('navigation', { name: 'Principal' })).toHaveLength(1);
+    expect(
+      within(barra())
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Ficha', 'Itens', 'Pistas']);
+    expect(within(barra()).getByRole('link', { name: 'Mesa' }).getAttribute('href')).toBe(
+      '/campanhas/cmp_1/mesa',
+    );
+
+    fireEvent.click(within(barra()).getByRole('button', { name: 'Pistas' }));
+    expect(screen.getByRole('tab', { name: /Pistas/ }).getAttribute('aria-selected')).toBe('true');
+    expect(
+      within(barra()).getByRole('button', { name: 'Pistas' }).getAttribute('aria-current'),
+    ).toBe('true');
+  });
+
+  it('sem caso, Mesa fica desligada', async () => {
+    await abrirDavi({}, {}, { campanhaId: null, campanha: null });
+    expect(within(barra()).getByRole('button', { name: 'Mesa' })).toHaveProperty('disabled', true);
+  });
+});
