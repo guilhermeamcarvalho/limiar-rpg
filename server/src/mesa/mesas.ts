@@ -59,6 +59,12 @@ export class Mesas {
     return this.#mesas.get(campanhaId);
   }
 
+  /** O caso foi excluído: a mesa sai da memória, sem salvar o que estava pendente. */
+  descartar(campanhaId: string) {
+    this.#agendador.cancelar(campanhaId);
+    this.#mesas.delete(campanhaId);
+  }
+
   /** Os casos cuja mesa em memória usa o arquivo (mapa, token ou prop), salvo ou não. */
   casosQueUsam(nome: string): string[] {
     const casos: string[] = [];

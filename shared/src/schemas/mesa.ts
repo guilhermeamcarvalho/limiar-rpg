@@ -474,6 +474,8 @@ export type EventoDaMesaSemSeq =
   | { type: 'mesa.estado'; estado: VisaoDaMesa }
   | { type: 'presence.changed'; online: PresencaNaMesa[] }
   | { type: 'character.changed'; campanhaId: string; personagemId: string; removido: boolean }
+  /** O mestre excluiu o caso: a mesa fecha para todos. */
+  | EventoCasoExcluido
   | { type: 'token.moved'; tokenId: string; x: number; y: number }
   /** Posição durante o arrasto: não grava. */
   | { type: 'token.dragging'; tokenId: string; x: number; y: number }
@@ -517,6 +519,12 @@ export type EventoDaMesaSemSeq =
 /** Todo evento leva o número de sequência da mesa: chegam e se aplicam nessa ordem. */
 export type EventoDaMesa = EventoDaMesaSemSeq & { seq: number };
 export type TipoDeEvento = EventoDaMesa['type'];
+
+/** Vem de uma rota HTTP (DELETE /campanhas/:id) e vai para a sala antes de ela fechar. */
+export interface EventoCasoExcluido {
+  type: 'campaign.deleted';
+  campanhaId: string;
+}
 
 /* ---------- Socket.IO ---------- */
 

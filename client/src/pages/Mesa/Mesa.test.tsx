@@ -73,6 +73,14 @@ vi.mock('../../mesa/Palco.tsx', () => ({
 }));
 
 const socket = () => falso.sockets.at(-1) as SocketFalso;
+
+/** A página aparece antes de o efeito abrir a conexão: espera o socket existir. */
+async function conexaoAberta() {
+  await screen.findByText('Conectando à mesa…');
+  await waitFor(() => {
+    expect(falso.sockets.length).toBeGreaterThan(0);
+  });
+}
 const palco = () => falso.palco as PalcoProps;
 
 const MAPA = {
@@ -124,7 +132,7 @@ function abrirMesa(rotas: Parameters<typeof servidor>[0] = {}) {
 /** Abre a mesa, conecta e recebe o estado. */
 async function naMesa(estado: VisaoDaMesa, rotas: Parameters<typeof servidor>[0] = {}) {
   const chamadas = abrirMesa(rotas);
-  await screen.findByText('Conectando à mesa…');
+  await conexaoAberta();
   socket().conectar();
   socket().receber({ type: 'mesa.estado', estado, seq: 1 });
   return chamadas;
@@ -151,7 +159,7 @@ describe('conexão', () => {
 
   it('recusada pelo servidor: diz por quê e leva de volta à Central', async () => {
     abrirMesa();
-    await screen.findByText('Conectando à mesa…');
+    await conexaoAberta();
     socket().disparar(
       'connect_error',
       Object.assign(new Error('x'), {
@@ -340,5 +348,19 @@ describe('eventos', () => {
     socket().receber({ type: 'map.activated', mapa: porao, seq: 2 });
     socket().receber({ type: 'mesa.estado', estado: visao({ mapa: porao }), seq: 2 });
     expect(await screen.findByText('Porão')).toBeDefined();
+  });
+});
+
+describe('caso excluído com a mesa aberta', () => {
+  it('avisa que o mestre excluiu o caso, mesmo com a queda logo depois', async () => {
+    await naMesa(visao());
+    await screen.findByTestId('palco');
+    socket().receber({ type: 'campaign.deleted', campanhaId: 'cmp_1', seq: 2 });
+    socket().disparar('disconnect', 'io server disconnect');
+    expect(await screen.findByText('Caso excluído')).toBeDefined();
+    expect(
+      screen.getByText('O mestre excluiu este caso. A mesa foi fechada para todos.'),
+    ).toBeDefined();
+    expect(screen.queryByText('Conexão perdida. Tentando voltar…')).toBeNull();
   });
 });

@@ -120,6 +120,16 @@ export const esquemaEdicaoDeCampanha = z
   .partial()
   .refine((d) => Object.keys(d).length > 0, { error: 'Nada para mudar.' });
 
+/** DELETE /campanhas/:id: o nome do caso, digitado para confirmar. O servidor confere. */
+export const esquemaExclusaoDeCampanha = z
+  .object({ nome: z.string({ error: 'Digite o nome do caso para confirmar.' }).max(200) })
+  .strict();
+export type ExclusaoDeCampanha = z.input<typeof esquemaExclusaoDeCampanha>;
+
+/** O nome digitado confere com o do caso (sem diferença de espaços nas pontas). */
+export const confirmaExclusao = (digitado: string, nomeDoCaso: string) =>
+  digitado.trim() === nomeDoCaso.trim();
+
 export type NovaCampanha = z.input<typeof esquemaNovaCampanha>;
 export type EdicaoDeCampanha = z.input<typeof esquemaEdicaoDeCampanha>;
 

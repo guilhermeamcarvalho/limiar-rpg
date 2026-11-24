@@ -8,6 +8,7 @@ import { campaigns, gameSystems, memberships } from '../../db/schema.ts';
 import { exigirLogin, usuarioLogado } from '../auth/sessao.ts';
 import { inserirConvite } from '../convites/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
+import { rotaExcluir } from './excluir.ts';
 import { rotaMeuPersonagem } from './meu-personagem.ts';
 import {
   campanhaVisivel,
@@ -131,6 +132,7 @@ export const rotas: FastifyPluginAsync = (app) => {
   });
 
   rotaMeuPersonagem(app);
+  rotaExcluir(app);
 
   return Promise.resolve();
 };
