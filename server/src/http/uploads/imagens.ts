@@ -127,6 +127,22 @@ export async function converterMapa(
   }
 }
 
+/** O prop do mestre: até 1024 px no lado maior, em WebP, mantendo o fundo transparente. */
+export const LADO_MAXIMO_DO_PROP = 1024;
+
+export async function converterProp(entrada: Buffer): Promise<Buffer> {
+  await conferir(entrada);
+  try {
+    return await sharp(entrada, { limitInputPixels: PIXELS_MAXIMOS })
+      .autoOrient()
+      .resize(LADO_MAXIMO_DO_PROP, LADO_MAXIMO_DO_PROP, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: QUALIDADE, alphaQuality: 100 })
+      .toBuffer();
+  } catch {
+    throw NAO_E_IMAGEM;
+  }
+}
+
 /** Grava a imagem convertida em `pasta` e devolve o nome (`<hash>.webp`). */
 export async function salvarImagem(pasta: string, imagem: Buffer): Promise<string> {
   const nome = `${createHash('sha256').update(imagem).digest('hex')}.webp`;
@@ -150,7 +166,8 @@ export async function apagarSeLivre(
   nome: string | null,
   naMesa: (nome: string) => boolean,
 ) {
-  if (!nome || naMesa(nome)) return;
+  // Prop pronto (`pronto:caixote`) não é arquivo: não há o que apagar.
+  if (!nome || !NOME_DE_ARQUIVO.test(nome) || naMesa(nome)) return;
   const usos = [
     db
       .select({ id: characters.id })

@@ -200,3 +200,105 @@
   border: 1px solid var(--line-2);
   object-fit: cover;
 }
+
+/* Escolhendo um ponto no mapa ("Trazer o grupo"). */
+.palco[data-escolhendo] {
+  cursor: crosshair;
+}
+
+/* A barra do token ou prop selecionado, sobre ele no mapa. */
+.barra-do-item {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding: 4px;
+  transform: translateX(-50%);
+  border: 1px solid var(--red);
+  background: var(--panel);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+}
+
+.barra-do-item .tbtn {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+.barra-nome {
+  max-width: 140px;
+  padding: 0 8px;
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+}
+
+.mesa-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--av-npc);
+  color: var(--white);
+  font: 900 11px var(--f-ui);
+}
+
+.mesa-arquivo {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.props-prontos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.prop-pronto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  padding: 8px 4px;
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.prop-pronto:hover {
+  border-color: var(--red);
+}
+
+.prop-pronto:focus-visible {
+  outline: 2px solid var(--focus-ring);
+}
+
+.prop-pronto img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/* Dica flutuante sobre o mapa, abaixo da barra de ferramentas (como escolher um ponto). */
+.mesa-dica {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  z-index: 7;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 6px 6px 14px;
+  transform: translateX(-50%);
+  border: 1px solid var(--gold-dark);
+  background: var(--panel-glass);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+}

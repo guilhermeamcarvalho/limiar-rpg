@@ -17,7 +17,13 @@ import { maps, props, tokens } from '../../db/schema.ts';
 import { usuarioLogado } from '../auth/sessao.ts';
 import { campanhaVisivel } from '../campanhas/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
-import { apagarSeLivre, converterImagem, converterMapa, salvarImagem } from './imagens.ts';
+import {
+  apagarSeLivre,
+  converterImagem,
+  converterMapa,
+  converterProp,
+  salvarImagem,
+} from './imagens.ts';
 import { lerMultipart } from './multipart.ts';
 
 type PedidoDoCaso = FastifyRequest<{ Params: { id: string } }>;
@@ -181,14 +187,20 @@ export function rotasDeMapas(app: FastifyInstance) {
     },
   );
 
-  // Soltar uma imagem sobre o mapa (RF-24): aqui ela vira o arquivo do token; quem soltou manda
-  // em seguida o `token.create` (mestre) ou o `token.update` do próprio token (jogador).
+  // Imagens da mesa. Token (RF-24): quem soltou manda em seguida o `token.create` (mestre) ou o
+  // `token.update` do próprio token (jogador). Prop (RF-20): só o mestre; depois, o `prop.create`.
   app.post<{ Params: { id: string } }>('/campanhas/:id/imagens', async (request, reply) => {
-    casoDe(app, request);
+    const { usuario, comMembros } = casoDe(app, request);
     const envio = await lerMultipart(request, { grandeDemais: IMAGEM_GRANDE });
-    validar(esquemaDaImagem, envio.campos);
+    const { uso } = validar(esquemaDaImagem, envio.campos);
+    if (uso === 'prop' && !podeConduzirMesa(usuario, comMembros)) {
+      throw new ErroDaApi(403, 'SO_O_MESTRE', 'Só o mestre põe props na mesa.');
+    }
     if (!envio.arquivo || envio.arquivo.length === 0) throw SEM_ARQUIVO;
-    const imagem = await converterImagem(envio.arquivo, 'token');
+    const imagem =
+      uso === 'prop'
+        ? await converterProp(envio.arquivo)
+        : await converterImagem(envio.arquivo, 'token');
     const nome = await salvarImagem(app.config.UPLOADS_DIR, imagem);
     return reply.status(201).send({ nome });
   });

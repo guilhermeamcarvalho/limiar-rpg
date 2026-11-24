@@ -146,3 +146,29 @@ describe('aplicarEvento', () => {
     expect(mesa.visao).toBeNull();
   });
 });
+
+describe('props no arrasto', () => {
+  it('o arrasto do mestre aparece para os outros e some quando o prop muda', () => {
+    const prop = {
+      id: 'prp_1',
+      imagem: 'pronto:caixote',
+      x: 10,
+      y: 10,
+      tamanho: 1,
+      rotacao: 0,
+      travado: false,
+      ordem: 0,
+    };
+    let mesa = aplicar(comEstado(), { type: 'prop.changed', propId: 'prp_1', prop, seq: 6 });
+    mesa = aplicar(mesa, { type: 'prop.dragging', propId: 'prp_1', x: 40, y: 50, seq: 7 });
+    expect(mesa.arrastando).toEqual({ prp_1: { x: 40, y: 50 } });
+    mesa = aplicar(mesa, {
+      type: 'prop.changed',
+      propId: 'prp_1',
+      prop: { ...prop, x: 60, y: 70 },
+      seq: 8,
+    });
+    expect(mesa.arrastando).toEqual({});
+    expect(mesa.visao?.props[0]).toMatchObject({ x: 60, y: 70 });
+  });
+});

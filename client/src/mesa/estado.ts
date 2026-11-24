@@ -9,7 +9,7 @@ export interface MesaNoCliente {
   /** O número do último evento aplicado. */
   seq: number;
   online: PresencaNaMesa[];
-  /** Tokens no meio de um arrasto (de outra pessoa): a posição provisória, que não grava. */
+  /** Tokens e props no meio de um arrasto de outra pessoa: a posição provisória, que não grava. */
   arrastando: Record<string, { x: number; y: number }>;
 }
 
@@ -67,10 +67,17 @@ export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNo
         arrastando: semArrasto(mesa.arrastando, evento.tokenId),
         visao: { ...visao, tokens: trocar(visao.tokens, evento.tokenId, evento.token) },
       };
+    case 'prop.dragging':
+      return {
+        ...mesa,
+        seq,
+        arrastando: { ...mesa.arrastando, [evento.propId]: { x: evento.x, y: evento.y } },
+      };
     case 'prop.changed':
       return {
         ...mesa,
         seq,
+        arrastando: semArrasto(mesa.arrastando, evento.propId),
         visao: {
           ...visao,
           props: trocar(visao.props, evento.propId, evento.prop).sort((a, b) => a.ordem - b.ordem),

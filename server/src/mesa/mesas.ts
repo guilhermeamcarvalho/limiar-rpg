@@ -9,6 +9,7 @@ import {
   lerEstadoSalvo,
   lerEstadosSalvos,
   lerMapa,
+  personagensDoGrupo,
   registrarEventos,
   ultimoSeqRegistrado,
   type EstadoSalvo,
@@ -104,6 +105,7 @@ export class Mesas {
       {
         membros: () => membrosDe(db, campanhaId),
         personagem: (personagemId) => donoDoPersonagemNoCaso(db, campanhaId, personagemId),
+        grupo: () => personagensDoGrupo(db, campanhaId),
         mapa: (mapaId) => lerMapa(db, campanhaId, mapaId),
         guardarMapa: (estado) => {
           gravarMapa(db, estado);

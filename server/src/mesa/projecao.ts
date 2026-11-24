@@ -135,6 +135,7 @@ function projetarParaJogador(
     case 'character.changed':
     case 'campaign.deleted':
     case 'prop.changed':
+    case 'prop.dragging':
     case 'map.activated':
     case 'map.changed':
     case 'test.resolved':

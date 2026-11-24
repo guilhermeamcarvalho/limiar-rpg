@@ -19,6 +19,23 @@ const coordenada = z
   .min(0, { error: 'A posição não pode ser negativa.' })
   .max(LIMITE_DO_MAPA, { error: 'A posição está fora do mapa.' });
 const arquivo = z.string().regex(NOME_DE_ARQUIVO, { error: 'Use uma imagem enviada pelo app.' });
+
+/** Os props prontos do app (RF-20): desenhos que vêm com o client, sem upload. */
+export const PROPS_PRONTOS = [
+  { id: 'pronto:caixote', nome: 'Caixote' },
+  { id: 'pronto:contorno', nome: 'Contorno' },
+  { id: 'pronto:papel', nome: 'Papel' },
+  { id: 'pronto:mancha', nome: 'Mancha' },
+  { id: 'pronto:radio', nome: 'Rádio' },
+] as const;
+export type IdDePropPronto = (typeof PROPS_PRONTOS)[number]['id'];
+const IDS_DE_PROPS_PRONTOS: readonly string[] = PROPS_PRONTOS.map((p) => p.id);
+export const ehPropPronto = (imagem: string): imagem is IdDePropPronto =>
+  IDS_DE_PROPS_PRONTOS.includes(imagem);
+/** A imagem de um prop: um dos prontos ou uma enviada pelo mestre. */
+const imagemDeProp = z.string().refine((v) => ehPropPronto(v) || NOME_DE_ARQUIVO.test(v), {
+  error: 'Use um prop pronto ou uma imagem enviada pelo app.',
+});
 const tamanhoDeToken = z
   .int({ error: 'O tamanho vai de 1 a 3.' })
   .min(1, { error: 'O tamanho vai de 1 a 3.' })
@@ -92,12 +109,14 @@ const tokenUpdate = comando('token.update', {
   oculto: z.boolean().optional(),
 }).refine(algumCampo('tokenId'), NADA_PARA_MUDAR);
 const tokenDelete = comando('token.delete', { tokenId: id });
+/** "Trazer o grupo": os tokens dos personagens do grupo vão para perto deste ponto (os que faltam no mapa entram). */
+const tokenGather = comando('token.gather', { x: coordenada, y: coordenada });
 
 // Props: imagens sobre o mapa. `tamanho` em células, `rotacao` em graus.
 const tamanhoDeProp = z.number().gt(0).max(20, { error: 'No máximo 20 células.' });
 const rotacao = z.number().min(0).lt(360, { error: 'A rotação vai de 0 a 359 graus.' });
 const propCreate = comando('prop.create', {
-  imagem: arquivo,
+  imagem: imagemDeProp,
   x: coordenada,
   y: coordenada,
   tamanho: tamanhoDeProp.optional(),
@@ -113,6 +132,8 @@ const propUpdate = comando('prop.update', {
   ordem: z.int().min(0).max(10_000).optional(),
 }).refine(algumCampo('propId'), NADA_PARA_MUDAR);
 const propDelete = comando('prop.delete', { propId: id });
+/** Posição do prop durante o arrasto do mestre: não grava (como o token). */
+const propDrag = comando('prop.drag', { propId: id, x: coordenada, y: coordenada });
 
 // Névoa: cobrir e revelar empilham formas; a última que contém o ponto decide.
 const fogAdd = comando('fog.add', { forma: esquemaFormaDaNevoa });
@@ -217,9 +238,11 @@ export const esquemaComando = z.discriminatedUnion(
     tokenCreate,
     tokenUpdate,
     tokenDelete,
+    tokenGather,
     propCreate,
     propUpdate,
     propDelete,
+    propDrag,
     fogAdd,
     fogReveal,
     fogRemove,
@@ -482,6 +505,8 @@ export type EventoDaMesaSemSeq =
   /** Criado, mudado ou (com `token: null`) removido; ou sumiu da vista de quem recebe. */
   | { type: 'token.changed'; tokenId: string; token: TokenNaMesa | null }
   | { type: 'prop.changed'; propId: string; prop: PropNaMesa | null }
+  /** Posição do prop durante o arrasto: não grava. */
+  | { type: 'prop.dragging'; propId: string; x: number; y: number }
   | { type: 'fog.changed'; nevoa: AreaDaNevoa[] }
   /** Troca de mapa: logo depois, cada um recebe um `mesa.estado` com o mapa novo inteiro. */
   | { type: 'map.activated'; mapa: MapaNaMesa | null }
@@ -572,6 +597,9 @@ export interface MapaDoCaso {
   criadoEm: string;
 }
 
-/** As imagens que a mesa recebe além do mapa: hoje, a de um token (soltar sobre o mapa, RF-24). */
-export const USOS_DE_IMAGEM_DA_MESA = ['token'] as const;
+/**
+ * As imagens que a mesa recebe além do mapa: a de um token (vira 256 × 256; soltar sobre o mapa,
+ * RF-24) e a de um prop (até 1024 px, com o fundo transparente; só o mestre).
+ */
+export const USOS_DE_IMAGEM_DA_MESA = ['token', 'prop'] as const;
 export type UsoDeImagemDaMesa = (typeof USOS_DE_IMAGEM_DA_MESA)[number];
