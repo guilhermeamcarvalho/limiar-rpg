@@ -3,7 +3,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import {
   LIMITE_DO_MAPA_ENVIADO,
-  urlDoArquivo,
+  MAPAS_PRONTOS,
   type ComandoDaMesa,
   type GradeDoMapa,
   type MapaDoCaso,
@@ -11,6 +11,7 @@ import {
   type RespostaDoComando,
 } from '@membrana/shared';
 import { ErroDaApi, pedir } from '../auth/api.ts';
+import { urlDaImagem } from './prontos.ts';
 import {
   Async,
   Button,
@@ -112,7 +113,7 @@ function MapaNaLista({
   const apagar = useEnvio(aoApagar);
   return (
     <li className="mapa-na-lista">
-      <img className="mapa-miniatura" src={urlDoArquivo(mapa.imagem)} alt="" loading="lazy" />
+      <img className="mapa-miniatura" src={urlDaImagem(mapa.imagem)} alt="" loading="lazy" />
       <div className="mapa-info">
         <b title={mapa.nome}>{mapa.nome}</b>
         <div className="small muted">
@@ -134,6 +135,33 @@ function MapaNaLista({
           />
         </div>
       )}
+    </li>
+  );
+}
+
+function MapaPronto({
+  pronto,
+  aoUsar,
+}: {
+  pronto: (typeof MAPAS_PRONTOS)[number];
+  aoUsar: () => Promise<void>;
+}) {
+  const usar = useEnvio(aoUsar);
+  return (
+    <li className="mapa-pronto">
+      <img src={urlDaImagem(pronto.id)} alt="" loading="lazy" />
+      <div className="mapa-info">
+        <b title={pronto.nome}>{pronto.nome}</b>
+        <div className="small muted">{pronto.descricao}</div>
+      </div>
+      <Button
+        size="sm"
+        loading={usar.enviando}
+        aria-label={`Usar o mapa ${pronto.nome}`}
+        onClick={() => void usar.enviar()}
+      >
+        Usar
+      </Button>
     </li>
   );
 }
@@ -165,6 +193,23 @@ export function MapaUpload({ campanhaId, mapaNaMesa, enviar }: Props) {
   async function usar(mapa: MapaDoCaso) {
     const r = await enviar({ type: 'map.activate', mapaId: mapa.id });
     if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para trocar o mapa', text: r.motivo });
+  }
+
+  /** Mapa pronto (RF-14): entra no caso (ou volta, se já estava) e vai para a mesa. */
+  async function usarPronto(id: string) {
+    let mapa: MapaDoCaso;
+    try {
+      ({ mapa } = await pedir<{ mapa: MapaDoCaso }>(`${caminho}/prontos`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id }),
+      }));
+    } catch (erro) {
+      avisos.show({ type: 'err', title: 'Não deu para usar o mapa', text: mensagem(erro) });
+      return;
+    }
+    mapas.mudar((lista) => (lista.some((m) => m.id === mapa.id) ? lista : [mapa, ...lista]));
+    await usar(mapa);
   }
 
   async function apagar(mapa: MapaDoCaso) {
@@ -235,6 +280,15 @@ export function MapaUpload({ campanhaId, mapaNaMesa, enviar }: Props) {
             </ul>
           )}
         </Async>
+      </section>
+
+      <section aria-label="Mapas prontos" className="col" style={{ gap: 8 }}>
+        <span className="lab">Mapas prontos</span>
+        <ul className="mesa-mapas">
+          {MAPAS_PRONTOS.map((pronto) => (
+            <MapaPronto key={pronto.id} pronto={pronto} aoUsar={() => usarPronto(pronto.id)} />
+          ))}
+        </ul>
       </section>
     </div>
   );

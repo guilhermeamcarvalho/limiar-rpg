@@ -11,7 +11,11 @@ import { criarLimitador, dentroDoMapa, rotacaoNormal, tamanhoDoProp } from './in
 import { useImagem } from './useImagem.ts';
 
 /** Largura e altura do prop: `tamanho` células de largura, na proporção da imagem. */
-export function medidasDoProp(prop: PropNaMesa, celula: number, imagem: HTMLImageElement) {
+export function medidasDoProp(
+  prop: PropNaMesa,
+  celula: number,
+  imagem: { width: number; height: number },
+) {
   const largura = prop.tamanho * celula;
   return { largura, altura: (largura * imagem.height) / Math.max(1, imagem.width) };
 }

@@ -1,12 +1,14 @@
-// Mapas do caso (RF-14) e a imagem de token solta sobre o mapa (RF-24). Registradas pelo plugin de
-// uploads (index.ts), com o prefixo /api e login exigido.
+// Mapas do caso (RF-14), enviados ou prontos, e as imagens da mesa (token, RF-24; prop, RF-20).
+// Registradas pelo plugin de uploads (index.ts), com o prefixo /api e login exigido.
 // Trocar o mapa da mesa não passa por aqui: é o comando `map.activate`, para todos ao mesmo tempo.
 import { basename, extname } from 'node:path';
 import { and, desc, eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
+  ehMapaPronto,
   GRADE_PADRAO,
+  MAPAS_PRONTOS,
   LIMITE_DA_IMAGEM,
   LIMITE_DO_MAPA_ENVIADO,
   podeConduzirMesa,
@@ -62,6 +64,10 @@ const esquemaDoMapa = z
   })
   .strict();
 
+const esquemaDoMapaPronto = z
+  .object({ id: z.string({ error: 'Escolha um dos mapas prontos.' }).max(60) })
+  .strict();
+
 const esquemaDaImagem = z
   .object({ uso: z.enum(USOS_DE_IMAGEM_DA_MESA, { error: 'Diga para que é a imagem.' }) })
   .strict();
@@ -115,6 +121,40 @@ export function rotasDeMapas(app: FastifyInstance) {
       .orderBy(desc(maps.criadoEm), desc(maps.id))
       .all();
     return { mapas: linhas.map((l) => paraApi(l, naMesa)) };
+  });
+
+  // Mapa pronto do site (RF-14): entra no caso com a grade que bate com o desenho. Usar o mesmo
+  // pronto de novo devolve o que o caso já tem (com os tokens, props e névoa dele).
+  app.post<{ Params: { id: string } }>('/campanhas/:id/mapas/prontos', (request, reply) => {
+    exigirMestre(app, request);
+    const { id } = validar(esquemaDoMapaPronto, request.body ?? {});
+    const pronto = ehMapaPronto(id) ? MAPAS_PRONTOS.find((m) => m.id === id) : undefined;
+    if (!pronto) {
+      throw new ErroDaApi(400, 'DADOS_INVALIDOS', 'Confira os campos destacados.', {
+        id: 'Escolha um dos mapas prontos.',
+      });
+    }
+    const campanhaId = request.params.id;
+    const naMesa = idDoMapaNaMesa(app, campanhaId);
+    const existente = app.db
+      .select()
+      .from(maps)
+      .where(and(eq(maps.campaignId, campanhaId), eq(maps.imagem, pronto.id)))
+      .get();
+    if (existente) return reply.status(200).send({ mapa: paraApi(existente, naMesa) });
+    const linha = app.db
+      .insert(maps)
+      .values({
+        campaignId: campanhaId,
+        nome: pronto.nome,
+        imagem: pronto.id,
+        largura: pronto.largura,
+        altura: pronto.altura,
+        grade: { ...GRADE_PADRAO, celula: pronto.celula },
+      })
+      .returning()
+      .get();
+    return reply.status(201).send({ mapa: paraApi(linha, naMesa) });
   });
 
   app.post<{ Params: { id: string } }>('/campanhas/:id/mapas', async (request, reply) => {

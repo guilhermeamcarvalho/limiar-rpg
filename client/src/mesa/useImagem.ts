@@ -1,7 +1,8 @@
-// Carrega uma imagem (mapa, token, prop enviado ou pronto) para o canvas. O nome é o hash do conteúdo: a
-// mesma imagem nunca muda, então fica guardada enquanto a página estiver aberta.
+// Carrega uma imagem (mapa, token, prop; enviada ou pronta) para o canvas. A imagem de um nome
+// nunca muda (o enviado tem o hash do conteúdo no nome; o pronto vem com o app), então fica
+// guardada enquanto a página estiver aberta.
 import { useEffect, useState } from 'react';
-import { urlDaImagem } from './props-prontos/index.ts';
+import { urlDaImagem } from './prontos.ts';
 
 const carregadas = new Map<string, HTMLImageElement>();
 

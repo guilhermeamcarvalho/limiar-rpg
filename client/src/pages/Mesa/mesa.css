@@ -254,12 +254,6 @@
   white-space: nowrap;
 }
 
-.props-prontos {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
 .prop-pronto {
   display: flex;
   flex-direction: column;
@@ -301,4 +295,68 @@
   background: var(--panel-glass);
   box-shadow: var(--shadow-md);
   white-space: nowrap;
+}
+
+/* Seletor de arte pronta (props e modelos de NPC): categorias e grade com miniaturas. */
+.prontos-categorias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prontos-categorias .chip {
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.prontos-categorias .chip.on {
+  border-color: var(--red);
+  background: var(--red-a18);
+  color: var(--text);
+}
+
+.prontos-grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: 340px;
+  overflow: auto;
+}
+
+.prop-pronto.on {
+  border-color: var(--red);
+  background: var(--red-a18);
+}
+
+.prop-pronto img.redondo {
+  border-radius: 50%;
+}
+
+.modelo-escolhido {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+/* Mapas prontos: miniatura larga, nome e descrição. */
+.mapa-pronto {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.mapa-pronto:last-child {
+  border-bottom: 0;
+}
+
+.mapa-pronto img {
+  flex: none;
+  width: 84px;
+  height: 56px;
+  border: 1px solid var(--line-2);
+  object-fit: cover;
 }

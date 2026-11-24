@@ -1,8 +1,16 @@
 // Ferramenta "Tokens e NPCs" do mestre (RF-18, RF-19): traz o grupo para um ponto do mapa, cria
-// NPCs (com nome, imagem e tamanho; ocultos ou não) e lista o que está no mapa, com ocultar,
+// NPCs (com nome, tamanho e a arte de um modelo pronto ou uma imagem enviada; ocultos ou não) e
+// lista o que está no mapa, com ocultar,
 // revelar e remover. Tamanho e imagem de um token também mudam pela barra dele, no mapa.
 import { useRef, useState, type RefObject } from 'react';
-import type { ComandoDaMesa, RespostaDoComando, TokenNaMesa, VisaoDaMesa } from '@membrana/shared';
+import {
+  CATEGORIAS_DE_NPCS,
+  NPCS_PRONTOS,
+  type ComandoDaMesa,
+  type RespostaDoComando,
+  type TokenNaMesa,
+  type VisaoDaMesa,
+} from '@membrana/shared';
 import { iniciais } from '../../casos/formatos.ts';
 import {
   Button,
@@ -16,6 +24,11 @@ import {
 } from '../../ui/index.ts';
 import type { Ponto } from '../camera.ts';
 import { enviarImagemDaMesa } from '../imagens.ts';
+import { pontoLivre } from '../interacao.ts';
+import { urlDaImagem } from '../prontos.ts';
+import { SeletorDePronto } from './SeletorDePronto.tsx';
+
+const nomeDoModelo = (id: string | null) => NPCS_PRONTOS.find((n) => n.id === id)?.nome ?? '';
 
 interface Props {
   campanhaId: string;
@@ -32,21 +45,34 @@ function NovoNpc({
   campanhaId,
   enviar,
   centroRef,
-}: Pick<Props, 'campanhaId' | 'enviar' | 'centroRef'>) {
+  visao,
+}: Pick<Props, 'campanhaId' | 'enviar' | 'centroRef' | 'visao'>) {
   const avisos = useToast();
   const arquivo = useRef<HTMLInputElement>(null);
   const [nome, setNome] = useState('');
   const [tamanho, setTamanho] = useState('1');
   const [oculto, setOculto] = useState(false);
   const [imagem, setImagem] = useState<File | null>(null);
+  const [modelo, setModelo] = useState<string | null>(null);
+  const [escolhendoModelo, setEscolhendoModelo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+
+  /** O modelo dá a arte e, se o nome estiver vazio (ou ainda for o do modelo anterior), o nome. */
+  function escolherModelo(id: string) {
+    const anterior = nomeDoModelo(modelo);
+    setModelo(id);
+    setImagem(null);
+    setEscolhendoModelo(false);
+    if (!nome.trim() || nome === anterior) setNome(nomeDoModelo(id));
+    setErro(null);
+  }
 
   const criar = useEnvio(async () => {
     if (!nome.trim()) {
       setErro('Dê um nome.');
       return;
     }
-    let nomeDaImagem: string | undefined;
+    let nomeDaImagem: string | undefined = modelo ?? undefined;
     if (imagem) {
       const envio = await enviarImagemDaMesa(campanhaId, imagem, 'token');
       if (!envio.ok) {
@@ -55,7 +81,8 @@ function NovoNpc({
       }
       nomeDaImagem = envio.nome;
     }
-    const ponto = centroRef.current ?? { x: 0, y: 0 };
+    const centro = centroRef.current ?? { x: 0, y: 0 };
+    const ponto = visao.mapa ? pontoLivre(centro, visao.tokens, visao.mapa) : centro;
     const r = await enviar({
       type: 'token.create',
       nome: nome.trim(),
@@ -69,7 +96,8 @@ function NovoNpc({
       return;
     }
     avisos.show({ type: 'ok', title: 'NPC no mapa', text: nome.trim() });
-    setNome('');
+    // O modelo continua escolhido: dá para pôr vários (três cultistas) em seguida.
+    setNome(nomeDoModelo(modelo));
     setImagem(null);
     setErro(null);
   });
@@ -124,10 +152,39 @@ function NovoNpc({
         hidden
         aria-label="Imagem do NPC"
         onChange={(e) => {
-          setImagem(e.target.files?.[0] ?? null);
+          const escolhido = e.target.files?.[0] ?? null;
           e.target.value = '';
+          setImagem(escolhido);
+          if (escolhido) {
+            if (nome === nomeDoModelo(modelo)) setNome('');
+            setModelo(null);
+          }
         }}
       />
+      <div className="row" style={{ gap: 8 }}>
+        {modelo && <img className="modelo-escolhido" src={urlDaImagem(modelo)} alt="" />}
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<Icon name="users" size="sm" />}
+          aria-expanded={escolhendoModelo}
+          onClick={() => {
+            setEscolhendoModelo((aberto) => !aberto);
+          }}
+        >
+          {modelo ? `Modelo: ${nomeDoModelo(modelo)}` : 'Escolher modelo'}
+        </Button>
+      </div>
+      {escolhendoModelo && (
+        <SeletorDePronto
+          itens={NPCS_PRONTOS}
+          categorias={CATEGORIAS_DE_NPCS}
+          rotulo="Modelos de NPC"
+          escolhido={modelo}
+          aoEscolher={escolherModelo}
+          redondo
+        />
+      )}
       <div className="row" style={{ gap: 8 }}>
         <Button
           size="sm"
@@ -135,7 +192,7 @@ function NovoNpc({
           icon={<Icon name="image" size="sm" />}
           onClick={() => arquivo.current?.click()}
         >
-          {imagem ? 'Trocar imagem' : 'Imagem (opcional)'}
+          {imagem ? 'Trocar imagem' : 'Enviar imagem'}
         </Button>
         {imagem && <span className="small muted mesa-arquivo">{imagem.name}</span>}
       </div>
@@ -208,7 +265,7 @@ export function Npcs({ campanhaId, visao, enviar, centroRef, nomes, aoTrazerGrup
         </p>
       </div>
 
-      <NovoNpc campanhaId={campanhaId} enviar={enviar} centroRef={centroRef} />
+      <NovoNpc campanhaId={campanhaId} enviar={enviar} centroRef={centroRef} visao={visao} />
 
       <section aria-label="Tokens no mapa" className="col" style={{ gap: 8 }}>
         <span className="lab">No mapa</span>

@@ -23,3 +23,4 @@ export * from './regras/dados.ts';
 export * from './regras/op2/index.ts';
 export * from './schemas/mesa.ts';
 export * from './mesa/nevoa.ts';
+export * from './mesa/prontos.ts';

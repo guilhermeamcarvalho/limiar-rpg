@@ -4,6 +4,7 @@
 //   GET    /api/arquivos/:nome                  entrega a imagem a quem é do caso (arquivos.ts)
 //   GET    /api/campanhas/:id/mapas              os mapas do caso (mestre; mapa.ts)
 //   POST   /api/campanhas/:id/mapas              envia um mapa (multipart, até 20 MB)
+//   POST   /api/campanhas/:id/mapas/prontos      põe um mapa pronto do site no caso
 //   DELETE /api/campanhas/:id/mapas/:mapaId      apaga um mapa que não está na mesa
 //   POST   /api/campanhas/:id/imagens            imagem de token solta sobre o mapa (RF-24)
 import { readFile } from 'node:fs/promises';

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type {
   ComandoDaMesa,
   MapaNaMesa,
@@ -176,5 +176,18 @@ describe('barra do prop', () => {
   it('o nome do prop pronto; imagem enviada aparece como "Imagem"', () => {
     expect(nomeDoProp(prop())).toBe('Caixote');
     expect(nomeDoProp(prop({ imagem: `${'a'.repeat(64)}.webp` }))).toBe('Imagem');
+  });
+});
+
+describe('modelo pronto na barra do token', () => {
+  it('o dono escolhe um modelo e ele vira a imagem do token', () => {
+    const { comandos, enviar } = comEnvio();
+    render(barraDoToken(token(), false, enviar));
+    fireEvent.click(screen.getByRole('button', { name: 'Escolher modelo' }));
+    const janela = screen.getByRole('dialog', { name: 'Modelo para Davi' });
+    fireEvent.click(within(janela).getByRole('button', { name: 'Criaturas' }));
+    fireEvent.click(within(janela).getByRole('button', { name: 'Escolher Sombra' }));
+    expect(comandos).toEqual([{ type: 'token.update', tokenId: 'tok_1', imagem: 'npc:sombra' }]);
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
