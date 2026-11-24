@@ -8,6 +8,7 @@ import type {
   TokenNaMesa,
   VisaoDaMesa,
 } from '@membrana/shared';
+import { PROPS_PRONTOS } from '@membrana/shared';
 import type { PalcoProps } from '../../mesa/Palco.tsx';
 import { abrir, detalhe, json, MARTA, servidor } from '../../teste/apoio.tsx';
 import { nomeDoArquivoSemExtensao as nomeDoToken } from '../../mesa/imagens.ts';
@@ -459,7 +460,9 @@ describe('ferramentas de tokens e props (mestre)', () => {
     meioDaTela({ x: 100, y: 200 });
     fireEvent.keyDown(window, { key: 'o' });
     const painel = await screen.findByRole('complementary', { name: 'Props' });
-    expect(within(painel).getAllByRole('button', { name: /^Pôr .* no mapa$/ })).toHaveLength(5);
+    expect(within(painel).getAllByRole('button', { name: /^Pôr .* no mapa$/ })).toHaveLength(
+      PROPS_PRONTOS.length,
+    );
     fireEvent.click(within(painel).getByRole('button', { name: 'Pôr Contorno no mapa' }));
     fireEvent.change(within(painel).getByLabelText('Imagem do prop'), {
       target: { files: [new File(['x'], 'caixa.png', { type: 'image/png' })] },
@@ -482,5 +485,73 @@ describe('ferramentas de tokens e props (mestre)', () => {
     await waitFor(() => {
       expect(palco().nomes).toMatchObject({ usr_9: 'Helena Duarte' });
     });
+  });
+});
+
+describe('arte pronta (mestre)', () => {
+  it('NPC de um modelo: o nome vem do modelo e a arte vai no token', async () => {
+    await naMesa(visao({ papel: 'mestre' }));
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 't' });
+    const painel = await screen.findByRole('complementary', { name: 'Tokens e NPCs' });
+    fireEvent.click(within(painel).getByRole('button', { name: 'Escolher modelo' }));
+    const modelos = within(painel).getByRole('group', { name: 'Modelos de NPC' });
+    fireEvent.change(within(modelos).getByRole('searchbox'), { target: { value: 'cultista' } });
+    fireEvent.click(within(modelos).getByRole('button', { name: 'Escolher Cultista' }));
+    expect(within(painel).getByLabelText('Nome')).toHaveProperty('value', 'Cultista');
+    expect(within(painel).getByRole('button', { name: 'Modelo: Cultista' })).toBeDefined();
+
+    fireEvent.click(within(painel).getByRole('button', { name: 'Pôr no mapa' }));
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        {
+          type: 'token.create',
+          nome: 'Cultista',
+          x: 0,
+          y: 0,
+          tamanho: 1,
+          oculto: false,
+          imagem: 'npc:cultista',
+        },
+      ]);
+    });
+    // O modelo continua escolhido para pôr outro igual.
+    expect(within(painel).getByLabelText('Nome')).toHaveProperty('value', 'Cultista');
+  });
+
+  it('nome digitado à mão não é trocado pelo do modelo', async () => {
+    await naMesa(visao({ papel: 'mestre' }));
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 't' });
+    const painel = await screen.findByRole('complementary', { name: 'Tokens e NPCs' });
+    fireEvent.change(within(painel).getByLabelText('Nome'), { target: { value: 'Irmão Caio' } });
+    fireEvent.click(within(painel).getByRole('button', { name: 'Escolher modelo' }));
+    fireEvent.click(within(painel).getByRole('button', { name: 'Escolher Cultista' }));
+    expect(within(painel).getByLabelText('Nome')).toHaveProperty('value', 'Irmão Caio');
+  });
+
+  it('mapa pronto: entra no caso e vai para a mesa', async () => {
+    const porao: MapaDoCaso = {
+      ...MAPA_NA_LISTA,
+      id: 'map_9',
+      nome: 'Porão',
+      imagem: 'mapa:porao',
+    };
+    const chamadas = await naMesa(visao({ papel: 'mestre', mapa: null }), {
+      'GET /api/campanhas/cmp_1/mapas': json(200, { mapas: [] }),
+      'POST /api/campanhas/cmp_1/mapas/prontos': json(201, { mapa: porao }),
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Escolher mapa' }));
+    const painel = await screen.findByRole('complementary', { name: 'Mapa e grade' });
+    const prontos = within(painel).getByRole('region', { name: 'Mapas prontos' });
+    fireEvent.click(within(prontos).getByRole('button', { name: 'Usar o mapa Porão' }));
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([{ type: 'map.activate', mapaId: 'map_9' }]);
+    });
+    expect(chamadas.find((c) => c.url.endsWith('/mapas/prontos'))?.corpo).toEqual({
+      id: 'mapa:porao',
+    });
+    const doCaso = within(painel).getByRole('region', { name: 'Mapas do caso' });
+    expect(await within(doCaso).findByText('Porão')).toBeDefined();
   });
 });

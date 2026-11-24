@@ -6,6 +6,7 @@ import {
   destinoDaSeta,
   girar,
   podeArrastar,
+  pontoLivre,
   proximaOrdem,
   rotacaoNormal,
   rotuloDoToken,
@@ -88,5 +89,30 @@ describe('interações do palco', () => {
     expect(podeArrastar(token(), 'usr_caio', false)).toBe(false);
     expect(podeArrastar(token({ donoId: null }), 'usr_caio', false)).toBe(false);
     expect(podeArrastar(token({ donoId: null }), 'usr_ana', true)).toBe(true);
+  });
+});
+
+describe('pontoLivre', () => {
+  const mapa = {
+    largura: 1000,
+    altura: 800,
+    grade: { celula: 50, deslocamentoX: 0, deslocamentoY: 0 },
+  };
+
+  it('o ponto pedido, se livre; senão, a casa livre mais próxima', () => {
+    expect(pontoLivre({ x: 500, y: 400 }, [], mapa)).toEqual({ x: 500, y: 400 });
+    expect(pontoLivre({ x: 500, y: 400 }, [{ x: 500, y: 400 }], mapa)).toEqual({ x: 450, y: 350 });
+    const ocupados = [
+      { x: 500, y: 400 },
+      { x: 450, y: 350 },
+    ];
+    expect(pontoLivre({ x: 500, y: 400 }, ocupados, mapa)).toEqual({ x: 500, y: 350 });
+  });
+
+  it('não sai do mapa', () => {
+    const p = pontoLivre({ x: 0, y: 0 }, [{ x: 0, y: 0 }], mapa);
+    expect(p.x).toBeGreaterThanOrEqual(0);
+    expect(p.y).toBeGreaterThanOrEqual(0);
+    expect(p).not.toEqual({ x: 0, y: 0 });
   });
 });

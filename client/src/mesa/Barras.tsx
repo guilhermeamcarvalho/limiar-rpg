@@ -1,8 +1,11 @@
 // As barras que aparecem sobre o item selecionado no mapa.
-// Token (RF-18): o mestre e o dono trocam o tamanho e a imagem; só o mestre oculta e remove.
+// Token (RF-18, RF-19): o mestre e o dono trocam o tamanho e a imagem (enviada ou um modelo
+// pronto); só o mestre oculta e remove.
 // Prop (RF-21, artboard 11): girar, duplicar, travar, trazer à frente e remover; só o mestre.
-import { useRef, type CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import {
+  CATEGORIAS_DE_NPCS,
+  NPCS_PRONTOS,
   PROPS_PRONTOS,
   type ComandoDaMesa,
   type MapaNaMesa,
@@ -10,9 +13,10 @@ import {
   type RespostaDoComando,
   type TokenNaMesa,
 } from '@membrana/shared';
-import { cx, Icon, useToast } from '../ui/index.ts';
+import { cx, Icon, Modal, useToast } from '../ui/index.ts';
 import { enviarImagemDaMesa } from './imagens.ts';
 import { dentroDoMapa, girar, proximaOrdem } from './interacao.ts';
+import { SeletorDePronto } from './painel/SeletorDePronto.tsx';
 
 type Enviar = (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
 
@@ -65,6 +69,7 @@ export function BarraDoToken({
   const avisos = useToast();
   const ok = useResposta();
   const arquivo = useRef<HTMLInputElement>(null);
+  const [escolhendoModelo, setEscolhendoModelo] = useState(false);
   const mudar = (
     campos: Omit<Extract<ComandoDaMesa, { type: 'token.update' }>, 'type' | 'tokenId'>,
   ) => void enviar({ type: 'token.update', tokenId: token.id, ...campos }).then(ok);
@@ -104,6 +109,13 @@ export function BarraDoToken({
         }}
       />
       <Botao rotulo="Trocar imagem" icone="image" aoClicar={() => arquivo.current?.click()} />
+      <Botao
+        rotulo="Escolher modelo"
+        icone="users"
+        aoClicar={() => {
+          setEscolhendoModelo(true);
+        }}
+      />
       {mestre && (
         <>
           <Botao
@@ -121,6 +133,25 @@ export function BarraDoToken({
           />
         </>
       )}
+      <Modal
+        open={escolhendoModelo}
+        onClose={() => {
+          setEscolhendoModelo(false);
+        }}
+        title={`Modelo para ${token.nome}`}
+      >
+        <SeletorDePronto
+          itens={NPCS_PRONTOS}
+          categorias={CATEGORIAS_DE_NPCS}
+          rotulo="Modelos de NPC"
+          escolhido={token.imagem}
+          redondo
+          aoEscolher={(id) => {
+            setEscolhendoModelo(false);
+            mudar({ imagem: id });
+          }}
+        />
+      </Modal>
     </div>
   );
 }

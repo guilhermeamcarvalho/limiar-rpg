@@ -4,6 +4,7 @@
 // Comando novo? Entra aqui, no `esquemaComando`; o servidor recusa o que não estiver no contrato.
 import { z } from 'zod';
 import type { Papel } from '../permissoes.ts';
+import { MAPAS_PRONTOS, NPCS_PRONTOS, PROPS_PRONTOS } from '../mesa/prontos.ts';
 import { esquemaPedidoDeTeste, esquemaTesteInformado, type RegistroDeTeste } from './teste-op2.ts';
 
 /** O maior lado de um mapa depois do upload é 4096 px; a folga cobre token na borda. */
@@ -18,20 +19,24 @@ const coordenada = z
   .number({ error: 'A posição precisa ser um número.' })
   .min(0, { error: 'A posição não pode ser negativa.' })
   .max(LIMITE_DO_MAPA, { error: 'A posição está fora do mapa.' });
-const arquivo = z.string().regex(NOME_DE_ARQUIVO, { error: 'Use uma imagem enviada pelo app.' });
 
-/** Os props prontos do app (RF-20): desenhos que vêm com o client, sem upload. */
-export const PROPS_PRONTOS = [
-  { id: 'pronto:caixote', nome: 'Caixote' },
-  { id: 'pronto:contorno', nome: 'Contorno' },
-  { id: 'pronto:papel', nome: 'Papel' },
-  { id: 'pronto:mancha', nome: 'Mancha' },
-  { id: 'pronto:radio', nome: 'Rádio' },
-] as const;
+// A arte pronta do app (props, modelos de NPC e mapas) vem com o client; o servidor só guarda o id.
 export type IdDePropPronto = (typeof PROPS_PRONTOS)[number]['id'];
-const IDS_DE_PROPS_PRONTOS: readonly string[] = PROPS_PRONTOS.map((p) => p.id);
-export const ehPropPronto = (imagem: string): imagem is IdDePropPronto =>
-  IDS_DE_PROPS_PRONTOS.includes(imagem);
+export type IdDeNpcPronto = (typeof NPCS_PRONTOS)[number]['id'];
+export type IdDeMapaPronto = (typeof MAPAS_PRONTOS)[number]['id'];
+const IDS_DE_PROPS: ReadonlySet<string> = new Set(PROPS_PRONTOS.map((p) => p.id));
+const IDS_DE_NPCS: ReadonlySet<string> = new Set(NPCS_PRONTOS.map((n) => n.id));
+const IDS_DE_MAPAS: ReadonlySet<string> = new Set(MAPAS_PRONTOS.map((m) => m.id));
+export const ehPropPronto = (imagem: string): imagem is IdDePropPronto => IDS_DE_PROPS.has(imagem);
+export const ehNpcPronto = (imagem: string): imagem is IdDeNpcPronto => IDS_DE_NPCS.has(imagem);
+export const ehMapaPronto = (imagem: string): imagem is IdDeMapaPronto => IDS_DE_MAPAS.has(imagem);
+/** Arte que vem com o app (não é um arquivo enviado). */
+export const ehImagemPronta = (imagem: string) =>
+  ehPropPronto(imagem) || ehNpcPronto(imagem) || ehMapaPronto(imagem);
+/** A imagem de um token: uma enviada ou um modelo de NPC (RF-19). */
+const imagemDeToken = z.string().refine((v) => ehNpcPronto(v) || NOME_DE_ARQUIVO.test(v), {
+  error: 'Use uma imagem enviada pelo app ou um modelo de NPC.',
+});
 /** A imagem de um prop: um dos prontos ou uma enviada pelo mestre. */
 const imagemDeProp = z.string().refine((v) => ehPropPronto(v) || NOME_DE_ARQUIVO.test(v), {
   error: 'Use um prop pronto ou uma imagem enviada pelo app.',
@@ -93,7 +98,7 @@ const tokenMove = comando('token.move', { tokenId: id, x: coordenada, y: coorden
 const tokenDrag = comando('token.drag', { tokenId: id, x: coordenada, y: coordenada });
 const tokenCreate = comando('token.create', {
   nome: nomeCurto,
-  imagem: arquivo.nullable().optional(),
+  imagem: imagemDeToken.nullable().optional(),
   x: coordenada,
   y: coordenada,
   tamanho: tamanhoDeToken.optional(),
@@ -104,7 +109,7 @@ const tokenCreate = comando('token.create', {
 const tokenUpdate = comando('token.update', {
   tokenId: id,
   nome: nomeCurto.optional(),
-  imagem: arquivo.nullable().optional(),
+  imagem: imagemDeToken.nullable().optional(),
   tamanho: tamanhoDeToken.optional(),
   oculto: z.boolean().optional(),
 }).refine(algumCampo('tokenId'), NADA_PARA_MUDAR);

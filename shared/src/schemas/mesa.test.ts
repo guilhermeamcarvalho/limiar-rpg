@@ -80,11 +80,22 @@ describe('validarComando', () => {
     );
   });
 
-  it('imagem só vale se for um arquivo enviado pelo app', () => {
+  it('imagem do token: um arquivo enviado pelo app ou um modelo de NPC', () => {
     const base = { type: 'token.create', nome: 'Vulto', x: 1, y: 1 };
+    expect(validarComando({ ...base, imagem: 'npc:cultista' }).ok).toBe(true);
+    expect(validarComando({ type: 'token.update', tokenId: 'tok_1', imagem: 'npc:corvo' }).ok).toBe(
+      true,
+    );
+    expect(motivo({ ...base, imagem: 'npc:dragao' })).toBe(
+      'Use uma imagem enviada pelo app ou um modelo de NPC.',
+    );
+    // Prop pronto não é imagem de token.
+    expect(motivo({ ...base, imagem: 'pronto:caixote' })).toBe(
+      'Use uma imagem enviada pelo app ou um modelo de NPC.',
+    );
     expect(validarComando({ ...base, imagem: `${'a'.repeat(64)}.webp` }).ok).toBe(true);
     expect(motivo({ ...base, imagem: '../../etc/passwd' })).toBe(
-      'Use uma imagem enviada pelo app.',
+      'Use uma imagem enviada pelo app ou um modelo de NPC.',
     );
   });
 

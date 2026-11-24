@@ -355,7 +355,12 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               />
             )}
             {aberta.id === 'props' && (
-              <NovoProp campanhaId={campanhaId} enviar={enviar} centroRef={centroRef} />
+              <NovoProp
+                campanhaId={campanhaId}
+                enviar={enviar}
+                centroRef={centroRef}
+                visao={visao}
+              />
             )}
           </aside>
         )}

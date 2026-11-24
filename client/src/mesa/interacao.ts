@@ -75,3 +75,26 @@ export function rotuloDoToken(
 /** Quem pode arrastar: o mestre, qualquer um; o jogador, só o próprio. */
 export const podeArrastar = (token: TokenNaMesa, meuId: string, mestre: boolean) =>
   mestre || (token.donoId !== null && token.donoId === meuId);
+
+/**
+ * Onde pôr um item novo: o ponto pedido, se estiver livre; senão, a casa livre mais próxima, de
+ * dentro para fora, uma célula de cada vez. Assim três NPCs seguidos não nascem um sobre o outro.
+ */
+export function pontoLivre(
+  desejado: Ponto,
+  ocupados: readonly Ponto[],
+  mapa: Pick<MapaNaMesa, 'largura' | 'altura' | 'grade'>,
+): Ponto {
+  const passo = mapa.grade.celula;
+  const livre = (p: Ponto) => ocupados.every((o) => Math.hypot(o.x - p.x, o.y - p.y) >= passo / 2);
+  for (let anel = 0; anel <= 6; anel++) {
+    for (let dy = -anel; dy <= anel; dy++) {
+      for (let dx = -anel; dx <= anel; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== anel) continue;
+        const p = dentroDoMapa({ x: desejado.x + dx * passo, y: desejado.y + dy * passo }, mapa);
+        if (livre(p)) return p;
+      }
+    }
+  }
+  return dentroDoMapa(desejado, mapa);
+}

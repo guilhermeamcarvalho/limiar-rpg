@@ -284,3 +284,71 @@ describe('imagem de prop', () => {
     expect(r.statusCode).toBe(204);
   });
 });
+
+describe('mapas prontos', () => {
+  const usarPronto = (a: FastifyInstance, quem: Pessoa, caso: string, id: unknown) =>
+    a.inject({
+      method: 'POST',
+      url: `/api/campanhas/${caso}/mapas/prontos`,
+      cookies: quem.cookies,
+      payload: { id },
+    });
+
+  it('entra no caso com o tamanho e a grade do desenho; de novo, reaproveita', async () => {
+    const { a, caso, ana } = await montar();
+    const primeiro = await usarPronto(a, ana, caso, 'mapa:hospital');
+    expect(primeiro.statusCode).toBe(201);
+    const { mapa } = primeiro.json<{ mapa: MapaDoCaso }>();
+    expect(mapa).toMatchObject({
+      nome: 'Ala 13 do hospital',
+      imagem: 'mapa:hospital',
+      largura: 2560,
+      altura: 1600,
+      grade: { celula: 80, deslocamentoX: 0, deslocamentoY: 0 },
+    });
+
+    const segundo = await usarPronto(a, ana, caso, 'mapa:hospital');
+    expect(segundo.statusCode).toBe(200);
+    expect(segundo.json<{ mapa: MapaDoCaso }>().mapa.id).toBe(mapa.id);
+    expect(a.db.select().from(maps).all()).toHaveLength(1);
+  });
+
+  it('vai para a mesa como um mapa enviado e pode ser apagado (sem arquivo para apagar)', async () => {
+    const { a, caso, ana } = await montar();
+    const { mapa } = (await usarPronto(a, ana, caso, 'mapa:porao')).json<{ mapa: MapaDoCaso }>();
+    const mesa = a.mesas.obter(caso);
+    expect(mesa.aplicar(ana, { type: 'map.activate', mapaId: mapa.id }).ok).toBe(true);
+    expect(mesa.estado.mapa).toMatchObject({ imagem: 'mapa:porao', largura: 1920 });
+
+    const outro = (await usarPronto(a, ana, caso, 'mapa:igreja')).json<{ mapa: MapaDoCaso }>();
+    mesa.aplicar(ana, { type: 'map.activate', mapaId: outro.mapa.id });
+    const r = await a.inject({
+      method: 'DELETE',
+      url: `/api/campanhas/${caso}/mapas/${mapa.id}`,
+      cookies: ana.cookies,
+    });
+    expect(r.statusCode).toBe(204);
+  });
+
+  it('só o mestre; id que não é de mapa pronto é recusado', async () => {
+    const { a, caso, ana, bia, estranho } = await montar();
+    expect((await usarPronto(a, bia, caso, 'mapa:radio')).statusCode).toBe(403);
+    expect((await usarPronto(a, estranho, caso, 'mapa:radio')).statusCode).toBe(404);
+    const invalido = await usarPronto(a, ana, caso, 'mapa:castelo');
+    expect(invalido.statusCode).toBe(400);
+    expect(invalido.json()).toMatchObject({
+      erro: { campos: { id: 'Escolha um dos mapas prontos.' } },
+    });
+    expect((await usarPronto(a, ana, caso, 'npc:cultista')).statusCode).toBe(400);
+    expect(a.db.select().from(maps).all()).toEqual([]);
+  });
+
+  it('NPC com modelo pronto entra na mesa', async () => {
+    const { a, caso, ana } = await montar();
+    mapaDeTeste(a, caso, { ativo: true });
+    const r = a.mesas
+      .obter(caso)
+      .aplicar(ana, { type: 'token.create', nome: 'Cultista', x: 5, y: 5, imagem: 'npc:cultista' });
+    expect(r.ok && r.eventos[0]).toMatchObject({ token: { imagem: 'npc:cultista' } });
+  });
+});
