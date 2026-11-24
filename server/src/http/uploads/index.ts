@@ -2,7 +2,10 @@
 //   POST   /api/personagens/:id/imagem          foto ou token do personagem (multipart, até 5 MB)
 //   DELETE /api/personagens/:id/imagem/:tipo    tira a foto ou o token
 //   GET    /api/arquivos/:nome                  entrega a imagem a quem é do caso (arquivos.ts)
-// Mapas, props e músicas entram na Fase 2, em POST /api/campanhas/:id/uploads.
+//   GET    /api/campanhas/:id/mapas              os mapas do caso (mestre; mapa.ts)
+//   POST   /api/campanhas/:id/mapas              envia um mapa (multipart, até 20 MB)
+//   DELETE /api/campanhas/:id/mapas/:mapaId      apaga um mapa que não está na mesa
+//   POST   /api/campanhas/:id/imagens            imagem de token solta sobre o mapa (RF-24)
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import multipart from '@fastify/multipart';
@@ -28,6 +31,8 @@ import {
 } from '../personagens/dados.ts';
 import { rotasDeArquivos } from './arquivos.ts';
 import { apagarSeLivre, converterImagem, salvarImagem } from './imagens.ts';
+import { rotasDeMapas } from './mapa.ts';
+import { lerMultipart } from './multipart.ts';
 
 const COLUNA = { foto: 'foto', token: 'tokenImg' } as const satisfies Record<
   TipoDeImagem,
@@ -58,36 +63,15 @@ const esquemaDoEnvio = z
 
 const MB = Math.round(LIMITE_DA_IMAGEM / (1024 * 1024));
 
+const IMAGEM_GRANDE = new ErroDaApi(
+  413,
+  'IMAGEM_GRANDE',
+  `A imagem passa de ${String(MB)} MB. Diminua o tamanho e tente de novo.`,
+);
+
 /** Lê o multipart: um arquivo (opcional, com "Usar a foto") e os campos de texto. */
 async function lerEnvio(request: FastifyRequest) {
-  const campos: Record<string, string> = {};
-  let arquivo: Buffer | null = null;
-  try {
-    for await (const parte of request.parts()) {
-      if (parte.type === 'file') arquivo = await parte.toBuffer();
-      else campos[parte.fieldname] = String(parte.value);
-    }
-  } catch (e) {
-    const codigo = (e as { code?: string }).code;
-    if (codigo === 'FST_REQ_FILE_TOO_LARGE') {
-      throw new ErroDaApi(
-        413,
-        'IMAGEM_GRANDE',
-        `A imagem passa de ${String(MB)} MB. Diminua o tamanho e tente de novo.`,
-      );
-    }
-    if (codigo === 'FST_INVALID_MULTIPART_CONTENT_TYPE') {
-      throw new ErroDaApi(415, 'TIPO_NAO_ACEITO', 'Envie a imagem como formulário (multipart).');
-    }
-    if (
-      codigo === 'FST_FILES_LIMIT' ||
-      codigo === 'FST_FIELDS_LIMIT' ||
-      codigo === 'FST_PARTS_LIMIT'
-    ) {
-      throw new ErroDaApi(413, 'ENVIO_GRANDE', 'Envie uma imagem por vez.');
-    }
-    throw e;
-  }
+  const { arquivo, campos } = await lerMultipart(request, { grandeDemais: IMAGEM_GRANDE });
   return { arquivo, ...validar(esquemaDoEnvio, campos) };
 }
 
@@ -120,7 +104,9 @@ async function trocarImagem(
     .set({ [coluna]: nome, atualizadoEm: new Date() })
     .where(eq(characters.id, linha.personagem.id))
     .run();
-  if (antiga !== nome) await apagarSeLivre(app.db, app.config.UPLOADS_DIR, antiga);
+  if (antiga !== nome) {
+    await apagarSeLivre(app.db, app.config.UPLOADS_DIR, antiga, (n) => app.mesas.usaArquivo(n));
+  }
   avisarMesa(app, campanhasDo(app.db, linha.personagem), linha.personagem.id);
   return { personagem: paraApi(carregar(app.db, linha.personagem.id)) };
 }
@@ -168,5 +154,6 @@ export const rotas: FastifyPluginAsync = async (app) => {
     },
   );
 
+  rotasDeMapas(app);
   rotasDeArquivos(app);
 };

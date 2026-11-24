@@ -6,15 +6,22 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { eq, or } from 'drizzle-orm';
 import sharp, { type Metadata } from 'sharp';
-import { LADO_DO_TOKEN, type Recorte, type TipoDeImagem } from '@membrana/shared';
+import {
+  LADO_DO_TOKEN,
+  LADO_MAXIMO_DO_MAPA,
+  type Recorte,
+  type TipoDeImagem,
+} from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
-import { characters } from '../../db/schema.ts';
+import { characters, maps, props, tokens } from '../../db/schema.ts';
 import { ErroDaApi } from '../erros.ts';
 
 /** A foto da ficha fica com no máximo isto no lado maior. */
 export const LADO_MAXIMO_DA_FOTO = 1024;
 /** Imagem com mais pixels que isso nem é aberta (uma "bomba" de 5 MB pode ter 1 bilhão). */
 const PIXELS_MAXIMOS = 40_000_000;
+/** O mapa pode vir maior (8000 × 8000 são 64 milhões): é reduzido para 4096 px de qualquer jeito. */
+const PIXELS_MAXIMOS_DO_MAPA = 100_000_000;
 const QUALIDADE = 82;
 
 /** Formatos que entram. SVG, PDF, TIFF e afins são recusados, mesmo que o sharp os leia. */
@@ -30,10 +37,10 @@ const NAO_E_IMAGEM = new ErroDaApi(
 );
 
 /** Confere o arquivo antes de mexer nele: é imagem, num formato aceito, e não é animada. */
-async function conferir(entrada: Buffer) {
+async function conferir(entrada: Buffer, pixelsMaximos = PIXELS_MAXIMOS) {
   let info: Metadata;
   try {
-    info = await sharp(entrada, { animated: true, limitInputPixels: PIXELS_MAXIMOS }).metadata();
+    info = await sharp(entrada, { animated: true, limitInputPixels: pixelsMaximos }).metadata();
   } catch {
     throw NAO_E_IMAGEM;
   }
@@ -100,6 +107,26 @@ export async function converterImagem(
   }
 }
 
+/**
+ * Converte o mapa enviado: desvira, tira os metadados e deixa o lado maior com no máximo 4096 px,
+ * em WebP. Devolve a imagem e o tamanho final, que a mesa usa como o tamanho do mapa.
+ */
+export async function converterMapa(
+  entrada: Buffer,
+): Promise<{ imagem: Buffer; largura: number; altura: number }> {
+  await conferir(entrada, PIXELS_MAXIMOS_DO_MAPA);
+  try {
+    const { data, info } = await sharp(entrada, { limitInputPixels: PIXELS_MAXIMOS_DO_MAPA })
+      .autoOrient()
+      .resize(LADO_MAXIMO_DO_MAPA, LADO_MAXIMO_DO_MAPA, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: QUALIDADE })
+      .toBuffer({ resolveWithObject: true });
+    return { imagem: data, largura: info.width, altura: info.height };
+  } catch {
+    throw NAO_E_IMAGEM;
+  }
+}
+
 /** Grava a imagem convertida em `pasta` e devolve o nome (`<hash>.webp`). */
 export async function salvarImagem(pasta: string, imagem: Buffer): Promise<string> {
   const nome = `${createHash('sha256').update(imagem).digest('hex')}.webp`;
@@ -113,13 +140,27 @@ export async function salvarImagem(pasta: string, imagem: Buffer): Promise<strin
   return nome;
 }
 
-/** Apaga o arquivo se nenhum personagem usa mais ele, como foto ou token. */
-export async function apagarSeLivre(db: Banco, pasta: string, nome: string | null) {
-  if (!nome) return;
-  const emUso = db
-    .select({ id: characters.id })
-    .from(characters)
-    .where(or(eq(characters.foto, nome), eq(characters.tokenImg, nome)))
-    .get();
-  if (!emUso) await rm(join(pasta, basename(nome)), { force: true });
+/**
+ * Apaga o arquivo se nada usa mais ele: nenhum personagem (foto ou token), mapa, token ou prop no
+ * banco, nem a mesa em memória (`naMesa`), que pode ter algo que ainda não foi salvo.
+ */
+export async function apagarSeLivre(
+  db: Banco,
+  pasta: string,
+  nome: string | null,
+  naMesa: (nome: string) => boolean,
+) {
+  if (!nome || naMesa(nome)) return;
+  const usos = [
+    db
+      .select({ id: characters.id })
+      .from(characters)
+      .where(or(eq(characters.foto, nome), eq(characters.tokenImg, nome)))
+      .get(),
+    db.select({ id: maps.id }).from(maps).where(eq(maps.imagem, nome)).get(),
+    db.select({ id: tokens.id }).from(tokens).where(eq(tokens.imagem, nome)).get(),
+    db.select({ id: props.id }).from(props).where(eq(props.imagem, nome)).get(),
+  ];
+  if (usos.every((uso) => uso === undefined))
+    await rm(join(pasta, basename(nome)), { force: true });
 }

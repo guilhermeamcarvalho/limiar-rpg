@@ -127,6 +127,19 @@ const fogRemove = comando('fog.remove', {
 
 const mapActivate = comando('map.activate', { mapaId: id });
 
+/** Ajuste da grade do mapa ativo: lado da célula e deslocamento, em pixels do mapa. */
+export const esquemaGrade = z
+  .object({
+    celula: z
+      .number({ error: 'O tamanho da célula precisa ser um número.' })
+      .min(10, { error: 'A célula vai de 10 a 500 px.' })
+      .max(500, { error: 'A célula vai de 10 a 500 px.' }),
+    deslocamentoX: z.number().min(0).max(500, { error: 'O deslocamento vai de 0 a 500 px.' }),
+    deslocamentoY: z.number().min(0).max(500, { error: 'O deslocamento vai de 0 a 500 px.' }),
+  })
+  .strict();
+const mapGrid = comando('map.grid', { grade: esquemaGrade });
+
 const roomUpdate = comando('room.update', {
   salaId: id,
   nome: nomeCurto.optional(),
@@ -211,6 +224,7 @@ export const esquemaComando = z.discriminatedUnion(
     fogReveal,
     fogRemove,
     mapActivate,
+    mapGrid,
     roomUpdate,
     clueCreate,
     clueUpdate,
@@ -295,15 +309,14 @@ export function validarComando(entrada: unknown): ValidacaoDeComando {
 
 /* ---------- Estado da mesa ---------- */
 
-export interface GradeDoMapa {
-  /** Lado da célula, em pixels do mapa. */
-  celula: number;
-  deslocamentoX: number;
-  deslocamentoY: number;
-}
+export type GradeDoMapa = z.infer<typeof esquemaGrade>;
+
+/** Grade de um mapa recém-enviado: o mestre ajusta na mesa. */
+export const GRADE_PADRAO: GradeDoMapa = { celula: 50, deslocamentoX: 0, deslocamentoY: 0 };
 
 export interface MapaNaMesa {
   id: string;
+  nome: string;
   imagem: string;
   largura: number;
   altura: number;
@@ -468,7 +481,10 @@ export type EventoDaMesaSemSeq =
   | { type: 'token.changed'; tokenId: string; token: TokenNaMesa | null }
   | { type: 'prop.changed'; propId: string; prop: PropNaMesa | null }
   | { type: 'fog.changed'; nevoa: AreaDaNevoa[] }
+  /** Troca de mapa: logo depois, cada um recebe um `mesa.estado` com o mapa novo inteiro. */
   | { type: 'map.activated'; mapa: MapaNaMesa | null }
+  /** A grade do mapa ativo mudou. */
+  | { type: 'map.changed'; mapa: MapaNaMesa }
   | { type: 'room.updated'; salaId: string; sala: SalaNaMesa | null }
   | { type: 'clue.changed'; pistaId: string; pista: PistaNaMesa | PistaParaJogador | null }
   | { type: 'clue.received'; item: ItemDoInventario }
@@ -526,3 +542,28 @@ export interface RecusaDaConexao {
   codigo: 'NAO_AUTENTICADO' | 'CASO_NAO_ENCONTRADO' | 'ORIGEM_INVALIDA';
   mensagem: string;
 }
+
+/* ---------- Mapas do caso (rotas HTTP) ---------- */
+
+/** O mapa enviado entra com até 20 MB. */
+export const LIMITE_DO_MAPA_ENVIADO = 20 * 1024 * 1024;
+/** Depois de convertido, o lado maior fica com no máximo 4096 px. */
+export const LADO_MAXIMO_DO_MAPA = 4096;
+
+/** Um mapa na lista do mestre (GET /api/campanhas/:id/mapas). */
+export interface MapaDoCaso {
+  id: string;
+  nome: string;
+  imagem: string;
+  largura: number;
+  altura: number;
+  grade: GradeDoMapa;
+  /** É o mapa que está na mesa agora. */
+  ativo: boolean;
+  /** ISO. */
+  criadoEm: string;
+}
+
+/** As imagens que a mesa recebe além do mapa: hoje, a de um token (soltar sobre o mapa, RF-24). */
+export const USOS_DE_IMAGEM_DA_MESA = ['token'] as const;
+export type UsoDeImagemDaMesa = (typeof USOS_DE_IMAGEM_DA_MESA)[number];

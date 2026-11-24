@@ -12,7 +12,7 @@ import type {
   RecusaDaConexao,
   RespostaDoComando,
 } from '@membrana/shared';
-import { appDeTeste, casoDeTeste, pessoaLogada } from '../teste/apoio.ts';
+import { appDeTeste, casoDeTeste, mapaDeTeste, pessoaLogada } from '../teste/apoio.ts';
 
 type Cliente = Socket<EventosDoServidor, EventosDoCliente>;
 type Pessoa = ReturnType<typeof pessoaLogada>;
@@ -29,7 +29,10 @@ async function servidor() {
   app = await appDeTeste({ discord: null });
   await app.listen({ port: 0, host: '127.0.0.1' });
   const { port } = app.server.address() as AddressInfo;
-  return { a: app, url: `http://127.0.0.1:${String(port)}`, ...casoDeTeste(app) };
+  const caso = casoDeTeste(app);
+  // Um mapa já na mesa: tokens, props e névoa precisam de um mapa.
+  const mapa = mapaDeTeste(app, caso.caso, { ativo: true });
+  return { a: app, url: `http://127.0.0.1:${String(port)}`, mapa, ...caso };
 }
 
 /** Os eventos que chegaram a um cliente, com espera pelo próximo que satisfaça uma condição. */
@@ -314,5 +317,30 @@ describe('ao fechar o servidor', () => {
     app = undefined;
     // Queda de transporte, não "o servidor desconectou você": o cliente tenta voltar sozinho.
     expect(await caiu).toBe('transport close');
+  });
+});
+
+describe('troca de mapa', () => {
+  it('trocar o mapa troca para todos ao mesmo tempo, com o mesmo número', async () => {
+    const { a, url, caso, ana, bia, caio } = await servidor();
+    const porao = mapaDeTeste(a, caso, { nome: 'Porão', largura: 800, altura: 600 });
+    const pessoas = [abrir(url, ana, caso), abrir(url, bia, caso), abrir(url, caio, caso)];
+    await Promise.all(pessoas.map(conectado));
+    await Promise.all(pessoas.map((p) => p.esperar(ehDo('mesa.estado'))));
+    const marcas = pessoas.map((p) => p.eventos.length);
+
+    expect(await pessoas[0]?.emitir({ type: 'map.activate', mapaId: porao.id })).toEqual({
+      ok: true,
+    });
+    const recebidos = await Promise.all(
+      pessoas.map((p, i) =>
+        p.esperar((e) => e.type === 'mesa.estado' && e.estado.mapa?.id === porao.id, marcas[i]),
+      ),
+    );
+    const seqs = new Set(recebidos.map((e) => e.seq));
+    expect(seqs.size).toBe(1);
+    for (const evento of recebidos) {
+      expect(evento).toMatchObject({ estado: { mapa: { nome: 'Porão', largura: 800 } } });
+    }
   });
 });

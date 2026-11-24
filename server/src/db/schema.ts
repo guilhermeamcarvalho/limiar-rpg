@@ -1,14 +1,25 @@
 // Tabelas do banco. Mudou algo aqui? Gere a migração com `pnpm db:generate` e versione no Git.
 // Nunca altere o banco à mão.
 import { sql } from 'drizzle-orm';
-import { check, index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import {
+  check,
+  index,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 import {
   DT_PADRAO,
   type Agenda,
+  type AreaDaNevoa,
   type ConfigDeSistema,
   type EstadoDaMesa,
   type EventoDaMesa,
   type Formato,
+  type GradeDoMapa,
   type Tom,
 } from '@membrana/shared';
 import { novoId } from './ids.ts';
@@ -232,14 +243,95 @@ export const testLog = sqliteTable(
 );
 
 /**
- * O último estado de cada mesa ao vivo (tokens, props, névoa, rodada...), salvo no máximo 1 s
- * depois de uma mudança. Ao subir, o servidor carrega daqui; `seq` é o último número de evento.
+ * Mapas do caso. Só um fica ativo por vez (é o que está na mesa). A névoa é do mapa; tokens e
+ * props também, em tabelas próprias: apagar o mapa apaga os dois.
+ */
+export const maps = sqliteTable(
+  'maps',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('map')),
+    campaignId: text('campaign_id')
+      .notNull()
+      .references(() => campaigns.id, { onDelete: 'cascade' }),
+    nome: text('nome').notNull(),
+    /** Arquivo em UPLOADS_DIR (`<hash>.webp`), já com no máximo 4096 px no lado maior. */
+    imagem: text('imagem').notNull(),
+    largura: integer('largura').notNull(),
+    altura: integer('altura').notNull(),
+    grade: text('grade', { mode: 'json' }).$type<GradeDoMapa>().notNull(),
+    nevoa: text('nevoa', { mode: 'json' })
+      .$type<AreaDaNevoa[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    ativo: integer('ativo', { mode: 'boolean' }).notNull().default(false),
+    criadoEm: criadoEm(),
+  },
+  (t) => [
+    index('maps_campaign').on(t.campaignId),
+    // Nunca dois mapas ativos no mesmo caso.
+    uniqueIndex('maps_um_ativo')
+      .on(t.campaignId)
+      .where(sql`${t.ativo} = 1`),
+  ],
+);
+
+/** Tokens de cada mapa. `x` e `y` são o centro, em pixels do mapa. Sem personagem, é um NPC. */
+export const tokens = sqliteTable(
+  'tokens',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('tok')),
+    mapId: text('map_id')
+      .notNull()
+      .references(() => maps.id, { onDelete: 'cascade' }),
+    /** Apagar o personagem deixa o token no mapa, como NPC. */
+    characterId: text('character_id').references(() => characters.id, { onDelete: 'set null' }),
+    nome: text('nome').notNull(),
+    imagem: text('imagem'),
+    x: real('x').notNull(),
+    y: real('y').notNull(),
+    tamanho: integer('tamanho').notNull().default(1),
+    oculto: integer('oculto', { mode: 'boolean' }).notNull().default(false),
+  },
+  (t) => [index('tokens_map').on(t.mapId)],
+);
+
+/** Props (imagens sobre o mapa). `tamanho` em células, `rotacao` em graus, `ordem` = camada. */
+export const props = sqliteTable(
+  'props',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('prp')),
+    mapId: text('map_id')
+      .notNull()
+      .references(() => maps.id, { onDelete: 'cascade' }),
+    imagem: text('imagem').notNull(),
+    x: real('x').notNull(),
+    y: real('y').notNull(),
+    tamanho: real('tamanho').notNull().default(1),
+    rotacao: real('rotacao').notNull().default(0),
+    travado: integer('travado', { mode: 'boolean' }).notNull().default(false),
+    ordem: integer('ordem').notNull().default(0),
+  },
+  (t) => [index('props_map').on(t.mapId)],
+);
+
+/** O que a mesa guarda além do mapa ativo (este fica em `maps`, `tokens` e `props`). */
+export type RestoDaMesa = Omit<EstadoDaMesa, 'mapa' | 'tokens' | 'props' | 'nevoa'>;
+
+/**
+ * O resto do estado de cada mesa ao vivo (rodada, trilha, salas, pistas...), salvo junto com o
+ * mapa ativo no máximo 1 s depois de uma mudança. `seq` é o último número de evento.
  */
 export const tableStates = sqliteTable('table_states', {
   campaignId: text('campaign_id')
     .primaryKey()
     .references(() => campaigns.id, { onDelete: 'cascade' }),
-  estado: text('estado', { mode: 'json' }).$type<EstadoDaMesa>().notNull(),
+  estado: text('estado', { mode: 'json' }).$type<RestoDaMesa>().notNull(),
   seq: integer('seq').notNull(),
   atualizadoEm: integer('atualizado_em', { mode: 'timestamp_ms' }).notNull(),
 });

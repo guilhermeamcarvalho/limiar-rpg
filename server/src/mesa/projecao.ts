@@ -110,8 +110,17 @@ export function projetarEventos(
   antes: EstadoDaMesa,
   depois: EstadoDaMesa,
 ): EventoDaMesa[] {
-  if (quem.papel === 'mestre') return [...eventos];
-  return eventos.flatMap((evento) => projetarParaJogador(quem, evento, antes, depois));
+  return eventos.flatMap((evento) => {
+    const projetados =
+      quem.papel === 'mestre' ? [evento] : projetarParaJogador(quem, evento, antes, depois);
+    // Troca de mapa: tudo o que está sobre ele muda de uma vez; cada um recebe o mapa novo inteiro,
+    // do jeito que pode ver, com o mesmo número de sequência.
+    if (evento.type !== 'map.activated') return projetados;
+    return [
+      ...projetados,
+      { type: 'mesa.estado' as const, estado: projetarEstado(quem, depois), seq: evento.seq },
+    ];
+  });
 }
 
 function projetarParaJogador(
@@ -126,6 +135,7 @@ function projetarParaJogador(
     case 'character.changed':
     case 'prop.changed':
     case 'map.activated':
+    case 'map.changed':
     case 'test.resolved':
     case 'audio.changed':
     case 'round.started':

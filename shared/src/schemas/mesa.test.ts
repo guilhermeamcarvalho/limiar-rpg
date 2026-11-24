@@ -112,6 +112,7 @@ describe('validarComando', () => {
         'fog.reveal',
         'fog.remove',
         'map.activate',
+        'map.grid',
         'room.update',
         'clue.create',
         'clue.update',

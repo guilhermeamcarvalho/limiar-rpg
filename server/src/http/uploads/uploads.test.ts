@@ -12,7 +12,12 @@ import {
   type Personagem,
 } from '@membrana/shared';
 import type { EventoDaMesa } from '../../mesa/index.ts';
-import { appDeTeste, pessoaLogada } from '../../teste/apoio.ts';
+import {
+  appDeTeste,
+  formulario,
+  pessoaLogada,
+  type ArquivoDeTeste as Arquivo,
+} from '../../teste/apoio.ts';
 import { CACHE_DOS_ARQUIVOS } from './arquivos.ts';
 
 // Sem o cache, o sharp não segura o arquivo aberto depois de ler (o Windows não deixa apagar).
@@ -71,39 +76,6 @@ async function mesaPronta() {
   const davi = criado.json<{ personagem: Personagem }>().personagem;
   eventos.length = 0;
   return { a, eventos, ana, bia, caio, estranho, caso, davi, pasta };
-}
-
-interface Arquivo {
-  nome: string;
-  tipo: string;
-  conteudo: Buffer;
-}
-
-/** Monta o corpo multipart/form-data à mão, como o navegador manda. */
-function formulario(campos: Record<string, string>, arquivo?: Arquivo) {
-  const fronteira = '----membrana-teste';
-  const partes: Buffer[] = [];
-  for (const [nome, valor] of Object.entries(campos)) {
-    partes.push(
-      Buffer.from(
-        `--${fronteira}\r\nContent-Disposition: form-data; name="${nome}"\r\n\r\n${valor}\r\n`,
-      ),
-    );
-  }
-  if (arquivo) {
-    partes.push(
-      Buffer.from(
-        `--${fronteira}\r\nContent-Disposition: form-data; name="arquivo"; filename="${arquivo.nome}"\r\nContent-Type: ${arquivo.tipo}\r\n\r\n`,
-      ),
-      arquivo.conteudo,
-      Buffer.from('\r\n'),
-    );
-  }
-  partes.push(Buffer.from(`--${fronteira}--\r\n`));
-  return {
-    payload: Buffer.concat(partes),
-    headers: { 'content-type': `multipart/form-data; boundary=${fronteira}` },
-  };
 }
 
 function enviar(
