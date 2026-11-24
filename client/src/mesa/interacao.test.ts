@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import type { PropNaMesa, TokenNaMesa } from '@membrana/shared';
 import {
+  cliqueNoPoligono,
   criarLimitador,
   dentroDoMapa,
   destinoDaSeta,
+  formaDaSala,
   girar,
+  mapaInteiro,
+  meioDaSala,
   podeArrastar,
+  poligonoDe,
   pontoLivre,
   proximaOrdem,
+  retanguloEntre,
   rotacaoNormal,
   rotuloDoToken,
   tamanhoDoProp,
@@ -114,5 +120,61 @@ describe('pontoLivre', () => {
     expect(p.x).toBeGreaterThanOrEqual(0);
     expect(p.y).toBeGreaterThanOrEqual(0);
     expect(p).not.toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe('névoa', () => {
+  const mapa = { largura: 1000, altura: 800 };
+
+  it('retângulo entre dois cantos quaisquer, sem sair do mapa; pequeno demais, nada', () => {
+    expect(retanguloEntre({ x: 300, y: 200 }, { x: 100, y: 50 }, mapa)).toEqual({
+      tipo: 'retangulo',
+      x: 100,
+      y: 50,
+      largura: 200,
+      altura: 150,
+    });
+    expect(retanguloEntre({ x: 900, y: 700 }, { x: 1200, y: 900 }, mapa)).toMatchObject({
+      largura: 100,
+      altura: 100,
+    });
+    expect(retanguloEntre({ x: 10, y: 10 }, { x: 12, y: 300 }, mapa)).toBeNull();
+  });
+
+  it('cobrir tudo é o mapa inteiro', () => {
+    expect(mapaInteiro(mapa)).toEqual({
+      tipo: 'retangulo',
+      x: 0,
+      y: 0,
+      largura: 1000,
+      altura: 800,
+    });
+  });
+
+  it('polígono: fecha no primeiro ponto, ignora o clique repetido, acrescenta o resto', () => {
+    const tres = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 100, y: 100 },
+    ];
+    expect(cliqueNoPoligono(tres, { x: 3, y: 4 }, 10)).toBe('fechar');
+    expect(cliqueNoPoligono(tres.slice(0, 2), { x: 3, y: 4 }, 10)).toBe('acrescentar');
+    expect(cliqueNoPoligono(tres, { x: 101, y: 99 }, 10)).toBe('ignorar');
+    expect(cliqueNoPoligono(tres, { x: 0, y: 100 }, 10)).toBe('acrescentar');
+    expect(poligonoDe(tres.slice(0, 2))).toBeNull();
+    expect(poligonoDe(tres)).toEqual({ tipo: 'poligono', pontos: tres });
+  });
+
+  it('a sala vira polígono; o meio dela é a média dos cantos', () => {
+    const area = [
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+      { x: 200, y: 100 },
+      { x: 0, y: 100 },
+    ];
+    expect(formaDaSala({ area })).toEqual({ tipo: 'poligono', pontos: area });
+    expect(formaDaSala({ area: [] })).toBeNull();
+    expect(meioDaSala({ area })).toEqual({ x: 100, y: 50 });
+    expect(meioDaSala({ area: [] })).toBeNull();
   });
 });

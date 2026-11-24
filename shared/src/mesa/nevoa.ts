@@ -45,3 +45,21 @@ export function sobNevoa(nevoa: readonly AreaDaNevoa[], ponto: Ponto): boolean {
   }
   return false;
 }
+
+/**
+ * A forma cobre o mapa inteiro. Assim "cobrir tudo" (e revelar tudo) troca a lista em vez de
+ * empilhar: o que estava embaixo não conta mais.
+ */
+export function cobreOMapa(
+  forma: FormaDaNevoa,
+  mapa: { largura: number; altura: number },
+): boolean {
+  const cantos: Ponto[] = [
+    { x: 0, y: 0 },
+    { x: mapa.largura, y: 0 },
+    { x: 0, y: mapa.altura },
+    { x: mapa.largura, y: mapa.altura },
+  ];
+  // Um polígono pode conter os quatro cantos e ainda ter um entalhe; só o retângulo vale.
+  return forma.tipo === 'retangulo' && cantos.every((c) => formaContem(forma, c));
+}

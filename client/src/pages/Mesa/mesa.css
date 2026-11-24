@@ -360,3 +360,27 @@
   border: 1px solid var(--line-2);
   object-fit: cover;
 }
+
+/* Desenhando a névoa: o cursor vira mira. */
+.palco[data-desenhando] {
+  cursor: crosshair;
+}
+
+/* Legenda do artboard 11, no canto de baixo do mapa. */
+.mesa-legenda {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 6;
+  display: flex;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.mesa-legenda .chip {
+  background: var(--panel);
+}
+
+.nevoa-sob {
+  color: var(--red);
+}

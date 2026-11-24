@@ -1,12 +1,13 @@
 // /campanhas/:id/mesa: a mesa ao vivo (artboards "10 · Mesa" e "11 · Mesa-Mestre"). Tela cheia,
 // sem o cabeçalho comum. O palco com o mapa e, para o mestre, as ferramentas "Tokens e NPCs" (T),
-// "Props" (O) e "Mapa e grade" (G). Os painéis laterais, o chat e a barra completa chegam com o
+// "Props" (O), "Névoa" (N) e "Mapa e grade" (G). Os painéis laterais, o chat e a barra completa chegam com o
 // layout da mesa (#74).
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   tituloDaPagina,
   type CampanhaDetalhe,
+  type FormaDaNevoa,
   type MapaNaMesa,
   type VisaoDaMesa,
 } from '@membrana/shared';
@@ -16,6 +17,8 @@ import type { Ponto } from '../../mesa/camera.ts';
 import { enviarImagemDaMesa, nomeDoArquivoSemExtensao } from '../../mesa/imagens.ts';
 import { dentroDoMapa } from '../../mesa/interacao.ts';
 import { MapaUpload } from '../../mesa/MapaUpload.tsx';
+import type { PincelDaNevoa } from '../../mesa/Nevoa.tsx';
+import { FerramentaDaNevoa } from '../../mesa/painel/Nevoa.tsx';
 import { NovoProp } from '../../mesa/painel/NovoProp.tsx';
 import { Npcs } from '../../mesa/painel/Npcs.tsx';
 import { Palco } from '../../mesa/Palco.tsx';
@@ -33,7 +36,7 @@ import {
 } from '../../ui/index.ts';
 import './mesa.css';
 
-type Ferramenta = 'tokens' | 'props' | 'mapa';
+type Ferramenta = 'tokens' | 'props' | 'nevoa' | 'mapa';
 
 const FERRAMENTAS: {
   id: Ferramenta;
@@ -58,6 +61,14 @@ const FERRAMENTAS: {
     tecla: 'o',
     icone: 'image',
     rotulo: 'Props, ferramenta do mestre',
+    comMapa: true,
+  },
+  {
+    id: 'nevoa',
+    titulo: 'Névoa',
+    tecla: 'n',
+    icone: 'fog',
+    rotulo: 'Névoa, ferramenta do mestre',
     comMapa: true,
   },
   {
@@ -116,6 +127,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const { mesa, situacao, enviar } = useMesaAoVivo(campanhaId);
   const [painel, setPainel] = useState<Ferramenta | null>(null);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
+  const [pincel, setPincel] = useState<PincelDaNevoa>({ modo: 'cobrir', forma: 'retangulo' });
   const centroRef = useRef<Ponto | null>(null);
   const caso = useCarga(`/api/campanhas/${campanhaId}`, (signal) =>
     pedir<{ campanha: CampanhaDetalhe }>(`/api/campanhas/${encodeURIComponent(campanhaId)}`, {
@@ -137,7 +149,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     document.title = tituloDaPagina(nomeDoCaso ? `Mesa · ${nomeDoCaso}` : 'Mesa');
   }, [nomeDoCaso]);
 
-  // T, O e G abrem e fecham as ferramentas do mestre; Esc cancela a escolha do ponto.
+  // T, O, N e G abrem e fecham as ferramentas do mestre; Esc cancela a escolha do ponto.
   useEffect(() => {
     if (!mestre) return;
     const aoTeclar = (e: KeyboardEvent) => {
@@ -190,6 +202,12 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     if (!resposta.ok) {
       avisos.show({ type: 'err', title: 'Não deu para usar a imagem', text: resposta.motivo });
     }
+  }
+
+  /** A forma desenhada no mapa cobre ou revela, conforme o pincel. */
+  async function desenharNevoa(forma: FormaDaNevoa) {
+    const r = await enviar({ type: pincel.modo === 'cobrir' ? 'fog.add' : 'fog.reveal', forma });
+    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para mexer na névoa', text: r.motivo });
   }
 
   async function trazerGrupo(ponto: Ponto) {
@@ -261,6 +279,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
             centroRef={centroRef}
             aoEscolherPonto={escolhendoGrupo ? (ponto) => void trazerGrupo(ponto) : null}
             aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
+            pincelDaNevoa={mestre && aberta?.id === 'nevoa' ? pincel : null}
+            aoDesenharNevoa={(forma) => void desenharNevoa(forma)}
           />
         ) : (
           <div className="mesa-vazia">
@@ -301,6 +321,13 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
             >
               Cancelar
             </Button>
+          </div>
+        )}
+
+        {/* Legenda do artboard 11: o mestre vê através, mas o jogador não. */}
+        {mestre && comMapa && comMapa.nevoa.length > 0 && (
+          <div className="mesa-legenda">
+            <Chip status="alert">Névoa: jogadores veem preto</Chip>
           </div>
         )}
 
@@ -352,6 +379,14 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 aoTrazerGrupo={() => {
                   setEscolhendoGrupo(true);
                 }}
+              />
+            )}
+            {aberta.id === 'nevoa' && comMapa && (
+              <FerramentaDaNevoa
+                visao={comMapa}
+                pincel={pincel}
+                aoMudarPincel={setPincel}
+                enviar={enviar}
               />
             )}
             {aberta.id === 'props' && (

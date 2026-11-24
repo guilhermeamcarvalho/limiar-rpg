@@ -271,6 +271,22 @@ describe('props, névoa e rodada', () => {
     expect(m.mesa.estado.nevoa).toEqual([]);
   });
 
+  it('névoa: cobrir tudo vira uma área só, e revelar tudo limpa', () => {
+    const m = montar();
+    const tudo = { tipo: 'retangulo', x: 0, y: 0, largura: 2000, altura: 1500 } as const;
+    eventos(m.mesa.aplicar(m.ana, NEVOA_NO_CANTO));
+    eventos(m.mesa.aplicar(m.ana, { ...NEVOA_NO_CANTO, type: 'fog.reveal' }));
+    const [cobriu] = eventos(m.mesa.aplicar(m.ana, { type: 'fog.add', forma: tudo }));
+    expect(cobriu).toMatchObject({ type: 'fog.changed', nevoa: [{ modo: 'cobrir', forma: tudo }] });
+    expect(m.mesa.estado.nevoa).toHaveLength(1);
+
+    // Revelar uma sala empilha; revelar o mapa inteiro deixa sem névoa.
+    eventos(m.mesa.aplicar(m.ana, { ...NEVOA_NO_CANTO, type: 'fog.reveal' }));
+    expect(m.mesa.estado.nevoa.map((a) => a.modo)).toEqual(['cobrir', 'revelar']);
+    eventos(m.mesa.aplicar(m.ana, { type: 'fog.reveal', forma: tudo }));
+    expect(m.mesa.estado.nevoa).toEqual([]);
+  });
+
   it('a rodada passa pelo mestre e entra no registro da sessão', () => {
     const m = montar();
     expect(motivo(m.mesa.aplicar(m.bia, { type: 'round.end' }))).toBe(
