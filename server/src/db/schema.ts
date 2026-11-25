@@ -14,7 +14,7 @@ import {
 import {
   DT_PADRAO,
   type Agenda,
-  type AreaDaNevoa,
+  type AreaDoBreu,
   type ConfigDeSistema,
   type EstadoDaMesa,
   type EventoDaMesa,
@@ -243,7 +243,7 @@ export const testLog = sqliteTable(
 );
 
 /**
- * Mapas do caso. Só um fica ativo por vez (é o que está na mesa). A névoa é do mapa; tokens e
+ * Mapas do caso. Só um fica ativo por vez (é o que está na mesa). O breu é do mapa; tokens e
  * props também, em tabelas próprias: apagar o mapa apaga os dois.
  */
 export const maps = sqliteTable(
@@ -261,8 +261,8 @@ export const maps = sqliteTable(
     largura: integer('largura').notNull(),
     altura: integer('altura').notNull(),
     grade: text('grade', { mode: 'json' }).$type<GradeDoMapa>().notNull(),
-    nevoa: text('nevoa', { mode: 'json' })
-      .$type<AreaDaNevoa[]>()
+    breu: text('breu', { mode: 'json' })
+      .$type<AreaDoBreu[]>()
       .notNull()
       .default(sql`'[]'`),
     ativo: integer('ativo', { mode: 'boolean' }).notNull().default(false),
@@ -321,7 +321,7 @@ export const props = sqliteTable(
 );
 
 /** O que a mesa guarda além do mapa ativo (este fica em `maps`, `tokens` e `props`). */
-export type RestoDaMesa = Omit<EstadoDaMesa, 'mapa' | 'tokens' | 'props' | 'nevoa'>;
+export type RestoDaMesa = Omit<EstadoDaMesa, 'mapa' | 'tokens' | 'props' | 'breu'>;
 
 /**
  * O resto do estado de cada mesa ao vivo (rodada, trilha, salas, pistas...), salvo junto com o

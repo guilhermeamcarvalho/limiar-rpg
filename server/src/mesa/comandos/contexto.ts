@@ -23,7 +23,7 @@ export interface Contexto {
   personagem: (personagemId: string) => { donoId: string } | null;
   /** Os personagens que o grupo usa neste caso (para "Trazer o grupo"). */
   grupo: () => PersonagemDoGrupo[];
-  /** Um mapa deste caso, como está salvo (com tokens, props e névoa); ou nulo. */
+  /** Um mapa deste caso, como está salvo (com tokens, props e breu); ou nulo. */
   mapa: (mapaId: string) => ConteudoDoMapa | null;
 }
 
@@ -36,7 +36,7 @@ export type Tratador<T extends TipoDeComando> = (
 
 export type Tratadores = { [T in TipoDeComando]?: Tratador<T> };
 
-/** Tokens, props e névoa são de um mapa: sem mapa na mesa, não há onde pôr. */
+/** Tokens, props e breu são de um mapa: sem mapa na mesa, não há onde pôr. */
 export function exigirMapa(ctx: Contexto) {
   if (!ctx.estado.mapa) throw new Recusa('Ponha um mapa na mesa antes.');
   return ctx.estado.mapa;

@@ -88,14 +88,15 @@ describe('recuperação ao reiniciar', () => {
     const mesa = mesas.obter(pessoas.caso);
     mesa.aplicar(pessoas.ana, { type: 'token.create', nome: 'Vulto', x: 120, y: 80 });
     mesa.aplicar(pessoas.ana, {
-      type: 'fog.add',
+      type: 'darkness.add',
       forma: { tipo: 'retangulo', x: 0, y: 0, largura: 50, altura: 50 },
     });
     mesa.aplicar(pessoas.ana, { type: 'round.end' });
+    mesa.aplicar(pessoas.ana, { type: 'mist.set', nivel: 55 });
     return { ...banco, ...pessoas, mapa, mesas, mesa };
   }
 
-  it('o estado salvo volta igual: tokens, névoa, rodada e sequência', () => {
+  it('o estado salvo volta igual: tokens, breu, névoa, rodada e sequência', () => {
     const m = mesaMexida();
     expect(m.mesas.pendentes).toBe(1);
     m.mesas.salvarTudo();
@@ -105,8 +106,9 @@ describe('recuperação ao reiniciar', () => {
     const recuperada = depois.existente(m.caso);
     expect(recuperada?.estado).toEqual(m.mesa.estado);
     expect(recuperada?.estado.tokens[0]).toMatchObject({ nome: 'Vulto', x: 120, y: 80 });
-    expect(recuperada?.estado.nevoa).toHaveLength(1);
-    expect(recuperada?.seq).toBe(3);
+    expect(recuperada?.estado.breu).toHaveLength(1);
+    expect(recuperada?.estado.nevoa).toBe(55);
+    expect(recuperada?.seq).toBe(4);
     m.sqlite.close();
   });
 
@@ -162,7 +164,7 @@ describe('o mapa ativo nas tabelas dele', () => {
     return { ...banco, ...pessoas, mapa, mesas, mesa };
   }
 
-  it('tokens, props e névoa vão para as tabelas do mapa; o dono volta do personagem', () => {
+  it('tokens, props e breu vão para as tabelas do mapa; o dono volta do personagem', () => {
     const m = montar();
     m.mesa.aplicar(m.ana, {
       type: 'token.create',
@@ -173,7 +175,7 @@ describe('o mapa ativo nas tabelas dele', () => {
     });
     m.mesa.aplicar(m.ana, { type: 'prop.create', imagem: `${'b'.repeat(64)}.webp`, x: 5, y: 5 });
     m.mesa.aplicar(m.ana, {
-      type: 'fog.add',
+      type: 'darkness.add',
       forma: { tipo: 'retangulo', x: 0, y: 0, largura: 50, altura: 50 },
     });
     m.mesas.salvarTudo();
@@ -182,7 +184,7 @@ describe('o mapa ativo nas tabelas dele', () => {
       { mapId: m.mapa.id, characterId: m.davi, nome: 'Davi', x: 10, y: 20 },
     ]);
     expect(m.db.select().from(props).all()).toMatchObject([{ mapId: m.mapa.id, ordem: 0 }]);
-    expect(m.db.select().from(maps).get()?.nevoa).toHaveLength(1);
+    expect(m.db.select().from(maps).get()?.breu).toHaveLength(1);
     // O resto do estado não leva o que é do mapa.
     const resto = m.db.select().from(tableStates).get()?.estado;
     expect(resto).not.toHaveProperty('tokens');

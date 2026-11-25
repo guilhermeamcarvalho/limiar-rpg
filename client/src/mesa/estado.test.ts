@@ -26,7 +26,8 @@ const visao = (campos: Partial<VisaoDaMesa> = {}): VisaoDaMesa => ({
   },
   tokens: [token('tok_1')],
   props: [],
-  nevoa: [],
+  breu: [],
+  nevoa: 0,
   pistas: [],
   inventario: [],
   rodada: { numero: 1 },
@@ -110,7 +111,7 @@ describe('aplicarEvento', () => {
     expect(mesa.visao?.props.map((p) => p.id)).toEqual(['p1', 'p2']);
   });
 
-  it('névoa, grade, rodada e presença', () => {
+  it('breu, grade, rodada e presença', () => {
     const area = {
       id: 'nev_1',
       modo: 'cobrir' as const,
@@ -123,16 +124,26 @@ describe('aplicarEvento', () => {
     const online = [{ id: 'usr_1', nome: 'Ana', papel: 'mestre' as const, personagemId: null }];
     const mesa = aplicar(
       comEstado(),
-      { type: 'fog.changed', nevoa: [area], seq: 6 },
+      { type: 'darkness.changed', breu: [area], seq: 6 },
       { type: 'map.changed', mapa, seq: 7 },
       { type: 'round.started', numero: 2, seq: 8 },
       { type: 'presence.changed', online, seq: 9 },
     );
-    expect(mesa.visao?.nevoa).toEqual([area]);
+    expect(mesa.visao?.breu).toEqual([area]);
     expect(mesa.visao?.mapa?.grade).toEqual(grade);
     expect(mesa.visao?.rodada).toEqual({ numero: 2 });
     expect(mesa.online).toEqual(online);
     expect(mesa.seq).toBe(9);
+  });
+
+  it('névoa da Membrana: o nível novo substitui o anterior', () => {
+    const mesa = aplicar(
+      comEstado(),
+      { type: 'mist.changed', nivel: 30, seq: 6 },
+      { type: 'mist.changed', nivel: 80, seq: 7 },
+    );
+    expect(mesa.visao?.nevoa).toBe(80);
+    expect(mesa.seq).toBe(7);
   });
 
   it('presença chega mesmo antes do estado; o resto espera o estado', () => {

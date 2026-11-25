@@ -157,7 +157,13 @@ export const ICONES = {
       <path d="M16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12" />
     </>
   ),
-  fog: (
+  darkness: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="1" />
+      <path d="M4 12l8-8M4 20L20 4M12 20l8-8" />
+    </>
+  ),
+  mist: (
     <>
       <path d="M6 15a4 4 0 0 1 .5-8 6 6 0 0 1 11.3 2A3.5 3.5 0 0 1 18 15z" />
       <path d="M4 19h16M7 22h10" />

@@ -104,7 +104,7 @@ export function podeAlterarToken(
 }
 
 /**
- * Ferramentas do mestre na mesa: criar e remover tokens, props, névoa, mapa ativo, salas, pistas,
+ * Ferramentas do mestre na mesa: criar e remover tokens, props, breu, mapa ativo, salas, pistas,
  * trilha e passar a rodada.
  */
 export function podeConduzirMesa(quem: Quem, campanha: CampanhaComMembros): boolean {

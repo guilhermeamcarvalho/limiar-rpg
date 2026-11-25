@@ -3,6 +3,7 @@
 import type { ComandoValidado, EventoDaMesaSemSeq } from '@membrana/shared';
 import { Recusa, type Contexto, type Tratadores } from './contexto.ts';
 import { tratadoresDoMapa } from './mapa.ts';
+import { tratadoresDoBreu } from './breu.ts';
 import { tratadoresDaNevoa } from './nevoa.ts';
 import { tratadoresDeProps } from './props.ts';
 import { tratadoresDaRodada } from './rodada.ts';
@@ -11,6 +12,7 @@ import { tratadoresDeTokens } from './tokens.ts';
 const TRATADORES: Tratadores = {
   ...tratadoresDeTokens,
   ...tratadoresDeProps,
+  ...tratadoresDoBreu,
   ...tratadoresDaNevoa,
   ...tratadoresDaRodada,
   ...tratadoresDoMapa,

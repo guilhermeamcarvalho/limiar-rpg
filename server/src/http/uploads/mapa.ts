@@ -124,7 +124,7 @@ export function rotasDeMapas(app: FastifyInstance) {
   });
 
   // Mapa pronto do site (RF-14): entra no caso com a grade que bate com o desenho. Usar o mesmo
-  // pronto de novo devolve o que o caso já tem (com os tokens, props e névoa dele).
+  // pronto de novo devolve o que o caso já tem (com os tokens, props e breu dele).
   app.post<{ Params: { id: string } }>('/campanhas/:id/mapas/prontos', (request, reply) => {
     exigirMestre(app, request);
     const { id } = validar(esquemaDoMapaPronto, request.body ?? {});

@@ -47,8 +47,8 @@ describe('validarComando', () => {
 
   it('sem mensagem própria no schema, a recusa sai numa mensagem padrão em português', () => {
     const forma = { tipo: 'retangulo', x: 0, y: 0, largura: 0, altura: 10 };
-    expect(motivo({ type: 'fog.add', forma })).toBe('O campo largura está fora do limite.');
-    expect(motivo({ type: 'fog.remove', tudo: false })).toBe('O campo tudo está errado.');
+    expect(motivo({ type: 'darkness.add', forma })).toBe('O campo largura está fora do limite.');
+    expect(motivo({ type: 'darkness.remove', tudo: false })).toBe('O campo tudo está errado.');
     expect(motivo({ type: 'token.delete', tokenId: 7 })).toBe('O campo token está errado.');
   });
 
@@ -57,16 +57,16 @@ describe('validarComando', () => {
     expect(motivo({ type: 'prop.update', propId: 'prp_1' })).toBe('Diga o que mudar.');
   });
 
-  it('fog.remove: uma área ou tudo, nunca os dois nem nenhum', () => {
-    expect(validarComando({ type: 'fog.remove', formaId: 'nev_1' }).ok).toBe(true);
-    expect(validarComando({ type: 'fog.remove', tudo: true }).ok).toBe(true);
-    expect(motivo({ type: 'fog.remove' })).toBe('Diga qual área remover, ou remova tudo.');
-    expect(motivo({ type: 'fog.remove', formaId: 'nev_1', tudo: true })).toBe(
+  it('darkness.remove: uma área ou tudo, nunca os dois nem nenhum', () => {
+    expect(validarComando({ type: 'darkness.remove', formaId: 'nev_1' }).ok).toBe(true);
+    expect(validarComando({ type: 'darkness.remove', tudo: true }).ok).toBe(true);
+    expect(motivo({ type: 'darkness.remove' })).toBe('Diga qual área remover, ou remova tudo.');
+    expect(motivo({ type: 'darkness.remove', formaId: 'nev_1', tudo: true })).toBe(
       'Diga qual área remover, ou remova tudo.',
     );
   });
 
-  it('névoa: polígono precisa de 3 pontos', () => {
+  it('breu: polígono precisa de 3 pontos', () => {
     const forma = {
       tipo: 'poligono',
       pontos: [
@@ -74,8 +74,8 @@ describe('validarComando', () => {
         { x: 10, y: 0 },
       ],
     };
-    expect(motivo({ type: 'fog.add', forma })).toBe('Um polígono tem pelo menos 3 pontos.');
-    expect(motivo({ type: 'fog.add', forma: { tipo: 'circulo' } })).toBe(
+    expect(motivo({ type: 'darkness.add', forma })).toBe('Um polígono tem pelo menos 3 pontos.');
+    expect(motivo({ type: 'darkness.add', forma: { tipo: 'circulo' } })).toBe(
       'Desenhe um retângulo ou um polígono.',
     );
   });
@@ -121,9 +121,10 @@ describe('validarComando', () => {
         'prop.update',
         'prop.delete',
         'prop.drag',
-        'fog.add',
-        'fog.reveal',
-        'fog.remove',
+        'darkness.add',
+        'darkness.reveal',
+        'darkness.remove',
+        'mist.set',
         'map.activate',
         'map.grid',
         'room.update',
@@ -145,6 +146,16 @@ describe('validarComando', () => {
         'round.end',
       ].sort(),
     );
+  });
+});
+
+describe('névoa da Membrana', () => {
+  it('mist.set: um inteiro de 0 a 100', () => {
+    expect(validarComando({ type: 'mist.set', nivel: 0 }).ok).toBe(true);
+    expect(validarComando({ type: 'mist.set', nivel: 100 }).ok).toBe(true);
+    expect(motivo({ type: 'mist.set', nivel: 101 })).toBe('O nível da névoa vai de 0 a 100.');
+    expect(motivo({ type: 'mist.set', nivel: -1 })).toBe('O nível da névoa vai de 0 a 100.');
+    expect(motivo({ type: 'mist.set', nivel: 50.5 })).toBe('O nível da névoa é um número inteiro.');
   });
 });
 

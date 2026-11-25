@@ -109,7 +109,18 @@
   --map-prop: #2a211e;
   --map-prop-line: #4a3b35;
   --map-grid: rgba(236, 230, 223, 0.05);
-  --map-fog: #000;
+  --map-darkness: #000;
+  /* Névoa da Membrana: um véu claro e nuvens que derivam por cima do palco. */
+  --map-mist-veil: rgba(160, 152, 145, 0.22);
+  --map-mist-clouds:
+    radial-gradient(ellipse 38% 28% at 18% 30%, rgba(214, 207, 200, 0.55), transparent 70%),
+    radial-gradient(ellipse 34% 24% at 72% 58%, rgba(214, 207, 200, 0.5), transparent 70%),
+    radial-gradient(ellipse 48% 32% at 44% 88%, rgba(190, 182, 175, 0.45), transparent 70%),
+    radial-gradient(ellipse 30% 22% at 86% 14%, rgba(190, 182, 175, 0.4), transparent 70%);
+  --map-mist-clouds-2:
+    radial-gradient(ellipse 42% 26% at 60% 22%, rgba(200, 193, 186, 0.45), transparent 70%),
+    radial-gradient(ellipse 36% 30% at 24% 70%, rgba(214, 207, 200, 0.5), transparent 70%),
+    radial-gradient(ellipse 30% 20% at 90% 80%, rgba(190, 182, 175, 0.4), transparent 70%);
 
   /* Sombras e véus */
   --scrim: rgba(5, 4, 4, 0.78); /* atrás de modais */

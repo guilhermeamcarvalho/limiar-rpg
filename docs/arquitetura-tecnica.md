@@ -14,7 +14,7 @@ Premissas:
 
 Objetivos:
 
-- **Jogar de verdade:** mesa com mapa, tokens, névoa, dados e ficha funcionando bem no dia da sessão.
+- **Jogar de verdade:** mesa com mapa, tokens, breu, dados e ficha funcionando bem no dia da sessão.
 - **Código simples:** fácil de entender e mudar, sem serviços que ninguém precisa.
 - **Portfólio:** boas práticas onde elas custam pouco, como regras testadas e permissões no servidor.
 
@@ -28,7 +28,7 @@ O que importa é a mesa funcionar bem no dia do jogo e o mestre poder esconder c
 
 O catálogo completo, com códigos de RF-01 a RF-82, está na aba Produto e funcionalidades. Os pontos que mais pesam na arquitetura são:
 
-- **Mesa ao vivo:** tokens que cada jogador move, props, névoa desenhada pelo mestre, salas com notas, dados e chat.
+- **Mesa ao vivo:** tokens que cada jogador move, props, breu desenhado pelo mestre, salas com notas, dados e chat.
 - **Pistas:** marcadores no mapa, envio ao inventário de um jogador e apresentação ao grupo na aba Acontecimentos.
 - **Mestre:** guia de cena na mesa e escudo editável, com as mesmas salas nos dois.
 - **Mídia:** mapas, props, tokens, fotos e músicas enviados pelo grupo.
@@ -70,7 +70,7 @@ Um repositório com três pastas (pnpm workspaces): o cliente, o servidor e o c�
 membrana/
   client/              React + Vite, PWA
     src/pages/         Central, Casos, NovoCaso, Criar, Ficha, Mesa, Mestre, Arquivo, Perfil
-    src/mesa/          mapa com Konva: camadas de mapa, grade, props, salas, névoa, pistas, tokens
+    src/mesa/          mapa com Konva: camadas de mapa, grade, props, salas, breu, pistas, tokens
     src/mesa/audio/    trilha: ambientes gerados (Web Audio) e arquivos enviados
   server/
     src/http/          rotas Fastify: login, campanhas, fichas, uploads, áudio
@@ -113,7 +113,7 @@ Cada campanha é uma sala do Socket.IO. O servidor guarda o estado da mesa em me
 ### Caminho de uma ação
 
 1. O jogador arrasta o token de Davi; a tela já mostra o movimento e envia `token.move`.
-2. O servidor confere se ele é o dono do token (ou o mestre) e se o destino não está coberto pela névoa.
+2. O servidor confere se ele é o dono do token (ou o mestre) e se o destino não está coberto pelo breu.
 3. Se válido, atualiza o estado em memória, dá um número de sequência ao evento e o anota no registro.
 4. Envia o evento a cada pessoa da sala, filtrado pelo papel dela.
 5. Se recusado, só o autor recebe a recusa e o token volta ao lugar.
@@ -125,8 +125,9 @@ Segredo só escondido na tela não é segredo: qualquer amigo curioso abre o F12
 
 | Dado | Mestre | Jogador |
 | --- | --- | --- |
-| Tokens ocultos, e tokens e props sob a névoa | Recebe | Não recebe |
-| Formas da névoa | Recebe | Recebe, para desenhar o preto |
+| Tokens ocultos, e tokens e props sob o breu | Recebe | Não recebe |
+| Formas do breu | Recebe | Recebe, para desenhar o preto |
+| Nível da névoa | Recebe | Recebe igual (não esconde nada) |
 | Notas das salas e descrições contextuais | Recebe | Não recebe |
 | Pistas ainda não descobertas | Recebe | Recebe só a tarja |
 | Pistas no mapa marcadas como ocultas | Recebe | Não recebe |
@@ -137,7 +138,7 @@ Segredo só escondido na tela não é segredo: qualquer amigo curioso abre o F12
 | Guia de cena e escudo | Recebe | Nunca recebe |
 | Rolagens secretas e sussurros | Recebe | Só o destinatário |
 
-A imagem do mapa vai inteira, então alguém decidido consegue ver o que está sob a névoa abrindo o arquivo. Para um cômodo realmente secreto, o mestre sobe uma segunda imagem e só a mostra quando revelar.
+A imagem do mapa vai inteira, então alguém decidido consegue ver o que está sob o breu abrindo o arquivo. Para um cômodo realmente secreto, o mestre sobe uma segunda imagem e só a mostra quando revelar.
 
 ### Detalhes que evitam dor de cabeça
 
@@ -159,7 +160,8 @@ O cliente só envia comandos e o servidor só envia eventos, todos com schema Zo
 | `token.drag` | `token.dragging` (não grava) | Dono do token ou mestre | Quem vê o token |
 | `token.create`, `token.update`, `token.delete` | `token.changed` | Mestre; jogador só troca imagem e tamanho do próprio | Conforme a visibilidade |
 | `prop.create`, `prop.update`, `prop.delete` | `prop.changed` | Mestre | Todos |
-| `fog.add`, `fog.reveal`, `fog.remove` | `fog.changed` | Mestre | Todos (jogador recebe só as formas) |
+| `darkness.add`, `darkness.reveal`, `darkness.remove` | `darkness.changed` | Mestre | Todos (jogador recebe só as formas) |
+| `mist.set` | `mist.changed` | Mestre | Todos (só visual: o nível da névoa, de 0 a 100) |
 | `map.activate` | `map.activated` | Mestre | Todos |
 | `room.update` | `room.updated` | Mestre | Só o mestre |
 | `clue.create`, `clue.update`, `clue.delete` | `clue.changed` | Mestre | Mestre; jogadores só se a pista estiver visível |
@@ -192,7 +194,7 @@ socket.on('cmd', (cmd, responder) => {
 
 ## Modelo de dados
 
-Um arquivo SQLite guarda tudo, com tabelas normais para o que tem relação (campanhas, membros, tokens) e colunas JSON para o que muda por sistema de jogo (fichas, estado da névoa).
+Um arquivo SQLite guarda tudo, com tabelas normais para o que tem relação (campanhas, membros, tokens) e colunas JSON para o que muda por sistema de jogo (fichas, estado do breu).
 
 ```mermaid
 erDiagram
@@ -254,7 +256,7 @@ erDiagram
     text campaign_id FK
     text imagem
     int grade
-    json nevoa
+    json breu
   }
   TOKENS {
     text id PK
@@ -384,7 +386,7 @@ Poucos testes, nos lugares onde um bug estraga a sessão: as regras, as permiss�
 | --- | --- | --- |
 | Regras | Vitest (+ fast-check, opcional) | Soma dos 3 maiores, críticos, passos de dado, Gambiarra, Ímpeto |
 | Permissões | Vitest | Jogador não move token alheio; jogador nunca recebe nota de sala nem token oculto |
-| Mesa | Vitest com dois clientes Socket.IO falsos | Movimento chega ao outro; destino na névoa é recusado; reconexão recebe o estado |
+| Mesa | Vitest com dois clientes Socket.IO falsos | Movimento chega ao outro; destino no breu é recusado; reconexão recebe o estado |
 | Ponta a ponta | Playwright | Entrar por convite, abrir a mesa, mover o token, rolar um teste |
 
 O teste de permissão que verifica o que o jogador recebe é o mais valioso: é ele que garante que o mestre consegue manter surpresas.
@@ -433,7 +435,7 @@ O maior risco é o projeto ficar grande demais para uma pessoa e o grupo nunca c
 | Servidor cair no dia do jogo | Testar na véspera; ter o backup e um script que reinstala tudo do zero |
 | Perder campanhas e fichas | Backup diário fora do servidor, testado uma vez por mês |
 | Servidor invadido por estar exposto | SSH só com chave, firewall, atualizações automáticas, nada rodando como root |
-| Névoa e mapa ficarem lentos no celular | Limitar o mapa a 4096 px e testar cedo no celular mais fraco do grupo |
+| O breu e o mapa ficarem lentos no celular | Limitar o mapa a 4096 px e testar cedo no celular mais fraco do grupo |
 | Navegador bloquear o som | Botão “Ativar som” na entrada da mesa e aviso quando o áudio estiver bloqueado |
 | Pistas ou notas do mestre vazarem | Projeção por papel testada: o teste confere que o jogador nunca recebe pista oculta, nota de pista ou guia de cena |
 
@@ -442,5 +444,5 @@ Questões para decidir:
 - [x] Onde hospedar: decidido em 19/11/2026, VPS.
 - [x] Login: decidido em 19/11/2026, e-mail e senha e também Discord, na mesma conta.
 - [ ] Voz continua no Discord, ou vale integrar chamada na mesa depois?
-- [ ] Linha de visão dinâmica (paredes que bloqueiam a visão) entra em algum momento, ou a névoa manual basta?
+- [ ] Linha de visão dinâmica (paredes que bloqueiam a visão) entra em algum momento, ou o breu manual basta?
 - [ ] Alguém além de você vai mestrar e precisa do escudo?

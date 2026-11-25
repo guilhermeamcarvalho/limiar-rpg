@@ -1,6 +1,6 @@
 // Camada dos tokens (RF-16 a RF-18). O jogador arrasta o próprio token; o mestre, qualquer um.
 // Durante o arrasto, a posição vai no máximo 20 vezes por segundo (`token.drag`, não grava); ao
-// soltar, vai o `token.move` e o servidor decide. Recusado (como dentro da névoa), o token volta
+// soltar, vai o `token.move` e o servidor decide. Recusado (como dentro do breu), o token volta
 // ao lugar e o motivo aparece. Passar o mouse mostra o nome e de quem é.
 import { useMemo, useState, type RefObject } from 'react';
 import type Konva from 'konva';

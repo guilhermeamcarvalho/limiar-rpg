@@ -1,9 +1,9 @@
-// O palco da mesa (Konva). Camadas de baixo para cima: mapa e grade, props, salas, névoa, pistas
+// O palco da mesa (Konva). Camadas de baixo para cima: mapa e grade, props, salas, breu, pistas
 // e tokens. Tudo em pixels do mapa; a câmera (posição e zoom) fica no Stage.
 // Navegar: roda do mouse ou pinça para o zoom; botão do meio, espaço + arrasto ou dois dedos para
 // arrastar o mapa. Um dedo (ou o botão esquerdo) arrasta token e prop.
 // Clicar num token ou prop seleciona e mostra a barra dele; as setas movem o token uma célula;
-// Esc tira a seleção. Com a ferramenta da névoa aberta, o botão esquerdo desenha (Nevoa.tsx).
+// Esc tira a seleção. Com a ferramenta do breu aberta, o botão esquerdo desenha (Breu.tsx).
 // Desempenho no celular: as camadas estáticas não escutam clique, a grade é um
 // traço só e a densidade de pixels vai no máximo a 2.
 import {
@@ -20,7 +20,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import { Stage } from 'react-konva';
 import type {
   ComandoDaMesa,
-  FormaDaNevoa,
+  FormaDoBreu,
   MapaNaMesa,
   RespostaDoComando,
   VisaoDaMesa,
@@ -28,7 +28,7 @@ import type {
 import { Icon, useToast } from '../ui/index.ts';
 import { BarraDoProp, BarraDoToken } from './Barras.tsx';
 import { CamadaDoMapa } from './camadas/Mapa.tsx';
-import { CamadaDaNevoa } from './camadas/Nevoa.tsx';
+import { CamadaDoBreu } from './camadas/Breu.tsx';
 import { CamadaDePistas, CamadaDeSalas } from './camadas/Elementos.tsx';
 import {
   arrastar,
@@ -43,7 +43,7 @@ import {
   type Tamanho,
 } from './camera.ts';
 import { dentroDoMapa, destinoDaSeta, digitando, podeArrastar } from './interacao.ts';
-import { CamadaDeDesenhoDaNevoa, type PincelDaNevoa } from './Nevoa.tsx';
+import { CamadaDeDesenhoDoBreu, type PincelDoBreu } from './Breu.tsx';
 import { CamadaDeProps } from './Props.tsx';
 import { CamadaDeTokens, raioDoToken } from './Tokens.tsx';
 
@@ -66,10 +66,10 @@ export interface PalcoProps {
   aoEscolherPonto?: ((ponto: Ponto) => void) | null;
   /** Uma imagem do computador solta sobre o mapa (RF-24), com o ponto do mapa onde caiu. */
   aoSoltarImagem?: (arquivo: File, ponto: Ponto) => void;
-  /** Ferramenta da névoa aberta (só o mestre): o botão esquerdo desenha com este pincel. */
-  pincelDaNevoa?: PincelDaNevoa | null;
+  /** Ferramenta do breu aberta (só o mestre): o botão esquerdo desenha com este pincel. */
+  pincelDoBreu?: PincelDoBreu | null;
   /** A forma que o mestre acabou de desenhar, para cobrir ou revelar conforme o pincel. */
-  aoDesenharNevoa?: (forma: FormaDaNevoa) => void;
+  aoDesenharBreu?: (forma: FormaDoBreu) => void;
 }
 
 /** Os dois toques, na tela, relativos ao palco. */
@@ -96,8 +96,8 @@ export function Palco({
   centroRef,
   aoEscolherPonto,
   aoSoltarImagem,
-  pincelDaNevoa,
-  aoDesenharNevoa,
+  pincelDoBreu,
+  aoDesenharBreu,
 }: PalcoProps) {
   const { mapa } = visao;
   const avisos = useToast();
@@ -115,10 +115,10 @@ export function Palco({
   const stage = useRef<Konva.Stage>(null);
   const mestre = visao.papel === 'mestre';
   const escolhendo = Boolean(aoEscolherPonto);
-  const pincel = mestre && !escolhendo && aoDesenharNevoa ? (pincelDaNevoa ?? null) : null;
+  const pincel = mestre && !escolhendo && aoDesenharBreu ? (pincelDoBreu ?? null) : null;
   const bloqueado = espaco || escolhendo || pincel !== null;
 
-  // Começou a desenhar a névoa: a seleção sai (a barra do item ficaria no caminho).
+  // Começou a desenhar o breu: a seleção sai (a barra do item ficaria no caminho).
   const [pincelAberto, setPincelAberto] = useState(pincel !== null);
   if (pincelAberto !== (pincel !== null)) {
     setPincelAberto(pincel !== null);
@@ -160,7 +160,7 @@ export function Palco({
     if (centroRef && camera) centroRef.current = dentroDoMapa(paraOMapa(camera, meio()), mapa);
   }, [centroRef, camera, meio, mapa]);
 
-  // O que foi selecionado e saiu do mapa (removido, ou sumiu na névoa) deixa de estar selecionado.
+  // O que foi selecionado e saiu do mapa (removido, ou sumiu no breu) deixa de estar selecionado.
   const tokenEscolhido =
     selecao?.tipo === 'token' ? visao.tokens.find((t) => t.id === selecao.id) : undefined;
   const propEscolhido =
@@ -371,7 +371,7 @@ export function Palco({
             cancelarArrasto={cancelarArrasto}
           />
           {visao.salas && <CamadaDeSalas salas={visao.salas} />}
-          <CamadaDaNevoa nevoa={visao.nevoa} mapa={mapa} mestre={mestre} />
+          <CamadaDoBreu breu={visao.breu} mapa={mapa} mestre={mestre} />
           <CamadaDePistas pistas={visao.pistas} celula={celula} />
           <CamadaDeTokens
             tokens={visao.tokens}
@@ -388,13 +388,13 @@ export function Palco({
             aoRecusar={recusado}
             cancelarArrasto={cancelarArrasto}
           />
-          {pincel && aoDesenharNevoa && (
-            <CamadaDeDesenhoDaNevoa
+          {pincel && aoDesenharBreu && (
+            <CamadaDeDesenhoDoBreu
               pincel={pincel}
               mapa={mapa}
               escala={camera.escala}
               pausado={espaco}
-              aoDesenhar={aoDesenharNevoa}
+              aoDesenhar={aoDesenharBreu}
             />
           )}
         </Stage>

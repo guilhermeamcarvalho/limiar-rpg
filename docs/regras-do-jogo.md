@@ -129,7 +129,7 @@ Na ficha em branco nada disso é obrigatório: atributos e perícias vão de d4 
 
 ## RPGs inventados
 
-Um sistema inventado é descrito por configuração, não por código: o mestre preenche quatro campos ao criar o caso, e a mesa inteira (mapa, névoa, props, pistas, chat e trilha) funciona igual.
+Um sistema inventado é descrito por configuração, não por código: o mestre preenche quatro campos ao criar o caso, e a mesa inteira (mapa, breu, props, pistas, chat e trilha) funciona igual.
 
 | Campo | Exemplo |
 | --- | --- |

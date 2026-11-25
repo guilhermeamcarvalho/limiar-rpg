@@ -1,11 +1,11 @@
-// Camada da névoa (RF-23). As áreas se desenham na ordem: "cobrir" pinta, "revelar" apaga o que
+// Camada do breu (RF-23). As áreas se desenham na ordem: "cobrir" pinta, "revelar" apaga o que
 // estava embaixo nesta camada. O jogador vê preto; o mestre vê através, hachurado em vermelho.
 import { memo, useMemo } from 'react';
 import { Layer, Line, Rect } from 'react-konva';
-import type { AreaDaNevoa, FormaDaNevoa, MapaNaMesa } from '@membrana/shared';
+import type { AreaDoBreu, FormaDoBreu, MapaNaMesa } from '@membrana/shared';
 import { cores } from '../cores.ts';
 
-/** Ladrilho de listras diagonais, repetido sobre a névoa na visão do mestre. */
+/** Ladrilho de listras diagonais, repetido sobre o breu na visão do mestre. */
 function criarHachura(cor: string): HTMLCanvasElement | null {
   const lado = 12;
   const canvas = document.createElement('canvas');
@@ -26,7 +26,7 @@ function criarHachura(cor: string): HTMLCanvasElement | null {
   return canvas;
 }
 
-function Forma({ forma, revelar, cor }: { forma: FormaDaNevoa; revelar: boolean; cor: string }) {
+function Forma({ forma, revelar, cor }: { forma: FormaDoBreu; revelar: boolean; cor: string }) {
   const comum = {
     fill: cor,
     globalCompositeOperation: revelar ? ('destination-out' as const) : ('source-over' as const),
@@ -38,26 +38,26 @@ function Forma({ forma, revelar, cor }: { forma: FormaDaNevoa; revelar: boolean;
   return <Line points={forma.pontos.flatMap((p) => [p.x, p.y])} closed {...comum} />;
 }
 
-export const CamadaDaNevoa = memo(function CamadaDaNevoa({
-  nevoa,
+export const CamadaDoBreu = memo(function CamadaDoBreu({
+  breu,
   mapa,
   mestre,
 }: {
-  nevoa: AreaDaNevoa[];
+  breu: AreaDoBreu[];
   mapa: MapaNaMesa;
   mestre: boolean;
 }) {
   const c = cores();
   const hachura = useMemo(() => (mestre ? criarHachura(c['red-a40']) : null), [mestre, c]);
-  if (nevoa.length === 0) return null;
+  if (breu.length === 0) return null;
   return (
     <Layer listening={false} opacity={mestre ? 0.55 : 1}>
-      {nevoa.map((area) => (
+      {breu.map((area) => (
         <Forma
           key={area.id}
           forma={area.forma}
           revelar={area.modo === 'revelar'}
-          cor={c['map-fog']}
+          cor={c['map-darkness']}
         />
       ))}
       {hachura && (
