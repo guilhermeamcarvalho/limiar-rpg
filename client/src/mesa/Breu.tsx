@@ -1,4 +1,4 @@
-// Desenho da névoa pelo mestre (RF-22). Com a ferramenta aberta, uma camada por cima de tudo pega
+// Desenho do breu pelo mestre (RF-22). Com a ferramenta aberta, uma camada por cima de tudo pega
 // o mouse: no retângulo, arrastar desenha; no polígono, cada clique marca um canto e o polígono
 // fecha no primeiro ponto, com dois cliques ou com Enter (Backspace desfaz o último canto, Esc
 // cancela). A forma pronta vai para `aoDesenhar`; quem chama manda o comando e o servidor decide.
@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { Circle, Layer, Line, Rect } from 'react-konva';
-import { LIMITE_DO_MAPA, type FormaDaNevoa, type MapaNaMesa } from '@membrana/shared';
+import { LIMITE_DO_MAPA, type FormaDoBreu, type MapaNaMesa } from '@membrana/shared';
 import type { Ponto } from './camera.ts';
 import { cores } from './cores.ts';
 import {
@@ -17,13 +17,13 @@ import {
   retanguloEntre,
 } from './interacao.ts';
 
-export type ModoDaNevoa = 'cobrir' | 'revelar';
-export type TracoDaNevoa = FormaDaNevoa['tipo'];
+export type ModoDoBreu = 'cobrir' | 'revelar';
+export type TracoDoBreu = FormaDoBreu['tipo'];
 
-/** O que a ferramenta da névoa está fazendo: cobrir ou revelar, com retângulo ou polígono. */
-export interface PincelDaNevoa {
-  modo: ModoDaNevoa;
-  forma: TracoDaNevoa;
+/** O que a ferramenta do breu está fazendo: cobrir ou revelar, com retângulo ou polígono. */
+export interface PincelDoBreu {
+  modo: ModoDoBreu;
+  forma: TracoDoBreu;
 }
 
 /** Raio, na tela, em que o clique "pega" o primeiro ponto do polígono. */
@@ -34,20 +34,20 @@ function pontoDoMouse(e: KonvaEventObject<MouseEvent>): Ponto | null {
   return e.target.getStage()?.getRelativePointerPosition() ?? null;
 }
 
-export function CamadaDeDesenhoDaNevoa({
+export function CamadaDeDesenhoDoBreu({
   pincel,
   mapa,
   escala,
   pausado,
   aoDesenhar,
 }: {
-  pincel: PincelDaNevoa;
+  pincel: PincelDoBreu;
   mapa: MapaNaMesa;
   /** Zoom da câmera: os traços e o raio do clique ficam do mesmo tamanho na tela. */
   escala: number;
   /** Navegando (espaço apertado): o botão esquerdo é do mapa, não do desenho. */
   pausado: boolean;
-  aoDesenhar: (forma: FormaDaNevoa) => void;
+  aoDesenhar: (forma: FormaDoBreu) => void;
 }) {
   const c = cores();
   const [inicio, setInicio] = useState<Ponto | null>(null);

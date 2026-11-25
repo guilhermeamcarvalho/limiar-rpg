@@ -1,7 +1,7 @@
-// Regras das interações com o palco (arrastar, setas, girar, redimensionar, desenhar a névoa), sem
+// Regras das interações com o palco (arrastar, setas, girar, redimensionar, desenhar o breu), sem
 // Konva: o palco só chama estas funções.
 import type {
-  FormaDaNevoa,
+  FormaDoBreu,
   MapaNaMesa,
   PropNaMesa,
   SalaNaMesa,
@@ -105,27 +105,27 @@ export function pontoLivre(
   return dentroDoMapa(desejado, mapa);
 }
 
-/* ---------- Névoa (RF-22, RF-23) ---------- */
+/* ---------- Breu (RF-22, RF-23) ---------- */
 
-/** Menor lado (em pixels do mapa) de um retângulo de névoa: menos que isso é um clique, não um desenho. */
-export const MENOR_LADO_DA_NEVOA = 4;
+/** Menor lado (em pixels do mapa) de um retângulo de breu: menos que isso é um clique, não um desenho. */
+export const MENOR_LADO_DO_BREU = 4;
 
 /** O retângulo entre dois cantos quaisquer, sem sair do mapa; pequeno demais, nulo. */
 export function retanguloEntre(
   a: Ponto,
   b: Ponto,
   mapa: Pick<MapaNaMesa, 'largura' | 'altura'>,
-): Extract<FormaDaNevoa, { tipo: 'retangulo' }> | null {
+): Extract<FormaDoBreu, { tipo: 'retangulo' }> | null {
   const p = dentroDoMapa(a, mapa);
   const q = dentroDoMapa(b, mapa);
   const largura = Math.abs(p.x - q.x);
   const altura = Math.abs(p.y - q.y);
-  if (largura < MENOR_LADO_DA_NEVOA || altura < MENOR_LADO_DA_NEVOA) return null;
+  if (largura < MENOR_LADO_DO_BREU || altura < MENOR_LADO_DO_BREU) return null;
   return { tipo: 'retangulo', x: Math.min(p.x, q.x), y: Math.min(p.y, q.y), largura, altura };
 }
 
 /** O mapa inteiro: "cobrir tudo". */
-export const mapaInteiro = (mapa: Pick<MapaNaMesa, 'largura' | 'altura'>): FormaDaNevoa => ({
+export const mapaInteiro = (mapa: Pick<MapaNaMesa, 'largura' | 'altura'>): FormaDoBreu => ({
   tipo: 'retangulo',
   x: 0,
   y: 0,
@@ -154,17 +154,17 @@ export function cliqueNoPoligono(
 }
 
 /** O polígono desenhado, pronto para mandar; com menos de três pontos, nulo. */
-export function poligonoDe(pontos: readonly Ponto[]): FormaDaNevoa | null {
+export function poligonoDe(pontos: readonly Ponto[]): FormaDoBreu | null {
   if (pontos.length < 3) return null;
   return { tipo: 'poligono', pontos: pontos.slice(0, MAIS_PONTOS_NO_POLIGONO) };
 }
 
-/** A área de uma sala como forma da névoa ("revelar por sala"); sala sem área, nulo. */
-export function formaDaSala(sala: Pick<SalaNaMesa, 'area'>): FormaDaNevoa | null {
+/** A área de uma sala como forma do breu ("revelar por sala"); sala sem área, nulo. */
+export function formaDaSala(sala: Pick<SalaNaMesa, 'area'>): FormaDoBreu | null {
   return poligonoDe(sala.area);
 }
 
-/** O meio da sala (média dos cantos): é por ele que o painel diz se a sala está sob a névoa. */
+/** O meio da sala (média dos cantos): é por ele que o painel diz se a sala está sob o breu. */
 export function meioDaSala(sala: Pick<SalaNaMesa, 'area'>): Ponto | null {
   if (sala.area.length === 0) return null;
   const soma = sala.area.reduce((s, p) => ({ x: s.x + p.x, y: s.y + p.y }), { x: 0, y: 0 });

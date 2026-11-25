@@ -1,0 +1,1 @@
+ALTER TABLE `maps` RENAME COLUMN `nevoa` TO `breu`;

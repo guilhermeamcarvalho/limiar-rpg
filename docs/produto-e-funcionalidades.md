@@ -4,7 +4,7 @@ Nov 18, 2026 · @Guilherme
 
 ## Visão do produto
 
-A MEMBRANA é uma mesa virtual para um grupo de amigos jogar RPG de mesa online: Ordem Paranormal II e sistemas inventados pelo próprio grupo. Ela reúne ficha, mapa, névoa, pistas, dados, chat e trilha sonora num só lugar, com o visual de dossiê da marca MEMBRANA.
+A MEMBRANA é uma mesa virtual para um grupo de amigos jogar RPG de mesa online: Ordem Paranormal II e sistemas inventados pelo próprio grupo. Ela reúne ficha, mapa, breu, pistas, dados, chat e trilha sonora num só lugar, com o visual de dossiê da marca MEMBRANA.
 
 Esta documentação tem três abas:
 
@@ -16,7 +16,7 @@ Esta documentação tem três abas:
 
 | Papel | Quem é | O que faz |
 | --- | --- | --- |
-| Mestre | Quem conduz o caso | Prepara mapas, salas, pistas e ameaças; controla a névoa e a trilha; narra; vê tudo |
+| Mestre | Quem conduz o caso | Prepara mapas, salas, pistas e ameaças; controla o breu e a trilha; narra; vê tudo |
 | Jogador | Cada amigo com um personagem | Move o próprio token, investiga, rola testes, guarda e apresenta pistas |
 
 Uma mesma pessoa pode ser mestre num caso e jogador em outro. O papel vale por caso, não por conta.
@@ -35,7 +35,8 @@ Uma mesma pessoa pode ser mestre num caso e jogador em outro. O papel vale por c
 | Acontecimentos | Aba lateral com o registro da sessão, incluindo pistas apresentadas |
 | Token | Peça de um personagem ou NPC no mapa |
 | Prop | Objeto de cena no mapa (caixote, mancha, papel), abaixo dos tokens |
-| Névoa | Área do mapa escondida dos jogadores até o mestre revelar |
+| Breu | Área do mapa que o mestre tampa para os jogadores não verem; eles enxergam só escuridão até o mestre revelar |
+| Névoa | A névoa da Membrana, de Ordem Paranormal: a barreira entre a Realidade e o Outro Lado. Quando ela se adensa numa cena, a Membrana está fina e o paranormal pode atravessar. Na mesa, o mestre controla o quanto ela está densa e todos a veem sobre o mapa. É só visual: não esconde nada no mapa nem barra ninguém; isso é o breu |
 | Sala | Área do mapa com notas que só o mestre vê |
 | Guia de cena | Aba lateral do mestre na mesa, com roteiro, pontos de interesse, pistas e salas |
 | Escudo do mestre | Tela de referência do mestre, com 4 painéis editáveis |
@@ -52,7 +53,7 @@ São 10 telas. A Mesa é onde o jogo acontece; as outras preparam ou registram o
 | Novo caso | Criar um caso: sistema de jogo, premissa, regras, agenda e convites | Mestre | `OPNovoCaso` |
 | Criar personagem | Passo a passo ou ficha em branco | Jogador | `OPCriar` |
 | Ficha | Atributos, perícias, testes, PV/PD, foto, token, itens e pistas | Jogador (mestre consulta) | `OPFicha` |
-| Mesa | Mapa, tokens, props, névoa, pistas, dados, chat, trilha e guia do mestre | Todos | `OPMesa` |
+| Mesa | Mapa, tokens, props, breu, pistas, dados, chat, trilha e guia do mestre | Todos | `OPMesa` |
 | Mesa no celular | A mesa adaptada para telas de 390 px | Jogador | `OPMesaMobile` |
 | Mestre | Escudo do mestre, editor de pontos de interesse, grupo, caso | Mestre | `OPMestre` |
 | Arquivo | Biblioteca de regras, itens, ameaças e inventário de itens | Todos | `OPArquivo` |
@@ -90,24 +91,25 @@ Há dois caminhos para criar um personagem: o passo a passo, que aplica as regra
 | RF-86 | Falha crítica no modo físico pede o resultado do d8 da tabela e, em Acidente ou Frustração, o d4 de perda; os efeitos são aplicados como no modo virtual |
 | RF-87 | O resultado informado consome Ímpeto e Gambiarra, preenche o ímpeto na falha, entra no histórico e no chat marcado como “dados físicos” e aparece para o mestre em Acontecimentos. Cancelar o modal não registra nada |
 
-## Mesa: mapas, tokens, props e névoa
+## Mesa: mapas, tokens, props e breu
 
-A mesa segue o modelo do Owlbear Rodeo: o mapa é uma imagem com grade, as peças são arrastadas com o mouse ou o dedo, e o mestre esconde e revela áreas com névoa.
+A mesa segue o modelo do Owlbear Rodeo: o mapa é uma imagem com grade, as peças são arrastadas com o mouse ou o dedo, e o mestre esconde áreas sob o breu e as revela quando o grupo chega lá.
 
-O mapa tem camadas, de baixo para cima: imagem do mapa, grade, props, contornos das salas (só o mestre), névoa, pontos de interesse, pistas e tokens.
+O mapa tem camadas, de baixo para cima: imagem do mapa, grade, props, contornos das salas (só o mestre), breu, pontos de interesse, pistas e tokens.
 
 | Código | Requisito |
 | --- | --- |
 | RF-14 | O mestre envia imagens de mapa, troca entre mapas e ajusta o tamanho da grade de cada um |
-| RF-15 | Barra de ferramentas: mover, medir (1 quadrado = 1,5 m), marcar um ponto, névoa, revelar, sala e pista; grade e encaixe ligam e desligam |
+| RF-15 | Barra de ferramentas: mover, medir (1 quadrado = 1,5 m), marcar um ponto, breu, revelar, névoa, sala e pista; grade e encaixe ligam e desligam |
 | RF-16 | Cada jogador arrasta o próprio token; o de outro jogador não se move e mostra quem é o dono |
-| RF-17 | Um jogador não solta o token dentro da névoa |
+| RF-17 | Um jogador não solta o token dentro do breu |
 | RF-18 | Tokens têm imagem, tamanho 1×, 2× ou 3× e movimento pelas setas do teclado; o mestre pode ocultá-los |
 | RF-19 | O mestre cria tokens de NPC e ameaças com imagem enviada ou modelos prontos, e traz o grupo para outro mapa |
 | RF-20 | Props: o mestre coloca objetos de cena com arte própria ou desenhos prontos (caixote, contorno, papel, mancha, rádio) |
 | RF-21 | Props são movidos, girados (livre ou de 45 em 45 graus), redimensionados, duplicados, travados e trazidos para a frente; jogadores não mexem neles |
-| RF-22 | Névoa: o mestre arrasta para cobrir e para revelar, apaga blocos, cobre ou limpa o mapa inteiro, e cobre ou revela uma sala com um clique |
-| RF-23 | Jogadores veem a névoa em preto; o mestre vê hachurado e enxerga o que está embaixo |
+| RF-22 | Breu: o mestre arrasta para cobrir e para revelar, apaga blocos, cobre ou limpa o mapa inteiro, e cobre ou revela uma sala com um clique |
+| RF-23 | Jogadores veem o breu em preto; o mestre vê hachurado e enxerga o que está embaixo |
+| RF-88 | Névoa da Membrana: o mestre ajusta numa régua de 0 a 100 (com atalhos Sem névoa, Fina, Densa e Espessa) o quanto a névoa está densa na cena, e todos veem a mesma névoa animada sobre o mapa. É só visual: não esconde tokens, props nem pistas e não impede movimento; vale mesmo sem mapa na mesa |
 | RF-24 | Soltar uma imagem do computador sobre o mapa cria um token ali (mestre) ou troca a imagem do próprio token (jogador) |
 
 ## Pistas, inventário e acontecimentos
@@ -121,12 +123,12 @@ O mestre pode recolher uma pista do inventário a qualquer momento, e uma pista 
 | Código | Requisito |
 | --- | --- |
 | RF-40 | Com a ferramenta Pista, o mestre clica no mapa para criar uma pista com título, texto para o jogador e nota só do mestre |
-| RF-41 | O marcador da pista fica oculto até o mestre ligar “visível para os jogadores”; pistas sob a névoa não aparecem |
+| RF-41 | O marcador da pista fica oculto até o mestre ligar “visível para os jogadores”; pistas sob o breu não aparecem |
 | RF-42 | No painel da pista, o mestre envia ou recolhe a pista do inventário de cada jogador com um clique no nome |
 | RF-43 | O jogador guarda no inventário uma pista visível que encontrou no mapa |
 | RF-44 | A aba Inventário do jogador lista as pistas com a origem (enviada pelo mestre ou encontrada no mapa), Apresentar ao grupo e Ver no mapa |
 | RF-45 | Ao apresentar, a aba Acontecimentos mostra “\[Jogador\] compartilhou uma pista” com o cartão da pista, e ela entra na aba Pistas do grupo |
-| RF-46 | A aba Acontecimentos registra a sessão: movimentos, névoa, pistas entregues e apresentadas, trilhas e rodadas, com contador de novidades |
+| RF-46 | A aba Acontecimentos registra a sessão: movimentos, breu, pistas entregues e apresentadas, trilhas e rodadas, com contador de novidades |
 | RF-47 | As pistas do inventário também aparecem na ficha do personagem |
 
 ## Investigação, testes, dados e chat
@@ -204,13 +206,14 @@ Toda permissão é decidida no servidor. Esconder algo só na tela não conta co
 
 | Ação | Mestre | Jogador, no que é dele | Jogador, no que é de outro |
 | --- | --- | --- | --- |
-| Mover token | Sim | Sim, fora da névoa | Não |
+| Mover token | Sim | Sim, fora do breu | Não |
 | Trocar imagem e tamanho do token | Sim | Sim | Não |
 | Ocultar token, criar ou remover NPC | Sim | Não | Não |
 | Colocar, mover e girar props | Sim | Não | Não |
 | Enviar mapa e mudar a grade | Sim | Não | Não |
-| Desenhar e remover névoa | Sim | Não | Não |
-| Ver o que está sob a névoa | Sim | Não | Não |
+| Desenhar e remover o breu | Sim | Não | Não |
+| Ver o que está sob o breu | Sim | Não | Não |
+| Mudar o nível da névoa | Sim | Não | Não |
 | Criar, editar e enviar pistas | Sim | Não | Não |
 | Guardar pista visível no mapa | Não se aplica | Sim | Não se aplica |
 | Apresentar pista ao grupo | Não se aplica | Sim | Não |
@@ -225,7 +228,7 @@ Toda permissão é decidida no servidor. Esconder algo só na tela não conta co
 ### Preparar uma sessão (mestre)
 
 1. Na Mesa, envie o mapa e ajuste a grade.
-2. Cubra com névoa o que o grupo ainda não conhece.
+2. Cubra com o breu o que o grupo ainda não conhece.
 3. Desenhe as salas e preencha as notas, ou edite as salas pelo escudo.
 4. Coloque props e os tokens de NPCs e ameaças, deixando ocultos os que forem surpresa.
 5. Coloque as pistas no mapa, com o texto do jogador e a nota do mestre.
@@ -237,7 +240,7 @@ Toda permissão é decidida no servidor. Esconder algo só na tela não conta co
 1. O mestre toca a trilha e narra a abertura pela aba Guia.
 2. Cada jogador move o próprio token e abre um ponto de interesse.
 3. O jogador investiga, depois examina ou interage; as pistas reveladas vão para a aba Pistas.
-4. Quando o grupo chega a uma área nova, o mestre revela a névoa ou a sala.
+4. Quando o grupo chega a uma área nova, o mestre revela o breu ou a sala.
 5. O mestre envia pistas ao inventário de quem as encontrou.
 6. Quem tem uma pista decide quando apresentá-la; ela aparece em Acontecimentos para todos.
 7. O mestre encerra a rodada, e o ciclo recomeça.
@@ -252,7 +255,7 @@ Todas as funcionalidades pedidas estão no protótipo navegável do Claude Desig
 | Pistas no mapa com descrição e envio ao inventário de um jogador | Sim | Mesa: ferramenta Pista e painel da pista |
 | Jogador apresenta a pista em Acontecimentos | Sim | Mesa: aba Inventário e aba Acontecimentos |
 | Ficha em branco, sem o passo a passo | Sim | Criar personagem |
-| Névoa | Sim | Mesa: ferramentas Névoa e Revelar |
+| Breu | Sim | Mesa: ferramentas Breu e Revelar |
 | Jogadores movem os próprios tokens | Sim | Mesa e Mesa no celular |
 | Escudo do mestre | Sim | Mestre |
 | Guia lateral para narrar cenas com pontos de interesse e pistas | Sim | Mesa: aba Guia |
@@ -263,9 +266,9 @@ Todas as funcionalidades pedidas estão no protótipo navegável do Claude Desig
 ### Limitações conhecidas do protótipo
 
 - **Multiplayer simulado:** os outros jogadores são simulados. Para ver as permissões, troque entre Jogador e Mestre no topo da mesa.
-- **Dados no navegador:** mapas, névoa, tokens, props, pistas, salas e o escudo ficam salvos no navegador de quem usa, não num servidor. Imagens grandes podem não caber e valem só na sessão.
+- **Dados no navegador:** mapas, breu, tokens, props, pistas, salas e o escudo ficam salvos no navegador de quem usa, não num servidor. Imagens grandes podem não caber e valem só na sessão.
 - **Músicas enviadas:** tocam só até recarregar a página; os ambientes prontos sempre funcionam.
-- **Celular:** a mesa no celular move o token e investiga, mas ainda não tem props, pistas no mapa, névoa editável nem controles de trilha.
+- **Celular:** a mesa no celular move o token e investiga, mas ainda não tem props, pistas no mapa, breu editável nem controles de trilha.
 - **RPGs inventados:** o caso guarda o sistema configurado e aparece na aba própria, mas a ficha ainda é a de Ordem Paranormal; a ficha com os atributos configurados fica para a versão real.
 - **Dados físicos:** o app confia no resultado que o jogador informa. No celular, a falha crítica é registrada, mas ainda não pede o d8 da tabela.
 - **Regras provisórias:** as habilidades de Analista, Vigilante e das ocupações foram criadas para o protótipo e devem ser trocadas pelas do manual completo.

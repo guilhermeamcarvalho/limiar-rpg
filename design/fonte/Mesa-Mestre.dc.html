@@ -51,7 +51,7 @@ body{margin:0;background:#0A0909}
 <div class="tool" role="toolbar" aria-label="Ferramentas">
 <button class="tbtn" aria-label="Mover" title="Mover (V)"><span class="ic i-hand" aria-hidden="true"></span></button><button class="tbtn" aria-label="Medir" title="Medir (M)"><span class="ic i-ruler" aria-hidden="true"></span></button><button class="tbtn" aria-label="Marcar ponto" title="Marcar (P)"><span class="ic i-pin" aria-hidden="true"></span></button>
 <span class="sep" aria-hidden="true"></span>
-<button class="tbtn gm" aria-label="Tokens e NPCs, ferramenta do mestre" title="Tokens (T)"><span class="ic i-token" aria-hidden="true"></span></button><button class="tbtn gm on" aria-pressed="true" aria-label="Props, ferramenta do mestre" title="Props (O)"><span class="ic i-image" aria-hidden="true"></span></button><button class="tbtn gm" aria-label="Névoa, ferramenta do mestre" title="Névoa (N)"><span class="ic i-fog" aria-hidden="true"></span></button><button class="tbtn gm" aria-label="Salas, ferramenta do mestre" title="Salas (S)"><span class="ic i-door2" aria-hidden="true"></span></button><button class="tbtn gm" aria-label="Pistas e pontos, ferramenta do mestre" title="Pistas (C)"><span class="ic i-clue" aria-hidden="true"></span></button><button class="tbtn gm" aria-label="Mapa e grade, ferramenta do mestre" title="Mapa (G)"><span class="ic i-grid" aria-hidden="true"></span></button>
+<button class="tbtn gm" aria-label="Tokens e NPCs, ferramenta do mestre" title="Tokens (T)"><span class="ic i-token" aria-hidden="true"></span></button><button class="tbtn gm on" aria-pressed="true" aria-label="Props, ferramenta do mestre" title="Props (O)"><span class="ic i-image" aria-hidden="true"></span></button><button class="tbtn gm" aria-label="Breu, ferramenta do mestre" title="Breu (B)"><span class="ic i-darkness" aria-hidden="true"></span></button><button class="tbtn gm" aria-label="Salas, ferramenta do mestre" title="Salas (S)"><span class="ic i-door2" aria-hidden="true"></span></button><button class="tbtn gm" aria-label="Pistas e pontos, ferramenta do mestre" title="Pistas (C)"><span class="ic i-clue" aria-hidden="true"></span></button><button class="tbtn gm" aria-label="Mapa e grade, ferramenta do mestre" title="Mapa (G)"><span class="ic i-grid" aria-hidden="true"></span></button>
 </div>
 <div class="map" style="left: 30px; top: 86px; width: 720px; height: 480px">
 <div class="map-grid"></div>
@@ -64,15 +64,15 @@ body{margin:0;background:#0A0909}
 <div class="prop" style="left: 50px; top: 60px; width: 90px; height: 34px"></div>
 <div class="prop" style="left: 390px; top: 44px; width: 110px; height: 40px"></div>
 <div class="prop" style="left: 580px; top: 120px; width: 80px; height: 60px; outline: 2px solid var(--red-hi); outline-offset: 3px"></div>
-<div class="fog gm" style="left: 530px; top: 0; width: 190px; height: 480px"></div>
-<div class="fog gm" style="left: 270px; top: 290px; width: 260px; height: 190px"></div>
+<div class="darkness gm" style="left: 530px; top: 0; width: 190px; height: 480px"></div>
+<div class="darkness gm" style="left: 270px; top: 290px; width: 260px; height: 190px"></div>
 <span class="poi done" style="left: 120px; top: 120px">1</span><span class="poi" style="left: 445px; top: 64px">2</span><span class="poi" style="left: 160px; top: 390px">3</span><span class="poi" style="left: 620px; top: 250px; background: var(--gold)">4</span>
 <span class="clue" style="left: 330px; top: 150px"><span class="ic sm i-clue" aria-hidden="true"></span></span><span class="clue" style="left: 400px; top: 380px; opacity: .55; outline: 2px dashed var(--gold)" aria-label="Pista oculta"><span class="ic sm i-clue" aria-hidden="true"></span></span>
 <span class="tok" style="left: 400px; top: 245px">DR</span><span class="tok" style="left: 300px; top: 120px; background: #1E3550; --pc: var(--blue)">MQ</span><span class="tok" style="left: 180px; top: 245px; background: #24401D; --pc: var(--green)">IN</span>
 <span class="tok npc hid" style="left: 620px; top: 80px">VZ</span><span class="tok npc" style="left: 60px; top: 150px">SG</span>
 </div>
 <div class="row" role="toolbar" aria-label="Prop selecionado" style="position: absolute; left: 500px; top: 272px; z-index: 8; gap: 2px; padding: 4px; background: var(--panel); border: 1px solid var(--red)"><span class="small" style="padding: 0 8px; font-weight: 800">Gravador de rolo</span><button class="tbtn" aria-label="Girar"><span class="ic sm i-refresh" aria-hidden="true"></span></button><button class="tbtn" aria-label="Duplicar"><span class="ic sm i-copy" aria-hidden="true"></span></button><button class="tbtn" aria-label="Travar"><span class="ic sm i-lock" aria-hidden="true"></span></button><button class="tbtn" aria-label="Trazer à frente"><span class="ic sm i-layers" aria-hidden="true"></span></button><button class="tbtn" aria-label="Remover"><span class="ic sm i-trash" aria-hidden="true"></span></button></div>
-<div class="row" style="position: absolute; left: 14px; bottom: 14px; z-index: 6; gap: 6px"><span class="chip" style="background: var(--panel)"><span class="dot" style="background: var(--red-hi)"></span>Névoa: jogadores veem preto</span><span class="chip" style="background: var(--panel)"><span class="dot y"></span>Oculto para jogadores</span></div>
+<div class="row" style="position: absolute; left: 14px; bottom: 14px; z-index: 6; gap: 6px"><span class="chip" style="background: var(--panel)"><span class="dot" style="background: var(--red-hi)"></span>Breu: jogadores veem preto</span><span class="chip" style="background: var(--panel)"><span class="dot y"></span>Oculto para jogadores</span></div>
 <div class="zoom"><button class="tbtn" aria-label="Aproximar"><span class="ic i-plus" aria-hidden="true"></span></button><button class="tbtn" aria-label="Afastar">−</button></div>
 </section>
 
@@ -89,7 +89,7 @@ body{margin:0;background:#0A0909}
 <div class="li" style="min-height: 44px"><span class="poi done" style="position: static; margin: 0">1</span><span class="grow small"><b>Balcão</b> · 2/2 descobertas</span></div>
 <div class="li on" style="min-height: 44px"><span class="poi" style="position: static; margin: 0">2</span><span class="grow small"><b>Mesa de som</b> · 0/2 · Percepção DT 7</span><button class="btn icon sm ghost" aria-label="Editar Mesa de som"><span class="ic sm i-edit" aria-hidden="true"></span></button></div>
 <div class="li" style="min-height: 44px"><span class="poi" style="position: static; margin: 0">3</span><span class="grow small"><b>Armário de fitas</b> · trancado · 4 tentativas</span></div>
-<div class="li" style="min-height: 44px"><span class="poi" style="position: static; margin: 0; background: var(--gold)">4</span><span class="grow small"><b>Cabine</b> · sob a névoa</span></div>
+<div class="li" style="min-height: 44px"><span class="poi" style="position: static; margin: 0; background: var(--gold)">4</span><span class="grow small"><b>Cabine</b> · sob o breu</span></div>
 </div></div>
 <div class="col" style="gap: 6px"><span class="lab">Nota da sala · Estúdio B</span><p class="note">A Voz só aparece se alguém disser o próprio nome ao microfone.</p></div>
 </div>

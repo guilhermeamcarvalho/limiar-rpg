@@ -123,7 +123,7 @@ describe('pontoLivre', () => {
   });
 });
 
-describe('névoa', () => {
+describe('breu', () => {
   const mapa = { largura: 1000, altura: 800 };
 
   it('retângulo entre dois cantos quaisquer, sem sair do mapa; pequeno demais, nada', () => {

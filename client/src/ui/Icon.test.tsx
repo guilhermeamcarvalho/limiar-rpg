@@ -36,10 +36,10 @@ describe('Icon', () => {
   });
 
   it('traz todos os ícones do canvas', () => {
-    expect(NOMES_DOS_ICONES).toHaveLength(62);
+    expect(NOMES_DOS_ICONES).toHaveLength(63);
     for (const nome of ['home', 'folder', 'users', 'map', 'book', 'eye', 'dice', 'clue', 'hand'])
       expect(NOMES_DOS_ICONES).toContain(nome);
-    for (const nome of ['ruler', 'pin', 'fog', 'door', 'shield'])
+    for (const nome of ['ruler', 'pin', 'darkness', 'mist', 'door', 'shield'])
       expect(NOMES_DOS_ICONES).toContain(nome);
   });
 

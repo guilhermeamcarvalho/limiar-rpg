@@ -43,8 +43,8 @@ function criarToken(
   return evento.token;
 }
 
-const NEVOA_NO_CANTO = {
-  type: 'fog.add',
+const BREU_NO_CANTO = {
+  type: 'darkness.add',
   forma: { tipo: 'retangulo', x: 500, y: 500, largura: 200, altura: 200 },
 } as const;
 
@@ -96,7 +96,7 @@ describe('Mesa.aplicar', () => {
     const token = criarToken(m, { personagemId: m.davi });
     const seqs = [
       ...eventos(m.mesa.aplicar(m.bia, { type: 'token.move', tokenId: token.id, x: 10, y: 10 })),
-      ...eventos(m.mesa.aplicar(m.ana, NEVOA_NO_CANTO)),
+      ...eventos(m.mesa.aplicar(m.ana, BREU_NO_CANTO)),
       ...eventos(m.mesa.aplicar(m.ana, { type: 'round.end' })),
     ].map((e) => e.seq);
     expect(seqs).toEqual([2, 3, 4]);
@@ -121,15 +121,15 @@ describe('tokens', () => {
     ).toBe('Só o dono do token ou o mestre pode movê-lo.');
   });
 
-  it('o jogador não entra na névoa; o mestre põe o token onde quiser', () => {
+  it('o jogador não entra no breu; o mestre põe o token onde quiser', () => {
     const m = montar();
     const token = criarToken(m, { personagemId: m.davi });
-    eventos(m.mesa.aplicar(m.ana, NEVOA_NO_CANTO));
+    eventos(m.mesa.aplicar(m.ana, BREU_NO_CANTO));
 
     const dentro = { type: 'token.move', tokenId: token.id, x: 600, y: 600 } as const;
-    expect(motivo(m.mesa.aplicar(m.bia, dentro))).toBe('Não dá para entrar na névoa.');
+    expect(motivo(m.mesa.aplicar(m.bia, dentro))).toBe('Não dá para entrar no breu.');
     expect(motivo(m.mesa.aplicar(m.bia, { ...dentro, type: 'token.drag' }))).toBe(
-      'Não dá para entrar na névoa.',
+      'Não dá para entrar no breu.',
     );
     expect(m.mesa.estado.tokens[0]).toMatchObject({ x: 100, y: 100 });
     expect(eventos(m.mesa.aplicar(m.ana, dentro))).toHaveLength(1);
@@ -157,7 +157,7 @@ describe('tokens', () => {
     ).toHaveLength(1);
   });
 
-  it('sem mapa na mesa, não há onde pôr token, prop ou névoa', () => {
+  it('sem mapa na mesa, não há onde pôr token, prop ou breu', () => {
     const m = montar({ comMapa: false });
     const semMapa = 'Ponha um mapa na mesa antes.';
     expect(motivo(m.mesa.aplicar(m.ana, { type: 'token.create', nome: 'V', x: 1, y: 1 }))).toBe(
@@ -167,8 +167,8 @@ describe('tokens', () => {
     expect(motivo(m.mesa.aplicar(m.ana, { type: 'prop.create', imagem, x: 1, y: 1 }))).toBe(
       semMapa,
     );
-    expect(motivo(m.mesa.aplicar(m.ana, NEVOA_NO_CANTO))).toBe(semMapa);
-    expect(motivo(m.mesa.aplicar(m.ana, { type: 'fog.remove', tudo: true }))).toBe(semMapa);
+    expect(motivo(m.mesa.aplicar(m.ana, BREU_NO_CANTO))).toBe(semMapa);
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'darkness.remove', tudo: true }))).toBe(semMapa);
   });
 
   it('só o mestre cria e remove; personagem precisa ser do caso e ter um token só', () => {
@@ -229,7 +229,7 @@ describe('tokens', () => {
   });
 });
 
-describe('props, névoa e rodada', () => {
+describe('props, breu e rodada', () => {
   it('só o mestre mexe em props; o novo fica por cima', () => {
     const m = montar();
     const imagem = `${'a'.repeat(64)}.webp`;
@@ -251,40 +251,65 @@ describe('props, névoa e rodada', () => {
     );
   });
 
-  it('névoa: cobrir, revelar, remover uma área e limpar tudo', () => {
+  it('breu: cobrir, revelar, remover uma área e limpar tudo', () => {
     const m = montar();
-    expect(motivo(m.mesa.aplicar(m.bia, NEVOA_NO_CANTO))).toBe('Só o mestre mexe na névoa.');
-    eventos(m.mesa.aplicar(m.ana, NEVOA_NO_CANTO));
-    const [evento] = eventos(m.mesa.aplicar(m.ana, { ...NEVOA_NO_CANTO, type: 'fog.reveal' }));
+    expect(motivo(m.mesa.aplicar(m.bia, BREU_NO_CANTO))).toBe('Só o mestre mexe no breu.');
+    eventos(m.mesa.aplicar(m.ana, BREU_NO_CANTO));
+    const [evento] = eventos(m.mesa.aplicar(m.ana, { ...BREU_NO_CANTO, type: 'darkness.reveal' }));
     expect(evento).toMatchObject({
-      type: 'fog.changed',
-      nevoa: [{ modo: 'cobrir' }, { modo: 'revelar' }],
+      type: 'darkness.changed',
+      breu: [{ modo: 'cobrir' }, { modo: 'revelar' }],
     });
 
-    const id = m.mesa.estado.nevoa[0]?.id ?? '';
-    eventos(m.mesa.aplicar(m.ana, { type: 'fog.remove', formaId: id }));
-    expect(m.mesa.estado.nevoa.map((a) => a.modo)).toEqual(['revelar']);
-    expect(motivo(m.mesa.aplicar(m.ana, { type: 'fog.remove', formaId: id }))).toBe(
-      'Essa área da névoa não existe mais.',
+    const id = m.mesa.estado.breu[0]?.id ?? '';
+    eventos(m.mesa.aplicar(m.ana, { type: 'darkness.remove', formaId: id }));
+    expect(m.mesa.estado.breu.map((a) => a.modo)).toEqual(['revelar']);
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'darkness.remove', formaId: id }))).toBe(
+      'Essa área do breu não existe mais.',
     );
-    eventos(m.mesa.aplicar(m.ana, { type: 'fog.remove', tudo: true }));
-    expect(m.mesa.estado.nevoa).toEqual([]);
+    eventos(m.mesa.aplicar(m.ana, { type: 'darkness.remove', tudo: true }));
+    expect(m.mesa.estado.breu).toEqual([]);
   });
 
-  it('névoa: cobrir tudo vira uma área só, e revelar tudo limpa', () => {
+  it('breu: cobrir tudo vira uma área só, e revelar tudo limpa', () => {
     const m = montar();
     const tudo = { tipo: 'retangulo', x: 0, y: 0, largura: 2000, altura: 1500 } as const;
-    eventos(m.mesa.aplicar(m.ana, NEVOA_NO_CANTO));
-    eventos(m.mesa.aplicar(m.ana, { ...NEVOA_NO_CANTO, type: 'fog.reveal' }));
-    const [cobriu] = eventos(m.mesa.aplicar(m.ana, { type: 'fog.add', forma: tudo }));
-    expect(cobriu).toMatchObject({ type: 'fog.changed', nevoa: [{ modo: 'cobrir', forma: tudo }] });
-    expect(m.mesa.estado.nevoa).toHaveLength(1);
+    eventos(m.mesa.aplicar(m.ana, BREU_NO_CANTO));
+    eventos(m.mesa.aplicar(m.ana, { ...BREU_NO_CANTO, type: 'darkness.reveal' }));
+    const [cobriu] = eventos(m.mesa.aplicar(m.ana, { type: 'darkness.add', forma: tudo }));
+    expect(cobriu).toMatchObject({
+      type: 'darkness.changed',
+      breu: [{ modo: 'cobrir', forma: tudo }],
+    });
+    expect(m.mesa.estado.breu).toHaveLength(1);
 
-    // Revelar uma sala empilha; revelar o mapa inteiro deixa sem névoa.
-    eventos(m.mesa.aplicar(m.ana, { ...NEVOA_NO_CANTO, type: 'fog.reveal' }));
-    expect(m.mesa.estado.nevoa.map((a) => a.modo)).toEqual(['cobrir', 'revelar']);
-    eventos(m.mesa.aplicar(m.ana, { type: 'fog.reveal', forma: tudo }));
-    expect(m.mesa.estado.nevoa).toEqual([]);
+    // Revelar uma sala empilha; revelar o mapa inteiro deixa sem breu.
+    eventos(m.mesa.aplicar(m.ana, { ...BREU_NO_CANTO, type: 'darkness.reveal' }));
+    expect(m.mesa.estado.breu.map((a) => a.modo)).toEqual(['cobrir', 'revelar']);
+    eventos(m.mesa.aplicar(m.ana, { type: 'darkness.reveal', forma: tudo }));
+    expect(m.mesa.estado.breu).toEqual([]);
+  });
+
+  it('névoa: só o mestre muda o nível, e vale sem mapa na mesa', () => {
+    const m = montar({ comMapa: false });
+    expect(m.mesa.estado.nevoa).toBe(0);
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'mist.set', nivel: 40 }))).toBe(
+      'Só o mestre mexe na névoa.',
+    );
+    expect(eventos(m.mesa.aplicar(m.ana, { type: 'mist.set', nivel: 40 }))).toEqual([
+      { type: 'mist.changed', nivel: 40, seq: 1 },
+    ]);
+    expect(m.mesa.estado.nevoa).toBe(40);
+  });
+
+  it('névoa é só visual: no máximo, o jogador anda e vê tudo igual', () => {
+    const m = montar();
+    const token = criarToken(m, { personagemId: m.davi });
+    eventos(m.mesa.aplicar(m.ana, { type: 'mist.set', nivel: 100 }));
+    expect(
+      eventos(m.mesa.aplicar(m.bia, { type: 'token.move', tokenId: token.id, x: 600, y: 600 })),
+    ).toMatchObject([{ type: 'token.moved', x: 600, y: 600 }]);
+    expect(m.mesa.estado.breu).toEqual([]);
   });
 
   it('a rodada passa pelo mestre e entra no registro da sessão', () => {

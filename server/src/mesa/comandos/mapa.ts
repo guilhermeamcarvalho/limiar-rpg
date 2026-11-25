@@ -1,6 +1,6 @@
 // Mapa: o mestre troca o mapa da mesa (para todos ao mesmo tempo) e ajusta a grade do ativo.
 // Na troca, o mapa que sai é gravado antes (Mesa.ts) e o que entra vem do banco, com os tokens,
-// os props e a névoa dele.
+// os props e o breu dele.
 import { podeConduzirMesa } from '@membrana/shared';
 import { exigirMapa, Recusa, type Contexto, type Tratadores } from './contexto.ts';
 
@@ -18,7 +18,7 @@ export const tratadoresDoMapa: Tratadores = {
     ctx.estado.mapa = conteudo.mapa;
     ctx.estado.tokens = conteudo.tokens;
     ctx.estado.props = conteudo.props;
-    ctx.estado.nevoa = conteudo.nevoa;
+    ctx.estado.breu = conteudo.breu;
     return [{ type: 'map.activated', mapa: conteudo.mapa }];
   },
 

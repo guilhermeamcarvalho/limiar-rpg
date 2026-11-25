@@ -1,11 +1,11 @@
 // Tokens: mover e arrastar (dono ou mestre), criar, mudar e remover (mestre; o jogador só troca
-// imagem e tamanho do próprio). O jogador não entra na névoa; o mestre põe o token onde quiser.
+// imagem e tamanho do próprio). O jogador não entra no breu; o mestre põe o token onde quiser.
 import {
   ehMestre,
   podeAlterarToken,
   podeConduzirMesa,
   podeMoverToken,
-  sobNevoa,
+  sobBreu,
   NOME_DE_ARQUIVO,
   type EventoDaMesaSemSeq,
   type Ponto,
@@ -21,10 +21,10 @@ function acharToken(ctx: Contexto, tokenId: string): TokenNaMesa {
 }
 
 function conferirDestino(ctx: Contexto, x: number, y: number) {
-  const { mapa, nevoa } = ctx.estado;
+  const { mapa, breu } = ctx.estado;
   if (mapa && (x > mapa.largura || y > mapa.altura)) throw new Recusa('Fora do mapa.');
-  if (!ehMestre(ctx.quem, ctx.campanha) && sobNevoa(nevoa, { x, y })) {
-    throw new Recusa('Não dá para entrar na névoa.');
+  if (!ehMestre(ctx.quem, ctx.campanha) && sobBreu(breu, { x, y })) {
+    throw new Recusa('Não dá para entrar no breu.');
   }
 }
 
