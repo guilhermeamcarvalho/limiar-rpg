@@ -22,6 +22,7 @@ import { mesclarEventosRegistrados } from '../../mesa/estado.ts';
 import { enviarImagemDaMesa, nomeDoArquivoSemExtensao } from '../../mesa/imagens.ts';
 import { dentroDoMapa } from '../../mesa/interacao.ts';
 import { MapaUpload } from '../../mesa/MapaUpload.tsx';
+import type { ModoDoPalco } from '../../mesa/medicao.ts';
 import { descreverNevoa, NevoaDaMembrana } from '../../mesa/NevoaDaMembrana.tsx';
 import type { PincelDoBreu } from '../../mesa/Breu.tsx';
 import { FerramentaDoBreu } from '../../mesa/painel/Breu.tsx';
@@ -271,6 +272,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const [seqVistoRegistro, setSeqVistoRegistro] = useState<number | null>(null);
   const [seqResultadoFechado, setSeqResultadoFechado] = useState(0);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
+  const [modo, setModo] = useState<ModoDoPalco>('mover');
   const [pincel, setPincel] = useState<PincelDoBreu>({ modo: 'cobrir', forma: 'retangulo' });
   const centroRef = useRef<Ponto | null>(null);
 
@@ -353,7 +355,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     document.title = tituloDaPagina(nomeDoCaso ? `Mesa · ${nomeDoCaso}` : 'Mesa');
   }, [nomeDoCaso]);
 
-  // D abre Dados e testes para qualquer pessoa; T, O, B, N e G abrem as ferramentas do mestre.
+  // D abre Dados e testes para qualquer pessoa; T, O, B, N e G abrem as ferramentas do mestre;
+  // V, M e P alternam entre Mover, Medir e Marcar ponto quando há mapa.
   useEffect(() => {
     if (!visao) return;
     const aoTeclar = (e: KeyboardEvent) => {
@@ -361,10 +364,21 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       if (alvo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return;
       if (e.key === 'Escape') {
         setEscolhendoGrupo(false);
+        setModo('mover');
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const ferramenta = FERRAMENTAS.find((f) => f.tecla === e.key.toLowerCase());
+      const tecla = e.key.toLowerCase();
+      if (temMapa && (tecla === 'v' || tecla === 'm' || tecla === 'p')) {
+        setPainel((aberto) => (aberto === 'breu' ? null : aberto));
+        setModo((agora) => {
+          if (tecla === 'v') return 'mover';
+          const proximo: ModoDoPalco = tecla === 'm' ? 'medir' : 'marcar';
+          return agora === proximo ? 'mover' : proximo;
+        });
+        return;
+      }
+      const ferramenta = FERRAMENTAS.find((f) => f.tecla === tecla);
       if (!ferramenta) return;
       if (ferramenta.soMestre && !mestre) return;
       if (ferramenta.comMapa && !temMapa) return;
@@ -425,6 +439,11 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para trazer o grupo', text: r.motivo });
   }
 
+  async function marcarPonto(ponto: Ponto) {
+    const r = await enviar({ type: 'board.ping', ...ponto });
+    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para marcar o ponto', text: r.motivo });
+  }
+
   async function encerrarRodada() {
     const r = await enviar({ type: 'round.end' });
     if (!r.ok)
@@ -451,6 +470,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const aberta = FERRAMENTAS.find(
     (f) => f.id === painel && (!f.soMestre || mestre) && (!f.comMapa || comMapa),
   );
+  const modoEfetivo: ModoDoPalco | null =
+    !comMapa || escolhendoGrupo || aberta?.id === 'breu' ? null : modo;
   const ferramentasComuns = FERRAMENTAS.filter((f) => !f.soMestre);
   const ferramentasDoMestre = mestre ? FERRAMENTAS.filter((f) => f.soMestre) : [];
   const mostrarBarra = Boolean(visao && (mestre || comMapa));
@@ -679,6 +700,9 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
               pincelDoBreu={mestre && aberta?.id === 'breu' ? pincel : null}
               aoDesenharBreu={(forma) => void desenharBreu(forma)}
+              modo={modoEfetivo ?? 'mover'}
+              ultimoPulso={mesa.ultimoPulso}
+              aoMarcarPonto={(ponto) => void marcarPonto(ponto)}
             />
           ) : (
             <div className="mesa-vazia">
@@ -762,6 +786,49 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               role="toolbar"
               aria-label={mestre ? 'Ferramentas' : 'Ferramentas do jogador'}
             >
+              <button
+                type="button"
+                className={cx('tbtn', modoEfetivo === 'mover' && 'on')}
+                aria-pressed={modoEfetivo === 'mover'}
+                aria-label={mestre ? 'Mover' : 'Mover meu token'}
+                title="Mover (V)"
+                disabled={!comMapa}
+                onClick={() => {
+                  setPainel((agora) => (agora === 'breu' ? null : agora));
+                  setModo('mover');
+                }}
+              >
+                <Icon name="hand" />
+              </button>
+              <button
+                type="button"
+                className={cx('tbtn', modoEfetivo === 'medir' && 'on')}
+                aria-pressed={modoEfetivo === 'medir'}
+                aria-label="Medir distância"
+                title="Medir (M)"
+                disabled={!comMapa}
+                onClick={() => {
+                  setPainel((agora) => (agora === 'breu' ? null : agora));
+                  setModo((agora) => (agora === 'medir' ? 'mover' : 'medir'));
+                }}
+              >
+                <Icon name="ruler" />
+              </button>
+              <button
+                type="button"
+                className={cx('tbtn', modoEfetivo === 'marcar' && 'on')}
+                aria-pressed={modoEfetivo === 'marcar'}
+                aria-label="Marcar um ponto para todos"
+                title="Marcar (P)"
+                disabled={!comMapa}
+                onClick={() => {
+                  setPainel((agora) => (agora === 'breu' ? null : agora));
+                  setModo((agora) => (agora === 'marcar' ? 'mover' : 'marcar'));
+                }}
+              >
+                <Icon name="pin" />
+              </button>
+              <span className="sep" aria-hidden="true" />
               {ferramentasComuns.map((f) => (
                 <button
                   key={f.id}

@@ -246,6 +246,8 @@ const chatSend = comando('chat.send', {
 
 const roundEnd = comando('round.end', {});
 
+const boardPing = comando('board.ping', { x: coordenada, y: coordenada });
+
 export const esquemaComando = z.discriminatedUnion(
   'type',
   [
@@ -282,6 +284,7 @@ export const esquemaComando = z.discriminatedUnion(
     audioVolume,
     chatSend,
     roundEnd,
+    boardPing,
   ],
   { error: 'Comando desconhecido.' },
 );
@@ -569,7 +572,8 @@ export type EventoDaMesaSemSeq =
       em: string;
     }
   | { type: 'round.started'; numero: number }
-  | { type: 'round.acted'; userId: string };
+  | { type: 'round.acted'; userId: string }
+  | { type: 'board.pinged'; autorId: string; x: number; y: number };
 
 /** Todo evento leva o número de sequência da mesa: chegam e se aplicam nessa ordem. */
 export type EventoDaMesa = EventoDaMesaSemSeq & { seq: number };

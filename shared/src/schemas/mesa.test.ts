@@ -144,6 +144,7 @@ describe('validarComando', () => {
         'audio.volume',
         'chat.send',
         'round.end',
+        'board.ping',
       ].sort(),
     );
   });

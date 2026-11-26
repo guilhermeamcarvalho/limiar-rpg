@@ -58,6 +58,8 @@ export interface MesaNoCliente {
   eventos: EventoDaMesa[];
   /** O último teste resolvido ao vivo na mesa, para o cartão no canto do mapa (#70). */
   ultimoTeste: { seq: number; registro: RegistroDeTeste } | null;
+  /** O último ponto marcado no mapa ao vivo (#79). */
+  ultimoPulso: { seq: number; autorId: string; x: number; y: number } | null;
   /** Contador por personagem: sobe a cada `character.changed`, para recarregar a ficha aberta. */
   versaoPersonagens: Record<string, number>;
 }
@@ -69,6 +71,7 @@ export const MESA_VAZIA: MesaNoCliente = {
   arrastando: {},
   eventos: [],
   ultimoTeste: null,
+  ultimoPulso: null,
   versaoPersonagens: {},
 };
 
@@ -88,7 +91,7 @@ function trocar<T extends { id: string }>(lista: T[], id: string, item: T | null
 export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNoCliente {
   // O estado completo sempre vale: é o que chega ao entrar, ao voltar de uma queda e ao trocar de mapa.
   if (evento.type === 'mesa.estado') {
-    return { ...mesa, visao: evento.estado, seq: evento.seq, arrastando: {} };
+    return { ...mesa, visao: evento.estado, seq: evento.seq, arrastando: {}, ultimoPulso: null };
   }
 
   const eventos = ehEventoRegistrado(evento)
@@ -178,7 +181,14 @@ export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNo
       return { ...mesa, seq, eventos, visao: { ...visao, nevoa: evento.nivel } };
     case 'map.activated':
       // O mapa novo, com tudo o que está sobre ele, chega logo depois num `mesa.estado`.
-      return { ...mesa, seq, eventos };
+      return { ...mesa, seq, eventos, ultimoPulso: null };
+    case 'board.pinged':
+      return {
+        ...mesa,
+        seq,
+        eventos,
+        ultimoPulso: { seq, autorId: evento.autorId, x: evento.x, y: evento.y },
+      };
     case 'map.changed':
       return { ...mesa, seq, eventos, visao: { ...visao, mapa: evento.mapa } };
     case 'round.started':

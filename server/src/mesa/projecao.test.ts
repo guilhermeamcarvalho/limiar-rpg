@@ -497,4 +497,17 @@ describe('projetarRegistro (session_log)', () => {
     ]);
     expect(projetarRegistro(ANA, gravados)).toEqual(gravados);
   });
+
+  it('board.pinged chega para mestre e jogadores', () => {
+    const estado = mesaCheiaDeSegredos();
+    const pulso: EventoDaMesa = {
+      type: 'board.pinged',
+      autorId: BIA.id,
+      x: 150,
+      y: 220,
+      seq: 14,
+    };
+    expect(projetarEventos(ANA, [pulso], estado, estado)).toEqual([pulso]);
+    expect(projetarEventos(BIA, [pulso], estado, estado)).toEqual([pulso]);
+  });
 });

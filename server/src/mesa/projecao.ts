@@ -185,6 +185,7 @@ function projetarParaJogador(
     case 'round.started':
     case 'round.acted':
     case 'mist.changed':
+    case 'board.pinged':
       return [evento];
 
     case 'mesa.estado':

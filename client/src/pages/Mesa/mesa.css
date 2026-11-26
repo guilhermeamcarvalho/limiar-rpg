@@ -399,7 +399,9 @@
 }
 
 /* Desenhando o breu: o cursor vira mira. */
-.palco[data-desenhando] {
+.palco[data-desenhando],
+.palco[data-medindo],
+.palco[data-marcando] {
   cursor: crosshair;
 }
 

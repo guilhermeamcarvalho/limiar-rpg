@@ -1042,4 +1042,43 @@ describe('layout recolhível, painel do jogador e ordem da rodada', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Itens' }));
     expect(await screen.findByText('Sem personagem em uso')).toBeDefined();
   });
+
+  it('medir (M) e marcar ponto (P): alternam o modo do palco, enviam board.ping e recebem pulso', async () => {
+    await naMesa(visao());
+    expect(palco().modo).toBe('mover');
+
+    const botaoMover = screen.getByRole('button', { name: 'Mover meu token' });
+    const botaoMedir = screen.getByRole('button', { name: 'Medir distância' });
+    const botaoMarcar = screen.getByRole('button', { name: 'Marcar um ponto para todos' });
+    expect(botaoMover.getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.keyDown(window, { key: 'm' });
+    expect(palco().modo).toBe('medir');
+    expect(botaoMedir.getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(botaoMarcar);
+    expect(palco().modo).toBe('marcar');
+    expect(botaoMarcar.getAttribute('aria-pressed')).toBe('true');
+
+    act(() => {
+      palco().aoMarcarPonto?.({ x: 140, y: 260 });
+    });
+    await waitFor(() => {
+      expect(socket().comandos).toContainEqual({ type: 'board.ping', x: 140, y: 260 });
+    });
+
+    socket().receber({
+      type: 'board.pinged',
+      autorId: 'usr_9',
+      x: 140,
+      y: 260,
+      seq: 2,
+    });
+    await waitFor(() => {
+      expect(palco().ultimoPulso).toEqual({ seq: 2, autorId: 'usr_9', x: 140, y: 260 });
+    });
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(palco().modo).toBe('mover');
+  });
 });
