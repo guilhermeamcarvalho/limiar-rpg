@@ -766,4 +766,18 @@ describe('dados avulsos, testes da ficha e chat', () => {
       eventos(m.mesa.aplicar(m.ana, { type: 'chat.send', texto: 'Ouviu isso?', para: m.bia.id })),
     ).toMatchObject([{ type: 'chat.message', autorId: m.ana.id, para: m.bia.id, narracao: false }]);
   });
+
+  it('board.ping: qualquer membro marca um ponto no mapa sem gravar no estado nem no registro', () => {
+    const m = montar();
+    const largura = m.mapa?.largura ?? 0;
+    expect(
+      eventos(m.mesa.aplicar(m.bia, { type: 'board.ping', x: largura + 200, y: 400 })),
+    ).toMatchObject([{ type: 'board.pinged', autorId: m.bia.id, x: largura, y: 400 }]);
+    expect(m.db.select().from(sessionLog).all()).toEqual([]);
+
+    const semMapa = montar({ comMapa: false });
+    expect(motivo(semMapa.mesa.aplicar(semMapa.ana, { type: 'board.ping', x: 50, y: 50 }))).toBe(
+      'Ponha um mapa na mesa antes.',
+    );
+  });
 });

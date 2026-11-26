@@ -28,4 +28,16 @@ export const tratadoresDoMapa: Tratadores = {
     mapa.grade = grade;
     return [{ type: 'map.changed', mapa }];
   },
+
+  'board.ping'(ctx, { x, y }) {
+    const mapa = exigirMapa(ctx);
+    return [
+      {
+        type: 'board.pinged',
+        autorId: ctx.quem.id,
+        x: Math.min(mapa.largura, Math.max(0, x)),
+        y: Math.min(mapa.altura, Math.max(0, y)),
+      },
+    ];
+  },
 };

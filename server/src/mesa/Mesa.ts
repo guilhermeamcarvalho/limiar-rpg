@@ -16,7 +16,11 @@ import {
 import { Recusa, tratar, type Contexto } from './comandos/index.ts';
 
 /** Não mudam o estado: não pedem para salvar. */
-const TRANSITORIOS: ReadonlySet<TipoDeEvento> = new Set(['token.dragging', 'prop.dragging']);
+const TRANSITORIOS: ReadonlySet<TipoDeEvento> = new Set([
+  'token.dragging',
+  'prop.dragging',
+  'board.pinged',
+]);
 
 /** Vão para o registro da sessão (`session_log`): a aba Acontecimentos e o resumo. */
 const REGISTRADOS: ReadonlySet<TipoDeEvento> = new Set([

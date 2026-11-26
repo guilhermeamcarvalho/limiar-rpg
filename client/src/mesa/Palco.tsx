@@ -30,6 +30,7 @@ import { BarraDoProp, BarraDoToken } from './Barras.tsx';
 import { CamadaDoMapa } from './camadas/Mapa.tsx';
 import { CamadaDoBreu } from './camadas/Breu.tsx';
 import { CamadaDePistas, CamadaDeSalas } from './camadas/Elementos.tsx';
+import { CamadaDeMedicao, CamadaDePulsos } from './camadas/Ferramentas.tsx';
 import {
   arrastar,
   centralizarEm,
@@ -43,6 +44,12 @@ import {
   type Tamanho,
 } from './camera.ts';
 import { dentroDoMapa, destinoDaSeta, digitando, podeArrastar } from './interacao.ts';
+import {
+  DURACAO_DO_PULSO_MS,
+  type Medicao,
+  type ModoDoPalco,
+  type PulsoNoMapa,
+} from './medicao.ts';
 import { CamadaDeDesenhoDoBreu, type PincelDoBreu } from './Breu.tsx';
 import { CamadaDeProps } from './Props.tsx';
 import { CamadaDeTokens, raioDoToken } from './Tokens.tsx';
@@ -70,6 +77,12 @@ export interface PalcoProps {
   pincelDoBreu?: PincelDoBreu | null;
   /** A forma que o mestre acabou de desenhar, para cobrir ou revelar conforme o pincel. */
   aoDesenharBreu?: (forma: FormaDoBreu) => void;
+  /** Ferramenta ativa no palco (#79): mover (padrão), medir distância ou marcar ponto. */
+  modo?: ModoDoPalco;
+  /** Último pulso recebido da sala para animar no mapa (#79). */
+  ultimoPulso?: PulsoNoMapa | null;
+  /** Clique no mapa com a ferramenta "Marcar ponto" ativa. */
+  aoMarcarPonto?: (ponto: Ponto) => void;
 }
 
 /** Os dois toques, na tela, relativos ao palco. */
@@ -98,6 +111,9 @@ export function Palco({
   aoSoltarImagem,
   pincelDoBreu,
   aoDesenharBreu,
+  modo = 'mover',
+  ultimoPulso = null,
+  aoMarcarPonto,
 }: PalcoProps) {
   const { mapa } = visao;
   const avisos = useToast();
@@ -107,6 +123,9 @@ export function Palco({
   const [espaco, setEspaco] = useState(false);
   const [arrastandoMapa, setArrastandoMapa] = useState(false);
   const [selecao, setSelecao] = useState<Selecao>(null);
+  const [medicao, setMedicao] = useState<Medicao | null>(null);
+  const [pulsos, setPulsos] = useState<PulsoNoMapa[]>([]);
+  const [ultimoPulsoVisto, setUltimoPulsoVisto] = useState<number | null>(null);
   const ultimoPonto = useRef<Ponto | null>(null);
   const ultimosToques = useRef<[Ponto, Ponto] | null>(null);
   const cancelarArrasto = useRef(false);
@@ -116,7 +135,10 @@ export function Palco({
   const mestre = visao.papel === 'mestre';
   const escolhendo = Boolean(aoEscolherPonto);
   const pincel = mestre && !escolhendo && aoDesenharBreu ? (pincelDoBreu ?? null) : null;
-  const bloqueado = espaco || escolhendo || pincel !== null;
+  const modoAtivo: ModoDoPalco = escolhendo || pincel !== null ? 'mover' : modo;
+  const medindo = modoAtivo === 'medir' && !espaco;
+  const marcando = modoAtivo === 'marcar' && !espaco;
+  const bloqueado = espaco || escolhendo || pincel !== null || modoAtivo !== 'mover';
 
   // Começou a desenhar o breu: a seleção sai (a barra do item ficaria no caminho).
   const [pincelAberto, setPincelAberto] = useState(pincel !== null);
@@ -150,6 +172,24 @@ export function Palco({
     setSelecao(null);
   }, [mapa, tamanho]);
 
+  if (ultimoPulso && ultimoPulso.seq !== ultimoPulsoVisto) {
+    setUltimoPulsoVisto(ultimoPulso.seq);
+    setPulsos((atuais) =>
+      atuais.some((p) => p.seq === ultimoPulso.seq) ? atuais : [...atuais, ultimoPulso],
+    );
+  }
+
+  // Cada pulso de "marcar ponto" fica visível por alguns segundos e depois some sozinho.
+  useEffect(() => {
+    if (!ultimoPulso) return;
+    const timer = setTimeout(() => {
+      setPulsos((atuais) => atuais.filter((p) => p.seq !== ultimoPulso.seq));
+    }, DURACAO_DO_PULSO_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [ultimoPulso]);
+
   const meio = useCallback(
     (): Ponto => ({ x: (tamanho?.largura ?? 0) / 2, y: (tamanho?.altura ?? 0) / 2 }),
     [tamanho],
@@ -178,6 +218,7 @@ export function Palco({
     }
     if (e.key === 'Escape') {
       setSelecao(null);
+      setMedicao(null);
       return;
     }
     // O token escolhido; sem escolha, o jogador move o próprio.
@@ -243,25 +284,49 @@ export function Palco({
   function aoApertar(e: KonvaEventObject<MouseEvent>) {
     comecouNoVazio.current = e.target === e.target.getStage();
     const botaoDoMeio = e.evt.button === 1;
-    if (!botaoDoMeio && !(espaco && e.evt.button === 0)) return;
-    e.evt.preventDefault();
-    ultimoPonto.current = { x: e.evt.clientX, y: e.evt.clientY };
-    setArrastandoMapa(true);
+    if (botaoDoMeio || (espaco && e.evt.button === 0)) {
+      e.evt.preventDefault();
+      ultimoPonto.current = { x: e.evt.clientX, y: e.evt.clientY };
+      setArrastandoMapa(true);
+      return;
+    }
+    if (medindo && e.evt.button === 0) {
+      const ponto = e.target.getStage()?.getRelativePointerPosition();
+      if (ponto) {
+        const limitado = dentroDoMapa(ponto, mapa);
+        setMedicao({ origem: limitado, destino: limitado });
+      }
+    }
   }
 
   function aoMoverMouse(e: KonvaEventObject<MouseEvent>) {
     const antes = ultimoPonto.current;
-    if (!antes) return;
-    const agora = { x: e.evt.clientX, y: e.evt.clientY };
-    ultimoPonto.current = agora;
-    setCamera((c) => c && arrastar(c, agora.x - antes.x, agora.y - antes.y));
+    if (antes) {
+      const agora = { x: e.evt.clientX, y: e.evt.clientY };
+      ultimoPonto.current = agora;
+      setCamera((c) => c && arrastar(c, agora.x - antes.x, agora.y - antes.y));
+      return;
+    }
+    if (medindo && medicao) {
+      const ponto = e.target.getStage()?.getRelativePointerPosition();
+      if (ponto) setMedicao((m) => (m ? { ...m, destino: dentroDoMapa(ponto, mapa) } : null));
+    }
   }
 
-  /** Clique no vazio tira a seleção; escolhendo um ponto, o clique (em qualquer lugar) é a escolha. */
+  function aoSoltarMouse() {
+    if (medicao) setMedicao(null);
+  }
+
+  /** Clique no vazio tira a seleção; escolhendo ou marcando um ponto, o clique responde ali. */
   function aoClicar(e: KonvaEventObject<MouseEvent | TouchEvent>) {
     if (aoEscolherPonto) {
       const ponto = e.target.getStage()?.getRelativePointerPosition();
       if (ponto) aoEscolherPonto(dentroDoMapa(ponto, mapa));
+      return;
+    }
+    if (marcando && aoMarcarPonto) {
+      const ponto = e.target.getStage()?.getRelativePointerPosition();
+      if (ponto) aoMarcarPonto(dentroDoMapa(ponto, mapa));
       return;
     }
     // Apertar num item e soltar no vazio (como ao tentar arrastar um prop travado) não conta.
@@ -271,10 +336,29 @@ export function Palco({
   function aoTocar(e: KonvaEventObject<TouchEvent>) {
     if (e.type === 'touchstart' && e.evt.touches.length === 1) {
       comecouNoVazio.current = e.target === e.target.getStage();
+      if (medindo) {
+        const palco = e.target.getStage();
+        palco?.setPointersPositions(e.evt);
+        const ponto = palco?.getRelativePointerPosition();
+        if (ponto) {
+          const limitado = dentroDoMapa(ponto, mapa);
+          setMedicao({ origem: limitado, destino: limitado });
+        }
+        return;
+      }
+    }
+    if (e.type === 'touchmove' && e.evt.touches.length === 1 && medindo && medicao) {
+      e.evt.preventDefault();
+      const palco = e.target.getStage();
+      palco?.setPointersPositions(e.evt);
+      const ponto = palco?.getRelativePointerPosition();
+      if (ponto) setMedicao((m) => (m ? { ...m, destino: dentroDoMapa(ponto, mapa) } : null));
+      return;
     }
     if (!caixa.current) return;
     const toques = doisToques(e.evt, caixa.current);
     if (!toques) return;
+    setMedicao(null);
     e.evt.preventDefault();
     // Dois dedos são do mapa: um arrasto de token ou prop em curso é cancelado e o item volta.
     const palco = e.target.getStage();
@@ -291,6 +375,7 @@ export function Palco({
 
   function aoSoltarDedo(e: KonvaEventObject<TouchEvent>) {
     if (e.evt.touches.length < 2) ultimosToques.current = null;
+    if (e.evt.touches.length === 0) setMedicao(null);
   }
 
   function aoArrastarArquivo(e: DragEvent<HTMLDivElement>) {
@@ -320,6 +405,7 @@ export function Palco({
     };
   }
 
+  const medicaoVisivel = medindo ? medicao : null;
   const celula = mapa.grade.celula;
   const podeEditarToken =
     tokenEscolhido &&
@@ -333,6 +419,8 @@ export function Palco({
       data-espaco={espaco || undefined}
       data-escolhendo={escolhendo || undefined}
       data-desenhando={(pincel && !espaco) || undefined}
+      data-medindo={medindo || undefined}
+      data-marcando={marcando || undefined}
       onDragOver={aoArrastarArquivo}
       onDrop={aoSoltarArquivo}
     >
@@ -348,6 +436,7 @@ export function Palco({
           onWheel={aoRolar}
           onMouseDown={aoApertar}
           onMouseMove={aoMoverMouse}
+          onMouseUp={aoSoltarMouse}
           onClick={aoClicar}
           onTap={aoClicar}
           onTouchStart={aoTocar}
@@ -397,6 +486,8 @@ export function Palco({
               aoDesenhar={aoDesenharBreu}
             />
           )}
+          <CamadaDeMedicao medicao={medicaoVisivel} celula={celula} escala={camera.escala} />
+          <CamadaDePulsos pulsos={pulsos} escala={camera.escala} nomes={nomes} />
         </Stage>
       )}
 
