@@ -10,7 +10,7 @@ import type {
 } from '@membrana/shared';
 import { PROPS_PRONTOS } from '@membrana/shared';
 import type { PalcoProps } from '../../mesa/Palco.tsx';
-import { abrir, detalhe, json, MARTA, servidor } from '../../teste/apoio.tsx';
+import { abrir, detalhe, json, MARTA, personagem, servidor } from '../../teste/apoio.tsx';
 import { nomeDoArquivoSemExtensao as nomeDoToken } from '../../mesa/imagens.ts';
 
 type Ouvinte = (...args: unknown[]) => void;
@@ -731,5 +731,141 @@ describe('névoa da Membrana', () => {
     });
     const botao = await screen.findByRole('button', { name: 'Névoa, ferramenta do mestre' });
     expect(botao).toHaveProperty('disabled', false);
+  });
+});
+
+describe('dados, testes, chat e registro na página da Mesa', () => {
+  it('mantém o registro ao recarregar e não duplica evento que também chegou ao vivo', async () => {
+    const eventoSalvo: EventoDaMesa = {
+      type: 'round.started',
+      numero: 2,
+      seq: 2,
+    };
+    const falaSalva: EventoDaMesa = {
+      type: 'chat.message',
+      id: 'msg_1',
+      autorId: MARTA.id,
+      texto: 'Fala gravada antes do reload',
+      para: null,
+      narracao: false,
+      em: '2026-11-26T21:00:00.000Z',
+      seq: 3,
+    };
+    await naMesa(visao(), {
+      'GET /api/campanhas/cmp_1/registro': json(200, {
+        eventos: [eventoSalvo, falaSalva],
+        personagens: [{ id: 'chr_davi', donoId: MARTA.id, nome: 'Davi Rocha', perfil: 'executor' }],
+      }),
+    });
+
+    // O mesmo seq 3 chega também pelo Socket.IO: não pode aparecer duas vezes.
+    socket().receber(falaSalva);
+    expect(await screen.findAllByText('Fala gravada antes do reload')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Registro/ }));
+    expect(await screen.findAllByText(/Rodada 2/)).toHaveLength(1);
+    expect(screen.queryByText('Fala gravada antes do reload')).toBeNull();
+  });
+
+  it('envia test.resolve na perícia virtual, test.report na física e mostra Resultado no canto', async () => {
+    const daviVirtual = personagem();
+    await naMesa(visao({ papel: 'mestre' }), {
+      'GET /api/campanhas/cmp_1': json(200, {
+        campanha: detalhe({
+          papel: 'mestre',
+          meuPersonagem: { id: daviVirtual.id, nome: daviVirtual.ficha.nome },
+        }),
+      }),
+      'GET /api/campanhas/cmp_1/registro': json(200, {
+        eventos: [],
+        personagens: [
+          {
+            id: daviVirtual.id,
+            donoId: MARTA.id,
+            nome: daviVirtual.ficha.nome,
+            perfil: 'executor',
+          },
+        ],
+      }),
+      'GET /api/personagens/chr_davi': json(200, { personagem: daviVirtual }),
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Dados' }));
+    const painel = await screen.findByRole('complementary', { name: 'Dados e testes' });
+    fireEvent.click(await within(painel).findByRole('button', { name: /Testar Máquinas/ }));
+
+    await waitFor(() => {
+      expect(socket().comandos).toContainEqual({
+        type: 'test.resolve',
+        personagemId: 'chr_davi',
+        periciaId: 'maquinas',
+        dt: 7,
+      });
+    });
+
+    socket().receber({
+      type: 'test.resolved',
+      seq: 5,
+      registro: {
+        id: 'tst_1',
+        personagemId: 'chr_davi',
+        personagemNome: 'Davi Rocha',
+        campanhaId: 'cmp_1',
+        autor: { id: MARTA.id, nome: 'Marta' },
+        periciaId: 'maquinas',
+        atributo: 'mente',
+        origem: 'fisico',
+        resultado: {
+          dados: [
+            { tipo: 'd6', valor: 5, papel: 'atributo', descartado: false },
+            { tipo: 'd10', valor: 6, papel: 'pericia', descartado: false },
+          ],
+          total: 11,
+          dt: 7,
+          ra: 6,
+          rb: 5,
+          veredito: 'sucesso',
+          informado: true,
+        },
+        falhaCritica: null,
+        efeitos: ['Ímpeto gasto: +d4.'],
+        em: '2026-11-26T21:10:00.000Z',
+      },
+    });
+
+    const cartao = await screen.findByRole('region', { name: 'Resultado do teste na mesa' });
+    expect(cartao.className).toContain('mesa-resultado');
+    expect(within(cartao).getByText(/Dados físicos/)).toBeDefined();
+    fireEvent.click(within(cartao).getByRole('button', { name: 'Fechar resultado' }));
+    expect(screen.queryByRole('region', { name: 'Resultado do teste na mesa' })).toBeNull();
+  });
+
+  it('no modo de dados físicos abre o modal e envia test.report', async () => {
+    const daviFisico = personagem({}, { modoDados: 'fisico' });
+    await naMesa(visao(), {
+      'GET /api/campanhas/cmp_1': json(200, {
+        campanha: detalhe({ meuPersonagem: { id: daviFisico.id, nome: daviFisico.ficha.nome } }),
+      }),
+      'GET /api/personagens/chr_davi': json(200, { personagem: daviFisico }),
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Dados' }));
+    const painel = await screen.findByRole('complementary', { name: 'Dados e testes' });
+    fireEvent.click(await within(painel).findByRole('button', { name: /Testar Percepção/ }));
+
+    const modal = await screen.findByRole('dialog');
+    fireEvent.click(within(modal).getByRole('tab', { name: 'Só o resultado' }));
+    fireEvent.click(within(modal).getByRole('button', { name: /Sucesso$/i }));
+    fireEvent.click(within(modal).getByRole('button', { name: 'Enviar resultado' }));
+
+    await waitFor(() => {
+      expect(socket().comandos).toContainEqual({
+        type: 'test.report',
+        personagemId: 'chr_davi',
+        periciaId: 'percepcao',
+        dt: 7,
+        resultado: { modo: 'veredito', veredito: 'sucesso' },
+      });
+    });
   });
 });

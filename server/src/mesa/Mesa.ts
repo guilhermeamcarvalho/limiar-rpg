@@ -4,11 +4,13 @@
 import {
   estadoVazioDaMesa,
   podeVerCampanha,
+  rngCripto,
   validarComando,
   type CampanhaComMembros,
   type EstadoDaMesa,
   type EventoDaMesa,
   type EventoDaMesaSemSeq,
+  type Rng,
   type TipoDeEvento,
 } from '@membrana/shared';
 import { Recusa, tratar, type Contexto } from './comandos/index.ts';
@@ -49,6 +51,12 @@ export interface DependenciasDaMesa {
   mapa: Contexto['mapa'];
   /** Os personagens que o grupo usa neste caso. */
   grupo: Contexto['grupo'];
+  /** A ficha e as regras do caso para rodar um teste pela mesa. */
+  fichaNoCaso: Contexto['fichaNoCaso'];
+  /** Grava o resultado do teste oficial e atualiza a ficha no banco. */
+  gravarTeste: Contexto['gravarTeste'];
+  /** O sorteio dos dados; sem ele, usa o criptográfico. */
+  sorteio?: Rng;
   /**
    * Grava o mapa que está saindo, antes de uma troca: o que entra é lido do banco, e o que sai
    * deixa de estar em memória. Se falhar, a troca não acontece.
@@ -65,6 +73,7 @@ export class Mesa {
   #estado: EstadoDaMesa;
   #seq: number;
   readonly #deps: DependenciasDaMesa;
+  readonly #sorteio: Rng;
 
   constructor(
     campanhaId: string,
@@ -73,6 +82,7 @@ export class Mesa {
   ) {
     this.campanhaId = campanhaId;
     this.#deps = deps;
+    this.#sorteio = deps.sorteio ?? rngCripto();
     // Campos que vieram depois do último salvamento (uma versão nova do app) nascem vazios.
     this.#estado = { ...estadoVazioDaMesa(), ...salvo?.estado };
     this.#seq = salvo?.seq ?? 0;
@@ -104,9 +114,12 @@ export class Mesa {
           quem,
           campanha,
           estado: rascunho,
+          sorteio: this.#sorteio,
           personagem: this.#deps.personagem,
           grupo: this.#deps.grupo,
           mapa: this.#deps.mapa,
+          fichaNoCaso: this.#deps.fichaNoCaso,
+          gravarTeste: this.#deps.gravarTeste,
         },
         validacao.comando,
       );

@@ -3,14 +3,17 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { io as conectarCliente, type Socket } from 'socket.io-client';
-import type {
-  CampanhaNaLista,
-  ComandoDaMesa,
-  EventoDaMesa,
-  EventosDoCliente,
-  EventosDoServidor,
-  RecusaDaConexao,
-  RespostaDoComando,
+import {
+  rngComSemente,
+  type CampanhaNaLista,
+  type ComandoDaMesa,
+  type EventoDaMesa,
+  type EventosDoCliente,
+  type EventosDoServidor,
+  type RecusaDaConexao,
+  type RegistroDeTeste,
+  type RespostaDoComando,
+  type RespostaDoRegistro,
 } from '@membrana/shared';
 import { appDeTeste, casoDeTeste, mapaDeTeste, pessoaLogada } from '../teste/apoio.ts';
 
@@ -385,5 +388,89 @@ describe('arrasto', () => {
     expect(await jogadora.esperar(ehDo('token.dragging'))).toMatchObject({ x: 150, y: 120 });
     await mestre.esperar(ehDo('round.started'));
     expect(mestre.eventos.some((e) => e.type === 'token.dragging')).toBe(false);
+  });
+});
+
+describe('dados, testes, chat e registro da sessão', () => {
+  it('rolagem secreta e sussurro não chegam aos outros jogadores nem pelo registro HTTP', async () => {
+    const { a, url, caso, ana, bia, caio } = await servidor();
+    const mestre = abrir(url, ana, caso);
+    const jBia = abrir(url, bia, caso);
+    const jCaio = abrir(url, caio, caso);
+    await Promise.all([conectado(mestre), conectado(jBia), conectado(jCaio)]);
+    await Promise.all([mestre, jBia, jCaio].map((p) => p.esperar(ehDo('mesa.estado'))));
+
+    expect(await mestre.emitir({ type: 'dice.roll', expressao: 'd20', secreta: true })).toEqual({
+      ok: true,
+    });
+    expect(
+      await mestre.emitir({ type: 'chat.send', texto: 'Segredo para Bia', para: bia.id }),
+    ).toEqual({ ok: true });
+    expect(await mestre.emitir({ type: 'chat.send', texto: 'Boa noite a todos' })).toEqual({
+      ok: true,
+    });
+
+    await jCaio.esperar((e) => e.type === 'chat.message' && e.texto === 'Boa noite a todos');
+    expect(jCaio.eventos.some((e) => e.type === 'dice.rolled')).toBe(false);
+    expect(JSON.stringify(jCaio.eventos)).not.toContain('Segredo para Bia');
+    expect(JSON.stringify(jBia.eventos)).toContain('Segredo para Bia');
+
+    // Ao recarregar a página (GET /api/campanhas/:id/registro), cada pessoa só vê o que pode.
+    const rCaio = await a.inject({
+      method: 'GET',
+      url: `/api/campanhas/${caso}/registro`,
+      cookies: caio.cookies,
+    });
+    expect(rCaio.statusCode).toBe(200);
+    const regCaio = rCaio.json<RespostaDoRegistro>();
+    expect(regCaio.eventos.map((e) => e.type)).toEqual(['chat.message']);
+    expect(JSON.stringify(regCaio)).not.toContain('Segredo para Bia');
+
+    const rMestre = await a.inject({
+      method: 'GET',
+      url: `/api/campanhas/${caso}/registro`,
+      cookies: ana.cookies,
+    });
+    expect(rMestre.json<RespostaDoRegistro>().eventos).toHaveLength(3);
+  });
+
+  it('o mesmo teste dá exatamente o mesmo resultado pela ficha HTTP e pela mesa', async () => {
+    const appFicha = await appDeTeste({ discord: null, sorteio: rngComSemente(99) });
+    await appFicha.ready();
+    const casoFicha = casoDeTeste(appFicha);
+    const viaHttp = await appFicha.inject({
+      method: 'POST',
+      url: `/api/personagens/${casoFicha.davi}/testes`,
+      cookies: casoFicha.bia.cookies,
+      payload: { periciaId: 'maquinas', impeto: true, habilidades: ['gambiarra'] },
+    });
+    const testeHttp = viaHttp.json<{ teste: RegistroDeTeste }>().teste;
+    await appFicha.close();
+
+    app = await appDeTeste({ discord: null, sorteio: rngComSemente(99) });
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const { port } = app.server.address() as AddressInfo;
+    const casoMesa = casoDeTeste(app);
+    const jBia = abrir(`http://127.0.0.1:${String(port)}`, casoMesa.bia, casoMesa.caso);
+    const jCaio = abrir(`http://127.0.0.1:${String(port)}`, casoMesa.caio, casoMesa.caso);
+    await Promise.all([conectado(jBia), conectado(jCaio)]);
+
+    expect(
+      await jBia.emitir({
+        type: 'test.resolve',
+        personagemId: casoMesa.davi,
+        periciaId: 'maquinas',
+        impeto: true,
+        habilidades: ['gambiarra'],
+      }),
+    ).toEqual({ ok: true });
+
+    const evtCaio = await jCaio.esperar(ehDo('test.resolved'));
+    await jCaio.esperar(ehDo('character.changed'));
+    if (evtCaio.type !== 'test.resolved') throw new Error('esperava test.resolved');
+
+    expect(evtCaio.registro.resultado).toEqual(testeHttp.resultado);
+    expect(evtCaio.registro.efeitos).toEqual(testeHttp.efeitos);
+    expect(evtCaio.registro.falhaCritica).toEqual(testeHttp.falhaCritica);
   });
 });

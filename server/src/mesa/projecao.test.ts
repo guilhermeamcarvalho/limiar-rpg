@@ -9,7 +9,7 @@ import {
   type PropNaMesa,
   type TokenNaMesa,
 } from '@membrana/shared';
-import { projetarEstado, projetarEventos, type Espectador } from './projecao.ts';
+import { projetarEstado, projetarEventos, projetarRegistro, type Espectador } from './projecao.ts';
 
 const SEGREDOS = {
   tokenOculto: 'SEGREDO-TOKEN-OCULTO',
@@ -479,5 +479,22 @@ describe('props que entram e saem da vista', () => {
       ...darkness(semBreu),
       { type: 'prop.changed', propId: 'prp_1', prop: semBreu.props[0], seq: 9 },
     ]);
+  });
+});
+
+describe('projetarRegistro (session_log)', () => {
+  it('não vaza rolagem secreta nem sussurro alheio ao carregar o registro da sessão', () => {
+    const estado = mesaCheiaDeSegredos();
+    const gravados: EventoDaMesa[] = [
+      ...eventosComSegredos(estado),
+      { type: 'round.started', numero: 2, seq: 13 },
+    ];
+    expect(vazados(projetarRegistro(BIA, gravados))).toEqual([]);
+    expect(projetarRegistro(BIA, gravados).map((e) => e.type)).toEqual(['round.started']);
+    expect(projetarRegistro(CAIO, gravados).map((e) => e.type)).toEqual([
+      'chat.message',
+      'round.started',
+    ]);
+    expect(projetarRegistro(ANA, gravados)).toEqual(gravados);
   });
 });

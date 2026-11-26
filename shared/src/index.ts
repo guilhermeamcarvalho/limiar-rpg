@@ -20,6 +20,7 @@ export * from './schemas/ficha-op2.ts';
 export * from './schemas/personagem.ts';
 export * from './schemas/teste-op2.ts';
 export * from './regras/dados.ts';
+export * from './regras/rolagem-livre.ts';
 export * from './regras/op2/index.ts';
 export * from './schemas/mesa.ts';
 export * from './mesa/breu.ts';

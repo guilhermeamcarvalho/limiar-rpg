@@ -7,6 +7,7 @@ import {
   podeConvidar,
   podeEditarCampanha,
   podeEditarFicha,
+  podeInformarTeste,
   podeMoverToken,
   podeVerCampanha,
   podeVerFicha,
@@ -102,6 +103,14 @@ describe('ficha', () => {
     expect(podeVerFicha(estranho, fichaDaBia, { ...sinal, fichasVisiveis: true })).toBe(false);
     expect(podeVerFicha(null, fichaDaBia, { ...sinal, fichasVisiveis: true })).toBe(false);
     expect(podeVerFicha(bia, fichaDaBia, sinal)).toBe(true);
+  });
+
+  it('informar dados físicos (test.report) é só para quem joga com o próprio personagem', () => {
+    expect(podeInformarTeste(bia, fichaDaBia, sinal)).toBe(true);
+    expect(podeInformarTeste(ana, fichaDaBia, sinal)).toBe(false);
+    expect(podeInformarTeste(caio, fichaDaBia, sinal)).toBe(false);
+    expect(podeInformarTeste(bia, fichaDaAnaNaMare, sinal)).toBe(false);
+    expect(podeInformarTeste(null, fichaDaBia, sinal)).toBe(false);
   });
 });
 

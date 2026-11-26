@@ -107,6 +107,7 @@ export async function criarApp({ config, db, logger, discord, sorteio }: Depende
   app.decorate(
     'mesas',
     new Mesas(db, {
+      sorteio: app.sorteio,
       aoFalhar: (erro, campanhaId) => {
         app.log.error({ err: erro, campanhaId }, 'não deu para salvar a mesa');
         registrarErro(erro, { metodo: 'MESA', url: '/mesa/salvar' });

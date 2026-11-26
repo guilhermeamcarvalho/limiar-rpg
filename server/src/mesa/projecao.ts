@@ -293,3 +293,31 @@ function projetarParaJogador(
     }
   }
 }
+
+/**
+ * Filtra o histórico de `session_log` pelo que `quem` pode ver (#72). O mestre recebe tudo; o
+ * jogador não recebe rolagens secretas alheias nem sussurros para outras pessoas.
+ */
+export function projetarRegistro(
+  quem: Espectador,
+  eventos: readonly EventoDaMesa[],
+): EventoDaMesa[] {
+  if (quem.papel === 'mestre') return [...eventos];
+  return eventos.filter((evento) => {
+    switch (evento.type) {
+      case 'chat.message':
+        return evento.para === null || evento.para === quem.id || evento.autorId === quem.id;
+      case 'dice.rolled':
+        return !evento.secreta || evento.autorId === quem.id;
+      case 'clue.presented':
+        return itemVisivel(quem, evento.item);
+      case 'test.resolved':
+      case 'map.activated':
+      case 'audio.changed':
+      case 'round.started':
+        return true;
+      default:
+        return false;
+    }
+  });
+}
