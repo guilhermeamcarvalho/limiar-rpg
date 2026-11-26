@@ -276,6 +276,21 @@ describe('na sala', () => {
     expect(evento).toMatchObject({ personagemId: davi, removido: false });
     expect(evento.seq).toBeGreaterThan(0);
   });
+
+  it('board.ping chega tanto para quem marcou quanto para os outros na sala', async () => {
+    const { url, caso, ana, bia } = await servidor();
+    const mestre = abrir(url, ana, caso);
+    const jogadora = abrir(url, bia, caso);
+    await Promise.all([conectado(mestre), conectado(jogadora)]);
+
+    expect(await jogadora.emitir({ type: 'board.ping', x: 180, y: 240 })).toEqual({ ok: true });
+    const [noMestre, naJogadora] = await Promise.all([
+      mestre.esperar(ehDo('board.pinged')),
+      jogadora.esperar(ehDo('board.pinged')),
+    ]);
+    expect(noMestre).toMatchObject({ type: 'board.pinged', autorId: bia.id, x: 180, y: 240 });
+    expect(naJogadora).toMatchObject({ type: 'board.pinged', autorId: bia.id, x: 180, y: 240 });
+  });
 });
 
 describe('Mesa aberta na Central', () => {

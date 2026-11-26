@@ -19,7 +19,7 @@ import type {
 import { campaigns, memberships } from '../db/schema.ts';
 import { buscarSessao, COOKIE_DA_SESSAO, type Usuario } from '../http/auth/sessao.ts';
 import { registrarErro } from '../observabilidade.ts';
-import { ehTransitorio, type Mesa } from './Mesa.ts';
+import { type Mesa } from './Mesa.ts';
 import { projetarEstado, projetarEventos, type Espectador } from './projecao.ts';
 
 interface DadosDaConexao {
@@ -114,7 +114,10 @@ export function ligarMesaAoVivo(app: FastifyInstance): ServidorDaMesa {
       const conexao = io.sockets.sockets.get(id);
       if (!conexao) continue;
       for (const evento of projetarEventos(espectador(conexao.data), eventos, antes, depois)) {
-        if (id === autor && ehTransitorio(evento.type)) continue;
+        // Arrasto não volta para quem está arrastando (já vê na tela); pulso volta para todos.
+        if (id === autor && (evento.type === 'token.dragging' || evento.type === 'prop.dragging')) {
+          continue;
+        }
         conexao.emit('evt', evento);
       }
     }
