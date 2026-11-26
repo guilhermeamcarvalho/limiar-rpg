@@ -10,6 +10,8 @@ import {
   type Papel,
   type PistaNaMesa,
   type PistaParaJogador,
+  type PoiNaMesa,
+  type PoiParaJogador,
   type PropNaMesa,
   type TokenNaMesa,
   type VisaoDaMesa,
@@ -42,6 +44,19 @@ export function pistaParaJogador(pista: PistaNaMesa): PistaParaJogador | null {
   return { id, x, y, descoberta: true, titulo: pista.titulo, texto: pista.texto };
 }
 
+/** Ponto de interesse para o jogador: só número, nome, posição e se já foi todo descoberto. */
+export function poiParaJogador(poi: PoiNaMesa): PoiParaJogador {
+  return {
+    id: poi.id,
+    numero: poi.numero,
+    nome: poi.nome,
+    x: poi.x,
+    y: poi.y,
+    tudoDescoberto:
+      poi.informacoes.length > 0 && poi.informacoes.every((info) => info.descoberta === true),
+  };
+}
+
 function inventario(estado: EstadoDaMesa): ItemDoInventario[] {
   const itens: ItemDoInventario[] = [];
   for (const posse of estado.comAlguem) {
@@ -71,6 +86,7 @@ export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaM
       ...comum,
       tokens: estado.tokens,
       props: estado.props,
+      pois: estado.pois,
       pistas: estado.pistas,
       inventario: inventario(estado),
       salas: estado.salas,
@@ -83,6 +99,7 @@ export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaM
     ...comum,
     tokens: estado.tokens.filter((t) => tokenVisivel(quem, t, estado)),
     props: estado.props.filter((p) => propVisivel(quem, p, estado)),
+    pois: estado.pois.map(poiParaJogador),
     pistas: estado.pistas.map(pistaParaJogador).filter((p) => p !== null),
     inventario: inventario(estado).filter((i) => itemVisivel(quem, i)),
   };
@@ -256,6 +273,11 @@ function projetarParaJogador(
 
     case 'room.updated':
       return [];
+
+    case 'poi.changed': {
+      const agora = depois.pois.find((p) => p.id === evento.poiId);
+      return [{ ...evento, poi: agora ? poiParaJogador(agora) : null }];
+    }
 
     case 'clue.changed': {
       const agora = depois.pistas.find((p) => p.id === evento.pistaId);

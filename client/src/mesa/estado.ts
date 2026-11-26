@@ -204,6 +204,23 @@ export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNo
         : [...visao.rodada.agiram, evento.userId];
       return { ...mesa, seq, eventos, visao: { ...visao, rodada: { ...visao.rodada, agiram } } };
     }
+    case 'room.updated':
+      return {
+        ...mesa,
+        seq,
+        eventos,
+        visao: { ...visao, salas: trocar(visao.salas ?? [], evento.salaId, evento.sala) },
+      };
+    case 'poi.changed':
+      return {
+        ...mesa,
+        seq,
+        eventos,
+        visao: {
+          ...visao,
+          pois: trocar(visao.pois, evento.poiId, evento.poi).sort((a, b) => a.numero - b.numero),
+        },
+      };
     case 'clue.changed':
       return {
         ...mesa,

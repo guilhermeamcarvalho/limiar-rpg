@@ -10,6 +10,7 @@ import {
   type FormaDoBreu,
   type MapaNaMesa,
   type Personagem,
+  type PoiNaMesa,
   type RespostaDoRegistro,
   type VisaoDaMesa,
 } from '@membrana/shared';
@@ -34,8 +35,10 @@ import { Npcs } from '../../mesa/painel/Npcs.tsx';
 import { Palco } from '../../mesa/Palco.tsx';
 import { filtrarAcontecimentos, Registro } from '../../mesa/Registro.tsx';
 import { Resultado } from '../../mesa/Resultado.tsx';
+import { FerramentaDeSalas, type TracoDaSala } from '../../mesa/Salas.tsx';
 import { CartaoReconectando, FaixaSemConexao } from '../../mesa/SemConexao.tsx';
 import { useMesaAoVivo, type SituacaoDaConexao } from '../../mesa/useMesaAoVivo.ts';
+import { EditorPoi } from '../../mestre/EditorPoi.tsx';
 import { linkDaFicha, primeiroNome } from '../../personagens/formatos.ts';
 import {
   Async,
@@ -55,7 +58,7 @@ import {
 } from '../../ui/index.ts';
 import './mesa.css';
 
-type Ferramenta = 'dados' | 'tokens' | 'props' | 'breu' | 'nevoa' | 'mapa';
+type Ferramenta = 'dados' | 'tokens' | 'props' | 'breu' | 'salas' | 'guia' | 'nevoa' | 'mapa';
 type AbaLateral = 'chat' | 'registro' | 'pistas' | 'itens';
 
 interface PaineisSalvos {
@@ -132,6 +135,24 @@ const FERRAMENTAS: DefinicaoDeFerramenta[] = [
     tecla: 'b',
     icone: 'darkness',
     rotulo: 'Breu, ferramenta do mestre',
+    soMestre: true,
+    comMapa: true,
+  },
+  {
+    id: 'salas',
+    titulo: 'Salas',
+    tecla: 's',
+    icone: 'door',
+    rotulo: 'Salas, ferramenta do mestre',
+    soMestre: true,
+    comMapa: true,
+  },
+  {
+    id: 'guia',
+    titulo: 'Pontos de interesse',
+    tecla: 'i',
+    icone: 'pin',
+    rotulo: 'Pontos de interesse, ferramenta do mestre',
     soMestre: true,
     comMapa: true,
   },
@@ -272,8 +293,11 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const [seqVistoRegistro, setSeqVistoRegistro] = useState<number | null>(null);
   const [seqResultadoFechado, setSeqResultadoFechado] = useState(0);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
+  const [escolhendoPoi, setEscolhendoPoi] = useState<((ponto: Ponto) => void) | null>(null);
   const [modo, setModo] = useState<ModoDoPalco>('mover');
   const [pincel, setPincel] = useState<PincelDoBreu>({ modo: 'cobrir', forma: 'retangulo' });
+  const [tracoSala, setTracoSala] = useState<TracoDaSala>('retangulo');
+  const [nomeNovaSala, setNomeNovaSala] = useState('');
   const centroRef = useRef<Ponto | null>(null);
 
   const caso = useCarga(`/api/campanhas/${campanhaId}`, (signal) =>
@@ -364,13 +388,14 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       if (alvo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return;
       if (e.key === 'Escape') {
         setEscolhendoGrupo(false);
+        setEscolhendoPoi(null);
         setModo('mover');
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const tecla = e.key.toLowerCase();
       if (temMapa && (tecla === 'v' || tecla === 'm' || tecla === 'p')) {
-        setPainel((aberto) => (aberto === 'breu' ? null : aberto));
+        setPainel((aberto) => (aberto === 'breu' || aberto === 'salas' ? null : aberto));
         setModo((agora) => {
           if (tecla === 'v') return 'mover';
           const proximo: ModoDoPalco = tecla === 'm' ? 'medir' : 'marcar';
@@ -433,6 +458,15 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para mexer no breu', text: r.motivo });
   }
 
+  /** A forma desenhada no mapa cria uma sala exclusiva do mestre (#82). */
+  async function criarSala(area: Ponto[]) {
+    const quantidade = visao?.salas?.length ?? 0;
+    const nome = nomeNovaSala.trim() || `Sala ${String(quantidade + 1)}`;
+    const r = await enviar({ type: 'room.create', nome, area });
+    if (r.ok) setNomeNovaSala('');
+    else avisos.show({ type: 'err', title: 'Não deu para criar a sala', text: r.motivo });
+  }
+
   async function trazerGrupo(ponto: Ponto) {
     setEscolhendoGrupo(false);
     const r = await enviar({ type: 'token.gather', ...ponto });
@@ -471,7 +505,13 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     (f) => f.id === painel && (!f.soMestre || mestre) && (!f.comMapa || comMapa),
   );
   const modoEfetivo: ModoDoPalco | null =
-    !comMapa || escolhendoGrupo || aberta?.id === 'breu' ? null : modo;
+    !comMapa ||
+    escolhendoGrupo ||
+    escolhendoPoi !== null ||
+    aberta?.id === 'breu' ||
+    aberta?.id === 'salas'
+      ? null
+      : modo;
   const ferramentasComuns = FERRAMENTAS.filter((f) => !f.soMestre);
   const ferramentasDoMestre = mestre ? FERRAMENTAS.filter((f) => f.soMestre) : [];
   const mostrarBarra = Boolean(visao && (mestre || comMapa));
@@ -696,10 +736,22 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               campanhaId={campanhaId}
               enviar={enviar}
               centroRef={centroRef}
-              aoEscolherPonto={escolhendoGrupo ? (ponto) => void trazerGrupo(ponto) : null}
+              aoEscolherPonto={
+                escolhendoGrupo
+                  ? (ponto) => void trazerGrupo(ponto)
+                  : escolhendoPoi
+                    ? (ponto) => {
+                        const aoClicar = escolhendoPoi;
+                        setEscolhendoPoi(null);
+                        aoClicar(ponto);
+                      }
+                    : null
+              }
               aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
               pincelDoBreu={mestre && aberta?.id === 'breu' ? pincel : null}
               aoDesenharBreu={(forma) => void desenharBreu(forma)}
+              tracoDaSala={mestre && aberta?.id === 'salas' ? tracoSala : null}
+              aoDesenharSala={(area) => void criarSala(area)}
               modo={modoEfetivo ?? 'mover'}
               ultimoPulso={mesa.ultimoPulso}
               aoMarcarPonto={(ponto) => void marcarPonto(ponto)}
@@ -742,14 +794,19 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           )}
 
           {/* Flutua sobre o mapa: uma faixa no fluxo empurraria o mapa bem na hora do clique. */}
-          {escolhendoGrupo && (
+          {(escolhendoGrupo || escolhendoPoi) && (
             <div className="mesa-dica" role="status">
-              <span className="small">Clique no mapa onde o grupo deve ficar.</span>
+              <span className="small">
+                {escolhendoGrupo
+                  ? 'Clique no mapa onde o grupo deve ficar.'
+                  : 'Clique no mapa onde o ponto de interesse deve ficar.'}
+              </span>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => {
                   setEscolhendoGrupo(false);
+                  setEscolhendoPoi(null);
                 }}
               >
                 Cancelar
@@ -911,6 +968,27 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   pincel={pincel}
                   aoMudarPincel={setPincel}
                   enviar={enviar}
+                />
+              )}
+              {mestre && aberta.id === 'salas' && comMapa && (
+                <FerramentaDeSalas
+                  salas={visao.salas ?? []}
+                  traco={tracoSala}
+                  nomeNovaSala={nomeNovaSala}
+                  aoMudarTraco={setTracoSala}
+                  aoMudarNomeNovaSala={setNomeNovaSala}
+                  enviar={enviar}
+                />
+              )}
+              {mestre && aberta.id === 'guia' && (
+                <EditorPoi
+                  salas={visao.salas ?? []}
+                  pois={visao.pois.filter((p): p is PoiNaMesa => 'contextoMestre' in p)}
+                  temMapa={Boolean(comMapa)}
+                  aoExecutar={enviar}
+                  aoEscolherNoMapa={(aoClicar) => {
+                    setEscolhendoPoi(() => aoClicar);
+                  }}
                 />
               )}
               {mestre && aberta.id === 'nevoa' && (

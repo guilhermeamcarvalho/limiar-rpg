@@ -27,6 +27,9 @@ const SEGREDOS = {
   rolagemSecreta: 'SEGREDO-ROLAGEM',
   sussurro: 'SEGREDO-SUSSURRO',
   infoDeOutro: 'SEGREDO-INFO-DE-OUTRO',
+  contextoPoi: 'SEGREDO-CONTEXTO-POI',
+  infoPoi: 'SEGREDO-INFO-POI',
+  desafioPoi: 'SEGREDO-DESAFIO-POI',
 } as const;
 
 const ANA: Espectador = { id: 'usr_ana', papel: 'mestre', personagemId: null };
@@ -77,6 +80,21 @@ function mesaCheiaDeSegredos(): EstadoDaMesa {
     props: [prop({ id: 'prp_mesa' }), prop({ id: SEGREDOS.propNoBreu, x: 600, y: 600 })],
     salas: [
       { id: 'sala_1', nome: SEGREDOS.nomeDaSala, area: [], notasMestre: SEGREDOS.notaDaSala },
+    ],
+    pois: [
+      {
+        id: 'poi_1',
+        salaId: 'sala_1',
+        numero: 1,
+        nome: 'Balcão',
+        descricao: 'Balcão de madeira',
+        x: 50,
+        y: 50,
+        pericias: [{ periciaId: 'percepcao', dt: 7 }],
+        informacoes: [{ id: 'inf_1', nivel: 7, texto: SEGREDOS.infoPoi, descoberta: false }],
+        desafio: { tipo: 'tranca', descricao: SEGREDOS.desafioPoi, dt: 10 },
+        contextoMestre: SEGREDOS.contextoPoi,
+      },
     ],
     pistas: [
       {
@@ -216,6 +234,7 @@ function eventosComSegredos(estado: EstadoDaMesa): EventoDaMesa[] {
       texto: SEGREDOS.infoDeOutro,
       seq: 12,
     },
+    { type: 'poi.changed', poiId: 'poi_1', poi: estado.pois[0] ?? null, seq: 13 },
   ];
 }
 

@@ -30,8 +30,9 @@ import { Icon, useToast } from '../ui/index.ts';
 import { BarraDoProp, BarraDoToken } from './Barras.tsx';
 import { CamadaDoMapa } from './camadas/Mapa.tsx';
 import { CamadaDoBreu } from './camadas/Breu.tsx';
-import { CamadaDePistas, CamadaDeSalas } from './camadas/Elementos.tsx';
+import { CamadaDePistas, CamadaDePois, CamadaDeSalas } from './camadas/Elementos.tsx';
 import { CamadaDeMedicao, CamadaDePulsos } from './camadas/Ferramentas.tsx';
+import { CamadaDeDesenhoDaSala, type TracoDaSala } from './Salas.tsx';
 import {
   arrastar,
   centralizarEm,
@@ -78,6 +79,10 @@ export interface PalcoProps {
   pincelDoBreu?: PincelDoBreu | null;
   /** A forma que o mestre acabou de desenhar, para cobrir ou revelar conforme o pincel. */
   aoDesenharBreu?: (forma: FormaDoBreu) => void;
+  /** Ferramenta de salas aberta (só o mestre): o botão esquerdo desenha a área da sala. */
+  tracoDaSala?: TracoDaSala | null;
+  /** A área que o mestre acabou de desenhar para a sala. */
+  aoDesenharSala?: (area: Ponto[]) => void;
   /** Ferramenta ativa no palco (#79): mover (padrão), medir distância ou marcar ponto. */
   modo?: ModoDoPalco;
   /** Último pulso recebido da sala para animar no mapa (#79). */
@@ -112,6 +117,8 @@ export function Palco({
   aoSoltarImagem,
   pincelDoBreu,
   aoDesenharBreu,
+  tracoDaSala,
+  aoDesenharSala,
   modo = 'mover',
   ultimoPulso = null,
   aoMarcarPonto,
@@ -137,16 +144,19 @@ export function Palco({
   const mestre = visao.papel === 'mestre';
   const escolhendo = Boolean(aoEscolherPonto);
   const pincel = mestre && !escolhendo && aoDesenharBreu ? (pincelDoBreu ?? null) : null;
-  const modoAtivo: ModoDoPalco = escolhendo || pincel !== null ? 'mover' : modo;
+  const salaAtiva =
+    mestre && !escolhendo && pincel === null && aoDesenharSala ? (tracoDaSala ?? null) : null;
+  const desenhando = pincel !== null || salaAtiva !== null;
+  const modoAtivo: ModoDoPalco = escolhendo || desenhando ? 'mover' : modo;
   const medindo = modoAtivo === 'medir' && !espaco;
   const marcando = modoAtivo === 'marcar' && !espaco;
-  const bloqueado = espaco || escolhendo || pincel !== null || modoAtivo !== 'mover';
+  const bloqueado = espaco || escolhendo || desenhando || modoAtivo !== 'mover';
 
-  // Começou a desenhar o breu: a seleção sai (a barra do item ficaria no caminho).
-  const [pincelAberto, setPincelAberto] = useState(pincel !== null);
-  if (pincelAberto !== (pincel !== null)) {
-    setPincelAberto(pincel !== null);
-    if (pincel) setSelecao(null);
+  // Começou a desenhar o breu ou sala: a seleção sai (a barra do item ficaria no caminho).
+  const [pincelAberto, setPincelAberto] = useState(desenhando);
+  if (pincelAberto !== desenhando) {
+    setPincelAberto(desenhando);
+    if (desenhando) setSelecao(null);
   }
 
   // O palco ocupa o espaço que a página der, e acompanha quando ele muda.
@@ -298,7 +308,7 @@ export function Palco({
     const botaoDoMeio = e.evt.button === 1;
     const botaoDireito = e.evt.button === 2;
     const arrastarNoVazio =
-      e.evt.button === 0 && noVazio && !escolhendo && pincel === null && modoAtivo === 'mover';
+      e.evt.button === 0 && noVazio && !escolhendo && !desenhando && modoAtivo === 'mover';
     if (botaoDoMeio || botaoDireito || (espaco && e.evt.button === 0) || arrastarNoVazio) {
       e.evt.preventDefault();
       ultimoPonto.current = { x: e.evt.clientX, y: e.evt.clientY };
@@ -433,7 +443,7 @@ export function Palco({
       data-arrastando={arrastandoMapa || undefined}
       data-espaco={espaco || undefined}
       data-escolhendo={escolhendo || undefined}
-      data-desenhando={(pincel && !espaco) || undefined}
+      data-desenhando={(desenhando && !espaco) || undefined}
       data-medindo={medindo || undefined}
       data-marcando={marcando || undefined}
       onDragOver={aoArrastarArquivo}
@@ -477,6 +487,7 @@ export function Palco({
           {visao.salas && <CamadaDeSalas salas={visao.salas} />}
           <CamadaDoBreu breu={visao.breu} mapa={mapa} mestre={mestre} />
           <CamadaDePistas pistas={visao.pistas} celula={celula} />
+          <CamadaDePois pois={visao.pois} escala={camera.escala} />
           <CamadaDeTokens
             tokens={visao.tokens}
             mapa={mapa}
@@ -499,6 +510,15 @@ export function Palco({
               escala={camera.escala}
               pausado={espaco}
               aoDesenhar={aoDesenharBreu}
+            />
+          )}
+          {salaAtiva && aoDesenharSala && (
+            <CamadaDeDesenhoDaSala
+              traco={salaAtiva}
+              mapa={mapa}
+              escala={camera.escala}
+              pausado={espaco}
+              aoDesenhar={aoDesenharSala}
             />
           )}
           <CamadaDeMedicao medicao={medicaoVisivel} celula={celula} escala={camera.escala} />
