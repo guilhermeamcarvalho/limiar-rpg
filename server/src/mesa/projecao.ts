@@ -1,9 +1,9 @@
 // O que cada pessoa recebe da mesa (aba Arquitetura técnica, "O que cada um recebe"). Segredo só
 // escondido na tela não é segredo: o jogador nunca recebe o que não pode ver (nem token nem prop
-// sob a névoa), nem no estado inicial, nem na reconexão, nem em evento nenhum. O mestre recebe tudo.
+// sob o breu), nem no estado inicial, nem na reconexão, nem em evento nenhum. O mestre recebe tudo.
 // Campo secreto novo? Trate aqui e acrescente o segredo em projecao.test.ts.
 import {
-  sobNevoa,
+  sobBreu,
   type EstadoDaMesa,
   type EventoDaMesa,
   type ItemDoInventario,
@@ -22,16 +22,16 @@ export interface Espectador {
   personagemId: string | null;
 }
 
-/** O jogador vê o próprio token sempre; os outros, se não estiverem ocultos nem sob a névoa. */
+/** O jogador vê o próprio token sempre; os outros, se não estiverem ocultos nem sob o breu. */
 export function tokenVisivel(quem: Espectador, token: TokenNaMesa, estado: EstadoDaMesa): boolean {
   if (quem.papel === 'mestre') return true;
   if (token.donoId !== null && token.donoId === quem.id) return true;
-  return !token.oculto && !sobNevoa(estado.nevoa, token);
+  return !token.oculto && !sobBreu(estado.breu, token);
 }
 
-/** O jogador vê o prop que não está sob a névoa (vale o centro dele, como no token). */
+/** O jogador vê o prop que não está sob o breu (vale o centro dele, como no token). */
 export function propVisivel(quem: Espectador, prop: PropNaMesa, estado: EstadoDaMesa): boolean {
-  return quem.papel === 'mestre' || !sobNevoa(estado.nevoa, prop);
+  return quem.papel === 'mestre' || !sobBreu(estado.breu, prop);
 }
 
 /** Pista no mapa para o jogador: oculta some; não descoberta, só a tarja; nunca a nota do mestre. */
@@ -60,6 +60,7 @@ const itemVisivel = (
 export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaMesa {
   const comum = {
     mapa: estado.mapa,
+    breu: estado.breu,
     nevoa: estado.nevoa,
     rodada: estado.rodada,
     trilha: estado.trilha,
@@ -125,7 +126,7 @@ function propParaJogador(
   return [];
 }
 
-/** Os que mudaram de vista (por causa da névoa nova), cada um num evento: `null` se sumiu. */
+/** Os que mudaram de vista (por causa da breu novo), cada um num evento: `null` se sumiu. */
 function quemMudouDeVista<T extends { id: string }>(
   antes: readonly T[],
   depois: readonly T[],
@@ -144,7 +145,7 @@ function quemMudouDeVista<T extends { id: string }>(
 
 /**
  * Os eventos de um comando, como `quem` deve recebê-los. Pode tirar eventos, trocar um por outro
- * (token que entrou na névoa vira "sumiu") e acrescentar (névoa que revelou um token). Os eventos
+ * (token que entrou no breu vira "sumiu") e acrescentar (breu que revelou um token). Os eventos
  * derivados levam o mesmo número de sequência do original.
  */
 export function projetarEventos(
@@ -173,7 +174,7 @@ function projetarParaJogador(
   depois: EstadoDaMesa,
 ): EventoDaMesa[] {
   switch (evento.type) {
-    // Sem nada secreto: vão para todos como estão.
+    // Sem nada secreto: vão para todos como estão (a névoa é só visual, todos veem o mesmo nível).
     case 'presence.changed':
     case 'character.changed':
     case 'campaign.deleted':
@@ -182,13 +183,14 @@ function projetarParaJogador(
     case 'test.resolved':
     case 'audio.changed':
     case 'round.started':
+    case 'mist.changed':
       return [evento];
 
     case 'mesa.estado':
       return [{ ...evento, estado: projetarEstado(quem, depois) }];
 
     case 'token.moved': {
-      // Visto antes e depois: só a posição. Saiu da névoa: o token inteiro. Entrou: some.
+      // Visto antes e depois: só a posição. Saiu do breu: o token inteiro. Entrou: some.
       const via = antes.tokens.find((t) => t.id === evento.tokenId);
       const agora = depois.tokens.find((t) => t.id === evento.tokenId);
       if (via && agora && tokenVisivel(quem, via, antes) && tokenVisivel(quem, agora, depois)) {
@@ -222,8 +224,8 @@ function projetarParaJogador(
         : [];
     }
 
-    case 'fog.changed': {
-      // A névoa nova pode esconder ou revelar tokens e props: cada um que mudou de vista vira um
+    case 'darkness.changed': {
+      // O breu novo pode esconder ou revelar tokens e props: cada um que mudou de vista vira um
       // evento.
       const tokens = quemMudouDeVista(
         antes.tokens,

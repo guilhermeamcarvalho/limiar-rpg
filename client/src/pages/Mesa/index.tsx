@@ -1,13 +1,13 @@
 // /campanhas/:id/mesa: a mesa ao vivo (artboards "10 · Mesa" e "11 · Mesa-Mestre"). Tela cheia,
 // sem o cabeçalho comum. O palco com o mapa, o cartão de resultado no canto, as ferramentas e o
-// painel lateral com Chat e Registro (Acontecimentos). Os painéis recolhíveis e o painel esquerdo
-// do jogador chegam no #74/#75.
+// painel lateral com Chat e Registro (Acontecimentos). Por cima do palco, a névoa da Membrana no
+// nível escolhido pelo mestre. Os painéis recolhíveis e o painel esquerdo do jogador chegam no #74/#75.
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   tituloDaPagina,
   type CampanhaDetalhe,
-  type FormaDaNevoa,
+  type FormaDoBreu,
   type MapaNaMesa,
   type RespostaDoRegistro,
   type VisaoDaMesa,
@@ -20,7 +20,9 @@ import { mesclarEventosRegistrados } from '../../mesa/estado.ts';
 import { enviarImagemDaMesa, nomeDoArquivoSemExtensao } from '../../mesa/imagens.ts';
 import { dentroDoMapa } from '../../mesa/interacao.ts';
 import { MapaUpload } from '../../mesa/MapaUpload.tsx';
-import type { PincelDaNevoa } from '../../mesa/Nevoa.tsx';
+import { descreverNevoa, NevoaDaMembrana } from '../../mesa/NevoaDaMembrana.tsx';
+import type { PincelDoBreu } from '../../mesa/Breu.tsx';
+import { FerramentaDoBreu } from '../../mesa/painel/Breu.tsx';
 import { DadosETestes } from '../../mesa/painel/DadosETestes.tsx';
 import { FerramentaDaNevoa } from '../../mesa/painel/Nevoa.tsx';
 import { NovoProp } from '../../mesa/painel/NovoProp.tsx';
@@ -44,7 +46,7 @@ import {
 } from '../../ui/index.ts';
 import './mesa.css';
 
-type Ferramenta = 'dados' | 'tokens' | 'props' | 'nevoa' | 'mapa';
+type Ferramenta = 'dados' | 'tokens' | 'props' | 'breu' | 'nevoa' | 'mapa';
 type AbaLateral = 'chat' | 'registro';
 
 interface DefinicaoDeFerramenta {
@@ -87,13 +89,23 @@ const FERRAMENTAS: DefinicaoDeFerramenta[] = [
     comMapa: true,
   },
   {
+    id: 'breu',
+    titulo: 'Breu',
+    tecla: 'b',
+    icone: 'darkness',
+    rotulo: 'Breu, ferramenta do mestre',
+    soMestre: true,
+    comMapa: true,
+  },
+  {
     id: 'nevoa',
     titulo: 'Névoa',
     tecla: 'n',
-    icone: 'fog',
+    icone: 'mist',
     rotulo: 'Névoa, ferramenta do mestre',
     soMestre: true,
-    comMapa: true,
+    // É clima da cena: vale antes mesmo de haver mapa.
+    comMapa: false,
   },
   {
     id: 'mapa',
@@ -160,7 +172,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const [seqVistoRegistro, setSeqVistoRegistro] = useState<number | null>(null);
   const [seqResultadoFechado, setSeqResultadoFechado] = useState(0);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
-  const [pincel, setPincel] = useState<PincelDaNevoa>({ modo: 'cobrir', forma: 'retangulo' });
+  const [pincel, setPincel] = useState<PincelDoBreu>({ modo: 'cobrir', forma: 'retangulo' });
   const centroRef = useRef<Ponto | null>(null);
 
   const caso = useCarga(`/api/campanhas/${campanhaId}`, (signal) =>
@@ -232,7 +244,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     document.title = tituloDaPagina(nomeDoCaso ? `Mesa · ${nomeDoCaso}` : 'Mesa');
   }, [nomeDoCaso]);
 
-  // D abre Dados e testes para qualquer pessoa; T, O, N e G abrem as ferramentas do mestre.
+  // D abre Dados e testes para qualquer pessoa; T, O, B, N e G abrem as ferramentas do mestre.
   useEffect(() => {
     if (!visao) return;
     const aoTeclar = (e: KeyboardEvent) => {
@@ -290,9 +302,12 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   }
 
   /** A forma desenhada no mapa cobre ou revela, conforme o pincel. */
-  async function desenharNevoa(forma: FormaDaNevoa) {
-    const r = await enviar({ type: pincel.modo === 'cobrir' ? 'fog.add' : 'fog.reveal', forma });
-    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para mexer na névoa', text: r.motivo });
+  async function desenharBreu(forma: FormaDoBreu) {
+    const r = await enviar({
+      type: pincel.modo === 'cobrir' ? 'darkness.add' : 'darkness.reveal',
+      forma,
+    });
+    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para mexer no breu', text: r.motivo });
   }
 
   async function trazerGrupo(ponto: Ponto) {
@@ -400,8 +415,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               centroRef={centroRef}
               aoEscolherPonto={escolhendoGrupo ? (ponto) => void trazerGrupo(ponto) : null}
               aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
-              pincelDaNevoa={mestre && aberta?.id === 'nevoa' ? pincel : null}
-              aoDesenharNevoa={(forma) => void desenharNevoa(forma)}
+              pincelDoBreu={mestre && aberta?.id === 'breu' ? pincel : null}
+              aoDesenharBreu={(forma) => void desenharBreu(forma)}
             />
           ) : (
             <div className="mesa-vazia">
@@ -428,6 +443,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               </EmptyState>
             </div>
           )}
+
+          {visao && <NevoaDaMembrana nivel={visao.nevoa} />}
 
           {/* Flutua sobre o mapa: uma faixa no fluxo empurraria o mapa bem na hora do clique. */}
           {escolhendoGrupo && (
@@ -457,9 +474,14 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           )}
 
           {/* Legenda do artboard 11: o mestre vê através, mas o jogador não. */}
-          {mestre && comMapa && comMapa.nevoa.length > 0 && (
+          {mestre && ((comMapa && comMapa.breu.length > 0) || visao.nevoa > 0) && (
             <div className="mesa-legenda">
-              <Chip status="alert">Névoa: jogadores veem preto</Chip>
+              {comMapa && comMapa.breu.length > 0 && (
+                <Chip status="alert">Breu: jogadores veem preto</Chip>
+              )}
+              {visao.nevoa > 0 && (
+                <Chip>{`${descreverNevoa(visao.nevoa)} (${String(visao.nevoa)}%)`}</Chip>
+              )}
             </div>
           )}
 
@@ -528,13 +550,16 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   }}
                 />
               )}
-              {mestre && aberta.id === 'nevoa' && comMapa && (
-                <FerramentaDaNevoa
+              {mestre && aberta.id === 'breu' && comMapa && (
+                <FerramentaDoBreu
                   visao={comMapa}
                   pincel={pincel}
                   aoMudarPincel={setPincel}
                   enviar={enviar}
                 />
+              )}
+              {mestre && aberta.id === 'nevoa' && (
+                <FerramentaDaNevoa nivel={visao.nevoa} enviar={enviar} />
               )}
               {mestre && aberta.id === 'props' && (
                 <NovoProp

@@ -13,8 +13,8 @@ import { projetarEstado, projetarEventos, projetarRegistro, type Espectador } fr
 
 const SEGREDOS = {
   tokenOculto: 'SEGREDO-TOKEN-OCULTO',
-  tokenNaNevoa: 'SEGREDO-TOKEN-NA-NEVOA',
-  propNaNevoa: 'SEGREDO-PROP-NA-NEVOA',
+  tokenNoBreu: 'SEGREDO-TOKEN-NO-BREU',
+  propNoBreu: 'SEGREDO-PROP-NO-BREU',
   notaDaSala: 'SEGREDO-NOTA-DA-SALA',
   nomeDaSala: 'SEGREDO-NOME-DA-SALA',
   pistaNaoDescoberta: 'SEGREDO-PISTA-NAO-DESCOBERTA',
@@ -33,7 +33,7 @@ const ANA: Espectador = { id: 'usr_ana', papel: 'mestre', personagemId: null };
 const BIA: Espectador = { id: 'usr_bia', papel: 'jogador', personagemId: 'chr_davi' };
 const CAIO: Espectador = { id: 'usr_caio', papel: 'jogador', personagemId: 'chr_rita' };
 
-const NEVOA = {
+const BREU = {
   id: 'nev_1',
   modo: 'cobrir' as const,
   forma: { tipo: 'retangulo' as const, x: 500, y: 500, largura: 200, altura: 200 },
@@ -66,15 +66,15 @@ const prop = (campos: Partial<PropNaMesa> & { id: string }): PropNaMesa => ({
 function mesaCheiaDeSegredos(): EstadoDaMesa {
   return {
     ...estadoVazioDaMesa(),
-    nevoa: [NEVOA],
+    breu: [BREU],
     tokens: [
       token({ id: 'tok_davi', personagemId: 'chr_davi', donoId: BIA.id }),
       token({ id: SEGREDOS.tokenOculto, nome: SEGREDOS.tokenOculto, oculto: true }),
-      token({ id: SEGREDOS.tokenNaNevoa, nome: SEGREDOS.tokenNaNevoa, x: 600, y: 600 }),
-      // O token da própria Bia, mesmo sob a névoa, ela vê.
-      token({ id: 'tok_bia_na_nevoa', personagemId: 'chr_davi', donoId: BIA.id, x: 650, y: 650 }),
+      token({ id: SEGREDOS.tokenNoBreu, nome: SEGREDOS.tokenNoBreu, x: 600, y: 600 }),
+      // O token da própria Bia, mesmo sob o breu, ela vê.
+      token({ id: 'tok_bia_no_breu', personagemId: 'chr_davi', donoId: BIA.id, x: 650, y: 650 }),
     ],
-    props: [prop({ id: 'prp_mesa' }), prop({ id: SEGREDOS.propNaNevoa, x: 600, y: 600 })],
+    props: [prop({ id: 'prp_mesa' }), prop({ id: SEGREDOS.propNoBreu, x: 600, y: 600 })],
     salas: [
       { id: 'sala_1', nome: SEGREDOS.nomeDaSala, area: [], notasMestre: SEGREDOS.notaDaSala },
     ],
@@ -145,7 +145,7 @@ function eventosComSegredos(estado: EstadoDaMesa): EventoDaMesa[] {
   return [
     { type: 'mesa.estado', estado: projetarEstado(ANA, estado), seq: 1 },
     { type: 'token.moved', tokenId: SEGREDOS.tokenOculto, x: 1, y: 1, seq: 2 },
-    { type: 'token.dragging', tokenId: SEGREDOS.tokenNaNevoa, x: 610, y: 610, seq: 3 },
+    { type: 'token.dragging', tokenId: SEGREDOS.tokenNoBreu, x: 610, y: 610, seq: 3 },
     {
       type: 'token.changed',
       tokenId: SEGREDOS.tokenOculto,
@@ -154,11 +154,11 @@ function eventosComSegredos(estado: EstadoDaMesa): EventoDaMesa[] {
     },
     {
       type: 'prop.changed',
-      propId: SEGREDOS.propNaNevoa,
+      propId: SEGREDOS.propNoBreu,
       prop: estado.props[1] ?? null,
       seq: 4,
     },
-    { type: 'prop.dragging', propId: SEGREDOS.propNaNevoa, x: 620, y: 620, seq: 4 },
+    { type: 'prop.dragging', propId: SEGREDOS.propNoBreu, x: 620, y: 620, seq: 4 },
     {
       type: 'room.updated',
       salaId: 'sala_1',
@@ -248,9 +248,9 @@ describe('o que o jogador recebe', () => {
   it('o jogador vê o que é dele e o que é do grupo', () => {
     const visao = projetarEstado(BIA, mesaCheiaDeSegredos());
     expect(visao.papel).toBe('jogador');
-    expect(visao.tokens.map((t) => t.id)).toEqual(['tok_davi', 'tok_bia_na_nevoa']);
+    expect(visao.tokens.map((t) => t.id)).toEqual(['tok_davi', 'tok_bia_no_breu']);
     expect(visao.props.map((p) => p.id)).toEqual(['prp_mesa']);
-    expect(visao.nevoa).toEqual([NEVOA]);
+    expect(visao.breu).toEqual([BREU]);
     expect(visao.pistas).toEqual([
       {
         id: 'pst_aberta',
@@ -281,46 +281,65 @@ describe('o que o jogador recebe', () => {
   });
 });
 
+describe('névoa da Membrana', () => {
+  const comNevoa: EstadoDaMesa = {
+    ...estadoVazioDaMesa(),
+    nevoa: 70,
+    tokens: [token({ id: 'tok_npc', x: 100, y: 100 })],
+  };
+
+  it('todos recebem o mesmo nível, no estado e no evento', () => {
+    expect(projetarEstado(BIA, comNevoa).nevoa).toBe(70);
+    expect(projetarEstado(ANA, comNevoa).nevoa).toBe(70);
+    const mudou: EventoDaMesa[] = [{ type: 'mist.changed', nivel: 70, seq: 4 }];
+    expect(projetarEventos(BIA, mudou, estadoVazioDaMesa(), comNevoa)).toEqual(mudou);
+  });
+
+  it('não esconde nada: o token à vista continua chegando', () => {
+    expect(projetarEstado(BIA, comNevoa).tokens.map((t) => t.id)).toEqual(['tok_npc']);
+  });
+});
+
 describe('tokens que entram e saem da vista', () => {
   const comNpc = (x: number, y: number): EstadoDaMesa => ({
     ...estadoVazioDaMesa(),
-    nevoa: [NEVOA],
+    breu: [BREU],
     tokens: [token({ id: 'tok_npc', x, y })],
   });
 
-  it('NPC que sai da névoa chega inteiro; que entra, some', () => {
-    const naNevoa = comNpc(600, 600);
+  it('NPC que sai do breu chega inteiro; que entra, some', () => {
+    const noBreu = comNpc(600, 600);
     const aVista = comNpc(100, 100);
     const moveu = (x: number, y: number): EventoDaMesa[] => [
       { type: 'token.moved', tokenId: 'tok_npc', x, y, seq: 7 },
     ];
 
-    expect(projetarEventos(BIA, moveu(100, 100), naNevoa, aVista)).toEqual([
+    expect(projetarEventos(BIA, moveu(100, 100), noBreu, aVista)).toEqual([
       { type: 'token.changed', tokenId: 'tok_npc', token: aVista.tokens[0], seq: 7 },
     ]);
-    expect(projetarEventos(BIA, moveu(600, 600), aVista, naNevoa)).toEqual([
+    expect(projetarEventos(BIA, moveu(600, 600), aVista, noBreu)).toEqual([
       { type: 'token.changed', tokenId: 'tok_npc', token: null, seq: 7 },
     ]);
     expect(projetarEventos(BIA, moveu(120, 120), aVista, comNpc(120, 120))).toEqual(
       moveu(120, 120),
     );
-    expect(projetarEventos(BIA, moveu(610, 610), naNevoa, comNpc(610, 610))).toEqual([]);
+    expect(projetarEventos(BIA, moveu(610, 610), noBreu, comNpc(610, 610))).toEqual([]);
   });
 
-  it('névoa nova esconde e revela tokens com o mesmo número de sequência', () => {
-    const semNevoa: EstadoDaMesa = { ...comNpc(600, 600), nevoa: [] };
-    const comNevoa = comNpc(600, 600);
+  it('breu novo esconde e revela tokens com o mesmo número de sequência', () => {
+    const semBreu: EstadoDaMesa = { ...comNpc(600, 600), breu: [] };
+    const comBreu = comNpc(600, 600);
     const mudou = (estado: EstadoDaMesa): EventoDaMesa[] => [
-      { type: 'fog.changed', nevoa: estado.nevoa, seq: 9 },
+      { type: 'darkness.changed', breu: estado.breu, seq: 9 },
     ];
 
-    expect(projetarEventos(BIA, mudou(comNevoa), semNevoa, comNevoa)).toEqual([
-      ...mudou(comNevoa),
+    expect(projetarEventos(BIA, mudou(comBreu), semBreu, comBreu)).toEqual([
+      ...mudou(comBreu),
       { type: 'token.changed', tokenId: 'tok_npc', token: null, seq: 9 },
     ]);
-    expect(projetarEventos(BIA, mudou(semNevoa), comNevoa, semNevoa)).toEqual([
-      ...mudou(semNevoa),
-      { type: 'token.changed', tokenId: 'tok_npc', token: semNevoa.tokens[0], seq: 9 },
+    expect(projetarEventos(BIA, mudou(semBreu), comBreu, semBreu)).toEqual([
+      ...mudou(semBreu),
+      { type: 'token.changed', tokenId: 'tok_npc', token: semBreu.tokens[0], seq: 9 },
     ]);
   });
 
@@ -410,29 +429,29 @@ describe('troca de mapa', () => {
 });
 
 describe('props que entram e saem da vista', () => {
-  const comProp = (x: number, y: number, nevoa = [NEVOA]): EstadoDaMesa => ({
+  const comProp = (x: number, y: number, breu = [BREU]): EstadoDaMesa => ({
     ...estadoVazioDaMesa(),
-    nevoa,
+    breu,
     props: [prop({ id: 'prp_1', x, y })],
   });
   const mudou = (estado: EstadoDaMesa): EventoDaMesa[] => [
     { type: 'prop.changed', propId: 'prp_1', prop: estado.props[0] ?? null, seq: 5 },
   ];
 
-  it('prop posto na névoa não chega; que sai dela, chega inteiro; que entra, some', () => {
-    const naNevoa = comProp(600, 600);
+  it('prop posto no breu não chega; que sai dele, chega inteiro; que entra, some', () => {
+    const noBreu = comProp(600, 600);
     const aVista = comProp(100, 100);
-    expect(projetarEventos(BIA, mudou(naNevoa), estadoVazioDaMesa(), naNevoa)).toEqual([]);
-    expect(projetarEventos(BIA, mudou(aVista), naNevoa, aVista)).toEqual(mudou(aVista));
-    expect(projetarEventos(BIA, mudou(naNevoa), aVista, naNevoa)).toEqual([
+    expect(projetarEventos(BIA, mudou(noBreu), estadoVazioDaMesa(), noBreu)).toEqual([]);
+    expect(projetarEventos(BIA, mudou(aVista), noBreu, aVista)).toEqual(mudou(aVista));
+    expect(projetarEventos(BIA, mudou(noBreu), aVista, noBreu)).toEqual([
       { type: 'prop.changed', propId: 'prp_1', prop: null, seq: 5 },
     ]);
-    // Removido sob a névoa: o jogador nem sabia dele.
+    // Removido sob o breu: o jogador nem sabia dele.
     const removido: EventoDaMesa[] = [
       { type: 'prop.changed', propId: 'prp_1', prop: null, seq: 5 },
     ];
-    expect(projetarEventos(BIA, removido, naNevoa, { ...naNevoa, props: [] })).toEqual([]);
-    expect(projetarEventos(ANA, mudou(naNevoa), aVista, naNevoa)).toEqual(mudou(naNevoa));
+    expect(projetarEventos(BIA, removido, noBreu, { ...noBreu, props: [] })).toEqual([]);
+    expect(projetarEventos(ANA, mudou(noBreu), aVista, noBreu)).toEqual(mudou(noBreu));
   });
 
   it('o arrasto só chega enquanto o prop está à vista', () => {
@@ -442,23 +461,23 @@ describe('props que entram e saem da vista', () => {
     ];
     expect(projetarEventos(BIA, arrasto(120, 120), aVista, aVista)).toEqual(arrasto(120, 120));
     expect(projetarEventos(BIA, arrasto(600, 600), aVista, aVista)).toEqual([]);
-    const naNevoa = comProp(600, 600);
-    expect(projetarEventos(BIA, arrasto(100, 100), naNevoa, naNevoa)).toEqual([]);
+    const noBreu = comProp(600, 600);
+    expect(projetarEventos(BIA, arrasto(100, 100), noBreu, noBreu)).toEqual([]);
   });
 
-  it('névoa nova esconde e revela props com o mesmo número de sequência', () => {
-    const semNevoa = comProp(600, 600, []);
-    const comNevoa = comProp(600, 600);
-    const fog = (estado: EstadoDaMesa): EventoDaMesa[] => [
-      { type: 'fog.changed', nevoa: estado.nevoa, seq: 9 },
+  it('breu novo esconde e revela props com o mesmo número de sequência', () => {
+    const semBreu = comProp(600, 600, []);
+    const comBreu = comProp(600, 600);
+    const darkness = (estado: EstadoDaMesa): EventoDaMesa[] => [
+      { type: 'darkness.changed', breu: estado.breu, seq: 9 },
     ];
-    expect(projetarEventos(BIA, fog(comNevoa), semNevoa, comNevoa)).toEqual([
-      ...fog(comNevoa),
+    expect(projetarEventos(BIA, darkness(comBreu), semBreu, comBreu)).toEqual([
+      ...darkness(comBreu),
       { type: 'prop.changed', propId: 'prp_1', prop: null, seq: 9 },
     ]);
-    expect(projetarEventos(BIA, fog(semNevoa), comNevoa, semNevoa)).toEqual([
-      ...fog(semNevoa),
-      { type: 'prop.changed', propId: 'prp_1', prop: semNevoa.props[0], seq: 9 },
+    expect(projetarEventos(BIA, darkness(semBreu), comBreu, semBreu)).toEqual([
+      ...darkness(semBreu),
+      { type: 'prop.changed', propId: 'prp_1', prop: semBreu.props[0], seq: 9 },
     ]);
   });
 });

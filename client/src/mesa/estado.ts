@@ -172,8 +172,10 @@ export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNo
           props: trocar(visao.props, evento.propId, evento.prop).sort((a, b) => a.ordem - b.ordem),
         },
       };
-    case 'fog.changed':
-      return { ...mesa, seq, eventos, visao: { ...visao, nevoa: evento.nevoa } };
+    case 'darkness.changed':
+      return { ...mesa, seq, eventos, visao: { ...visao, breu: evento.breu } };
+    case 'mist.changed':
+      return { ...mesa, seq, eventos, visao: { ...visao, nevoa: evento.nivel } };
     case 'map.activated':
       // O mapa novo, com tudo o que está sobre ele, chega logo depois num `mesa.estado`.
       return { ...mesa, seq, eventos };

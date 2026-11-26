@@ -1,160 +1,132 @@
-// Ferramenta "Névoa" do mestre (RF-22, RF-23). Com ela aberta, o mapa vira prancheta: cobrir ou
-// revelar, com retângulo (arrastar) ou polígono (clicar os cantos). Mais "Cobrir tudo", "Limpar",
-// "Desfazer a última" e, por sala, revelar ou cobrir a área inteira da sala de uma vez.
-// O mestre vê a névoa hachurada e translúcida; os jogadores veem preto, e o servidor nem manda
-// para eles os tokens e props que estão embaixo.
+// Ferramenta "Névoa" do mestre: uma régua de 0 a 100 diz o quanto a névoa da Membrana está densa
+// na cena, mais atalhos para os níveis comuns. É só visual: todos veem a mesma névoa, e nada fica
+// escondido nem barrado por ela. Enquanto o mestre arrasta, a régua segue a mão e o nível vai
+// para a mesa um instante depois de parar (não um comando por pixel).
+import { useEffect, useId, useRef, useState } from 'react';
 import {
-  sobNevoa,
+  NIVEL_MAXIMO_DA_NEVOA,
   type ComandoDaMesa,
-  type MapaNaMesa,
   type RespostaDoComando,
-  type SalaNaMesa,
-  type VisaoDaMesa,
 } from '@membrana/shared';
-import { Button, Icon, Segmented, useToast } from '../../ui/index.ts';
-import { formaDaSala, mapaInteiro, meioDaSala } from '../interacao.ts';
-import type { ModoDaNevoa, PincelDaNevoa, TracoDaNevoa } from '../Nevoa.tsx';
+import { Button, useToast } from '../../ui/index.ts';
+import { descreverNevoa } from '../NevoaDaMembrana.tsx';
+
+/** Quanto esperar a régua parar antes de mandar o nível. */
+export const ESPERA_DA_REGUA_MS = 150;
+
+const ATALHOS = [
+  { nivel: 0, rotulo: 'Sem névoa' },
+  { nivel: 30, rotulo: 'Fina' },
+  { nivel: 60, rotulo: 'Densa' },
+  { nivel: NIVEL_MAXIMO_DA_NEVOA, rotulo: 'Espessa' },
+] as const;
 
 interface Props {
-  visao: VisaoDaMesa & { mapa: MapaNaMesa };
-  pincel: PincelDaNevoa;
-  aoMudarPincel: (pincel: PincelDaNevoa) => void;
+  nivel: number;
   enviar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
 }
 
-const DICAS: Record<TracoDaNevoa, string> = {
-  retangulo: 'Arraste no mapa para desenhar.',
-  poligono:
-    'Clique para marcar os cantos; feche no primeiro ponto, com dois cliques ou Enter. Backspace desfaz o último canto, Esc cancela.',
-};
-
-function SalaNaLista({
-  sala,
-  sob,
-  enviar,
-}: {
-  sala: SalaNaMesa;
-  sob: boolean;
-  enviar: (modo: ModoDaNevoa, sala: SalaNaMesa) => void;
-}) {
-  return (
-    <li className="mapa-na-lista">
-      <span className="mapa-info small">
-        <b>{sala.nome}</b>
-        <span className={sob ? 'nevoa-sob' : 'muted'}>{sob ? 'sob a névoa' : 'à vista'}</span>
-      </span>
-      <Button
-        size="sm"
-        variant={sob ? 'primary' : 'secondary'}
-        aria-label={`${sob ? 'Revelar' : 'Cobrir'} ${sala.nome}`}
-        onClick={() => {
-          enviar(sob ? 'revelar' : 'cobrir', sala);
-        }}
-      >
-        {sob ? 'Revelar' : 'Cobrir'}
-      </Button>
-    </li>
-  );
-}
-
-export function FerramentaDaNevoa({ visao, pincel, aoMudarPincel, enviar }: Props) {
+export function FerramentaDaNevoa({ nivel, enviar }: Props) {
   const avisos = useToast();
-  const { nevoa, mapa } = visao;
-  const salas = (visao.salas ?? []).filter((s) => formaDaSala(s) !== null);
-  const ultima = nevoa.at(-1);
+  const id = useId();
+  const [local, setLocal] = useState(nivel);
+  const pendente = useRef<{ timer: number; nivel: number } | null>(null);
 
-  async function mandar(comando: ComandoDaMesa) {
-    const r = await enviar(comando);
+  // O nível muda por outro caminho (outra aba do mestre, a volta de uma queda): a régua acompanha,
+  // a não ser que o mestre esteja no meio de um ajuste.
+  useEffect(() => {
+    if (!pendente.current) setLocal(nivel);
+  }, [nivel]);
+
+  async function mandar(novo: number) {
+    const r = await enviar({ type: 'mist.set', nivel: novo });
     if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para mexer na névoa', text: r.motivo });
   }
 
-  function porSala(modo: ModoDaNevoa, sala: SalaNaMesa) {
-    const forma = formaDaSala(sala);
-    if (forma) void mandar({ type: modo === 'cobrir' ? 'fog.add' : 'fog.reveal', forma });
+  function cancelarPendente() {
+    if (!pendente.current) return null;
+    window.clearTimeout(pendente.current.timer);
+    const { nivel: guardado } = pendente.current;
+    pendente.current = null;
+    return guardado;
+  }
+
+  // Fechou o painel no meio do ajuste: o último nível ainda vai.
+  useEffect(
+    () => () => {
+      const guardado = cancelarPendente();
+      if (guardado !== null) void mandar(guardado);
+    },
+    // Só na saída do painel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  function aoArrastar(novo: number) {
+    setLocal(novo);
+    cancelarPendente();
+    const timer = window.setTimeout(() => {
+      pendente.current = null;
+      void mandar(novo);
+    }, ESPERA_DA_REGUA_MS);
+    pendente.current = { timer, nivel: novo };
+  }
+
+  function irPara(novo: number) {
+    cancelarPendente();
+    setLocal(novo);
+    void mandar(novo);
   }
 
   return (
     <>
-      <div className="col" style={{ gap: 8 }}>
-        <Segmented<ModoDaNevoa>
-          label="Cobrir ou revelar"
-          value={pincel.modo}
-          onChange={(modo) => {
-            aoMudarPincel({ ...pincel, modo });
+      <p className="small muted">
+        A névoa da Membrana: quanto mais densa, mais perto o Outro Lado está. É só visual; todos
+        veem igual, e ela não esconde nada nem impede ninguém de andar. Para tapar uma área, use o
+        breu.
+      </p>
+
+      <div className="col" style={{ gap: 6 }}>
+        <div className="row between">
+          <label className="lab" htmlFor={id}>
+            Nível da névoa
+          </label>
+          <span className="small" aria-hidden="true">
+            {local}%
+          </span>
+        </div>
+        <input
+          id={id}
+          className="mesa-nevoa-regua"
+          type="range"
+          min={0}
+          max={NIVEL_MAXIMO_DA_NEVOA}
+          step={1}
+          value={local}
+          aria-valuetext={`${String(local)}%: ${descreverNevoa(local)}`}
+          onChange={(e) => {
+            aoArrastar(Number(e.target.value));
           }}
-          options={[
-            { value: 'cobrir', label: 'Cobrir', icon: <Icon name="fog" size="sm" /> },
-            { value: 'revelar', label: 'Revelar', icon: <Icon name="eye" size="sm" /> },
-          ]}
-        />
-        <Segmented<TracoDaNevoa>
-          label="Forma"
-          value={pincel.forma}
-          onChange={(forma) => {
-            aoMudarPincel({ ...pincel, forma });
-          }}
-          options={[
-            { value: 'retangulo', label: 'Retângulo' },
-            { value: 'poligono', label: 'Polígono' },
-          ]}
         />
         <p className="small muted" role="status">
-          {DICAS[pincel.forma]} Para mover o mapa, use espaço + arrasto ou o botão do meio.
+          {descreverNevoa(local)}
         </p>
       </div>
 
       <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-        <Button
-          size="sm"
-          onClick={() => {
-            void mandar({ type: 'fog.add', forma: mapaInteiro(mapa) });
-          }}
-        >
-          Cobrir tudo
-        </Button>
-        <Button
-          size="sm"
-          disabled={nevoa.length === 0}
-          onClick={() => {
-            void mandar({ type: 'fog.remove', tudo: true });
-          }}
-        >
-          Limpar névoa
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<Icon name="back" size="sm" />}
-          disabled={!ultima}
-          onClick={() => {
-            if (ultima) void mandar({ type: 'fog.remove', formaId: ultima.id });
-          }}
-        >
-          Desfazer a última
-        </Button>
-      </div>
-
-      <div className="col" style={{ gap: 6 }}>
-        <span className="lab">Por sala</span>
-        {salas.length === 0 ? (
-          <p className="small muted">
-            Nenhuma sala marcada neste mapa. Com as salas, dá para revelar uma inteira de uma vez.
-          </p>
-        ) : (
-          <ul className="mesa-mapas">
-            {salas.map((sala) => {
-              const meio = meioDaSala(sala);
-              return (
-                <SalaNaLista
-                  key={sala.id}
-                  sala={sala}
-                  sob={meio !== null && sobNevoa(nevoa, meio)}
-                  enviar={porSala}
-                />
-              );
-            })}
-          </ul>
-        )}
+        {ATALHOS.map((a) => (
+          <Button
+            key={a.nivel}
+            size="sm"
+            variant={local === a.nivel ? 'primary' : 'secondary'}
+            aria-pressed={local === a.nivel}
+            onClick={() => {
+              irPara(a.nivel);
+            }}
+          >
+            {a.rotulo}
+          </Button>
+        ))}
       </div>
     </>
   );

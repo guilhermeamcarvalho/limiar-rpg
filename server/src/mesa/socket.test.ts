@@ -33,7 +33,7 @@ async function servidor() {
   await app.listen({ port: 0, host: '127.0.0.1' });
   const { port } = app.server.address() as AddressInfo;
   const caso = casoDeTeste(app);
-  // Um mapa já na mesa: tokens, props e névoa precisam de um mapa.
+  // Um mapa já na mesa: tokens, props e breu precisam de um mapa.
   const mapa = mapaDeTeste(app, caso.caso, { ativo: true });
   return { a: app, url: `http://127.0.0.1:${String(port)}`, mapa, ...caso };
 }

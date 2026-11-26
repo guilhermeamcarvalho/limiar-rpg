@@ -378,7 +378,7 @@
   object-fit: cover;
 }
 
-/* Desenhando a névoa: o cursor vira mira. */
+/* Desenhando o breu: o cursor vira mira. */
 .palco[data-desenhando] {
   cursor: crosshair;
 }
@@ -398,7 +398,7 @@
   background: var(--panel);
 }
 
-.nevoa-sob {
+.breu-sob {
   color: var(--red);
 }
 
@@ -723,4 +723,48 @@
 
 .dados-pericia-dados {
   gap: 4px;
+}
+
+/*
+ * Névoa da Membrana: só visual, por cima do mapa e abaixo das ferramentas. Não pega clique.
+ * `--nevoa` vai de 0 a 1 (o nível do mestre); as duas camadas derivam em ritmos diferentes.
+ * Com "reduzir movimento", o reset global para a animação e a névoa fica parada.
+ */
+.mesa-nevoa {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  background: var(--map-mist-veil);
+  opacity: calc(var(--nevoa, 0) * 0.9);
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.mesa-nevoa-camada {
+  position: absolute;
+  inset: -25%;
+  background: var(--map-mist-clouds);
+  filter: blur(28px);
+  animation: nevoa-deriva 70s ease-in-out infinite alternate;
+}
+
+.mesa-nevoa-camada.funda {
+  background: var(--map-mist-clouds-2);
+  animation-duration: 110s;
+  animation-direction: alternate-reverse;
+}
+
+@keyframes nevoa-deriva {
+  from {
+    transform: translate3d(-6%, -2%, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(6%, 3%, 0) scale(1.08);
+  }
+}
+
+.mesa-nevoa-regua {
+  width: 100%;
 }

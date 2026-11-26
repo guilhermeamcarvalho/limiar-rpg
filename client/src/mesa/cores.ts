@@ -6,7 +6,7 @@ const NOMES = [
   'map-wall',
   'map-room',
   'map-grid',
-  'map-fog',
+  'map-darkness',
   'red-a40',
   'red-hi',
   'red',

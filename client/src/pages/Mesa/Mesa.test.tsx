@@ -111,7 +111,8 @@ const visao = (campos: Partial<VisaoDaMesa> = {}): VisaoDaMesa => ({
   mapa: MAPA,
   tokens: [],
   props: [],
-  nevoa: [],
+  breu: [],
+  nevoa: 0,
   pistas: [],
   inventario: [],
   rodada: { numero: 3 },
@@ -556,7 +557,7 @@ describe('arte pronta (mestre)', () => {
   });
 });
 
-describe('névoa (mestre)', () => {
+describe('breu (mestre)', () => {
   const RETANGULO = { tipo: 'retangulo', x: 10, y: 20, largura: 100, altura: 50 } as const;
   const COBERTA = { id: 'nev_1', modo: 'cobrir', forma: RETANGULO } as const;
   const SALA = {
@@ -571,93 +572,165 @@ describe('névoa (mestre)', () => {
     ],
   };
 
-  async function abrirNevoa(campos: Partial<VisaoDaMesa> = {}) {
+  async function abrirBreu(campos: Partial<VisaoDaMesa> = {}) {
     await naMesa(visao({ papel: 'mestre', salas: [], ...campos }));
     await screen.findByTestId('palco');
-    fireEvent.keyDown(window, { key: 'n' });
-    return screen.findByRole('complementary', { name: 'Névoa' });
+    fireEvent.keyDown(window, { key: 'b' });
+    return screen.findByRole('complementary', { name: 'Breu' });
   }
 
-  it('N abre a ferramenta e o palco passa a desenhar; fechar tira o pincel', async () => {
-    const painel = await abrirNevoa();
-    expect(palco().pincelDaNevoa).toEqual({ modo: 'cobrir', forma: 'retangulo' });
+  it('B abre a ferramenta e o palco passa a desenhar; fechar tira o pincel', async () => {
+    const painel = await abrirBreu();
+    expect(palco().pincelDoBreu).toEqual({ modo: 'cobrir', forma: 'retangulo' });
     fireEvent.click(within(painel).getByRole('button', { name: 'Polígono' }));
     fireEvent.click(within(painel).getByRole('button', { name: 'Revelar' }));
-    expect(palco().pincelDaNevoa).toEqual({ modo: 'revelar', forma: 'poligono' });
-    fireEvent.keyDown(window, { key: 'n' });
+    expect(palco().pincelDoBreu).toEqual({ modo: 'revelar', forma: 'poligono' });
+    fireEvent.keyDown(window, { key: 'b' });
     await waitFor(() => {
-      expect(palco().pincelDaNevoa).toBeNull();
+      expect(palco().pincelDoBreu).toBeNull();
     });
   });
 
   it('a forma desenhada cobre ou revela, conforme o pincel', async () => {
-    const painel = await abrirNevoa();
+    const painel = await abrirBreu();
     act(() => {
-      palco().aoDesenharNevoa?.(RETANGULO);
+      palco().aoDesenharBreu?.(RETANGULO);
     });
     fireEvent.click(within(painel).getByRole('button', { name: 'Revelar' }));
     act(() => {
-      palco().aoDesenharNevoa?.(RETANGULO);
+      palco().aoDesenharBreu?.(RETANGULO);
     });
     await waitFor(() => {
       expect(socket().comandos).toEqual([
-        { type: 'fog.add', forma: RETANGULO },
-        { type: 'fog.reveal', forma: RETANGULO },
+        { type: 'darkness.add', forma: RETANGULO },
+        { type: 'darkness.reveal', forma: RETANGULO },
       ]);
     });
   });
 
   it('cobrir tudo, desfazer a última e limpar', async () => {
-    const painel = await abrirNevoa({ nevoa: [COBERTA] });
+    const painel = await abrirBreu({ breu: [COBERTA] });
     fireEvent.click(within(painel).getByRole('button', { name: 'Cobrir tudo' }));
     fireEvent.click(within(painel).getByRole('button', { name: 'Desfazer a última' }));
-    fireEvent.click(within(painel).getByRole('button', { name: 'Limpar névoa' }));
+    fireEvent.click(within(painel).getByRole('button', { name: 'Limpar breu' }));
     await waitFor(() => {
       expect(socket().comandos).toEqual([
-        { type: 'fog.add', forma: { tipo: 'retangulo', x: 0, y: 0, largura: 1000, altura: 800 } },
-        { type: 'fog.remove', formaId: 'nev_1' },
-        { type: 'fog.remove', tudo: true },
+        {
+          type: 'darkness.add',
+          forma: { tipo: 'retangulo', x: 0, y: 0, largura: 1000, altura: 800 },
+        },
+        { type: 'darkness.remove', formaId: 'nev_1' },
+        { type: 'darkness.remove', tudo: true },
       ]);
     });
   });
 
-  it('sem névoa, limpar e desfazer ficam desligados e a legenda não aparece', async () => {
-    const painel = await abrirNevoa();
-    expect(within(painel).getByRole('button', { name: 'Limpar névoa' })).toHaveProperty(
+  it('sem breu, limpar e desfazer ficam desligados e a legenda não aparece', async () => {
+    const painel = await abrirBreu();
+    expect(within(painel).getByRole('button', { name: 'Limpar breu' })).toHaveProperty(
       'disabled',
       true,
     );
-    expect(screen.queryByText('Névoa: jogadores veem preto')).toBeNull();
+    expect(screen.queryByText('Breu: jogadores veem preto')).toBeNull();
   });
 
-  it('com névoa, a legenda diz que os jogadores veem preto', async () => {
-    await naMesa(visao({ papel: 'mestre', nevoa: [COBERTA] }));
-    expect(await screen.findByText('Névoa: jogadores veem preto')).toBeDefined();
+  it('com breu, a legenda diz que os jogadores veem preto', async () => {
+    await naMesa(visao({ papel: 'mestre', breu: [COBERTA] }));
+    expect(await screen.findByText('Breu: jogadores veem preto')).toBeDefined();
   });
 
-  it('por sala: a sala sob a névoa se revela inteira; à vista, se cobre', async () => {
+  it('por sala: a sala sob o breu se revela inteira; à vista, se cobre', async () => {
     const sob = {
       id: 'nev_t',
       modo: 'cobrir',
       forma: { ...RETANGULO, x: 0, y: 0, largura: 1000, altura: 800 },
     } as const;
-    const painel = await abrirNevoa({ salas: [SALA], nevoa: [sob] });
-    expect(within(painel).getByText('sob a névoa')).toBeDefined();
+    const painel = await abrirBreu({ salas: [SALA], breu: [sob] });
+    expect(within(painel).getByText('sob o breu')).toBeDefined();
     fireEvent.click(within(painel).getByRole('button', { name: 'Revelar Estúdio B' }));
     await waitFor(() => {
       expect(socket().comandos).toEqual([
-        { type: 'fog.reveal', forma: { tipo: 'poligono', pontos: SALA.area } },
+        { type: 'darkness.reveal', forma: { tipo: 'poligono', pontos: SALA.area } },
       ]);
     });
   });
 
   it('jogador: nem a ferramenta nem a legenda', async () => {
-    await naMesa(visao({ nevoa: [COBERTA] }));
+    await naMesa(visao({ breu: [COBERTA] }));
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 'b' });
+    expect(screen.queryByRole('complementary', { name: 'Breu' })).toBeNull();
+    expect(screen.queryByText('Breu: jogadores veem preto')).toBeNull();
+    expect(palco().pincelDoBreu).toBeNull();
+  });
+});
+
+describe('névoa da Membrana', () => {
+  async function abrirNevoa(campos: Partial<VisaoDaMesa> = {}) {
+    await naMesa(visao({ papel: 'mestre', ...campos }));
+    await screen.findByTestId('palco');
+    fireEvent.keyDown(window, { key: 'n' });
+    return screen.findByRole('complementary', { name: 'Névoa' });
+  }
+
+  it('sem névoa, nada cobre o palco', async () => {
+    await naMesa(visao());
+    await screen.findByTestId('palco');
+    expect(screen.queryByTestId('nevoa')).toBeNull();
+  });
+
+  it('o jogador vê a névoa no nível do mestre, e ela acompanha o evento', async () => {
+    await naMesa(visao({ nevoa: 60 }));
+    const nevoa = await screen.findByRole('img', { name: 'Névoa densa' });
+    expect(nevoa.style.getPropertyValue('--nevoa')).toBe('0.6');
+    act(() => {
+      socket().receber({ type: 'mist.changed', nivel: 0, seq: 99 });
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId('nevoa')).toBeNull();
+    });
+  });
+
+  it('o jogador não tem a ferramenta', async () => {
+    await naMesa(visao({ nevoa: 20 }));
     await screen.findByTestId('palco');
     fireEvent.keyDown(window, { key: 'n' });
     expect(screen.queryByRole('complementary', { name: 'Névoa' })).toBeNull();
-    expect(screen.queryByText('Névoa: jogadores veem preto')).toBeNull();
-    expect(palco().pincelDaNevoa).toBeNull();
+  });
+
+  it('N abre a régua; arrastar manda um nível só, depois de parar', async () => {
+    const painel = await abrirNevoa();
+    const regua = within(painel).getByRole('slider', { name: 'Nível da névoa' });
+    fireEvent.change(regua, { target: { value: '20' } });
+    fireEvent.change(regua, { target: { value: '45' } });
+    expect(within(painel).getByText('Névoa densa')).toBeDefined();
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([{ type: 'mist.set', nivel: 45 }]);
+    });
+  });
+
+  it('os atalhos mandam na hora; a legenda do mestre mostra o nível', async () => {
+    const painel = await abrirNevoa({ nevoa: 30 });
+    expect(screen.getByText('Névoa fina (30%)')).toBeDefined();
+    expect(within(painel).getByRole('button', { name: 'Fina' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    fireEvent.click(within(painel).getByRole('button', { name: 'Espessa' }));
+    fireEvent.click(within(painel).getByRole('button', { name: 'Sem névoa' }));
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        { type: 'mist.set', nivel: 100 },
+        { type: 'mist.set', nivel: 0 },
+      ]);
+    });
+  });
+
+  it('vale sem mapa na mesa', async () => {
+    await naMesa(visao({ papel: 'mestre', mapa: null }), {
+      'GET /api/campanhas/cmp_1/mapas': json(200, { mapas: [] }),
+    });
+    const botao = await screen.findByRole('button', { name: 'Névoa, ferramenta do mestre' });
+    expect(botao).toHaveProperty('disabled', false);
   });
 });
 

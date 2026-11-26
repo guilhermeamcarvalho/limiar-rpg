@@ -1,11 +1,11 @@
-// Névoa: as áreas se empilham na ordem em que foram desenhadas. Para saber se um ponto está
+// Breu: as áreas se empilham na ordem em que foram desenhadas. Para saber se um ponto está
 // coberto, vale a última área que o contém: "cobrir" esconde, "revelar" mostra. Sem nenhuma, o
 // ponto está à vista. O servidor usa para recusar movimento e para não mandar o que está no escuro;
 // o cliente, para desenhar e avisar antes de mandar.
-import type { AreaDaNevoa, FormaDaNevoa, Ponto } from '../schemas/mesa.ts';
+import type { AreaDoBreu, FormaDoBreu, Ponto } from '../schemas/mesa.ts';
 
 /** Ponto dentro (ou na borda) da forma. */
-export function formaContem(forma: FormaDaNevoa, { x, y }: Ponto): boolean {
+export function formaContem(forma: FormaDoBreu, { x, y }: Ponto): boolean {
   if (forma.tipo === 'retangulo') {
     return (
       x >= forma.x && x <= forma.x + forma.largura && y >= forma.y && y <= forma.y + forma.altura
@@ -37,10 +37,10 @@ function naBorda(a: Ponto, b: Ponto, x: number, y: number): boolean {
   );
 }
 
-/** O ponto está coberto pela névoa. */
-export function sobNevoa(nevoa: readonly AreaDaNevoa[], ponto: Ponto): boolean {
-  for (let i = nevoa.length - 1; i >= 0; i--) {
-    const area = nevoa[i];
+/** O ponto está coberto pelo breu. */
+export function sobBreu(breu: readonly AreaDoBreu[], ponto: Ponto): boolean {
+  for (let i = breu.length - 1; i >= 0; i--) {
+    const area = breu[i];
     if (area && formaContem(area.forma, ponto)) return area.modo === 'cobrir';
   }
   return false;
@@ -50,10 +50,7 @@ export function sobNevoa(nevoa: readonly AreaDaNevoa[], ponto: Ponto): boolean {
  * A forma cobre o mapa inteiro. Assim "cobrir tudo" (e revelar tudo) troca a lista em vez de
  * empilhar: o que estava embaixo não conta mais.
  */
-export function cobreOMapa(
-  forma: FormaDaNevoa,
-  mapa: { largura: number; altura: number },
-): boolean {
+export function cobreOMapa(forma: FormaDoBreu, mapa: { largura: number; altura: number }): boolean {
   const cantos: Ponto[] = [
     { x: 0, y: 0 },
     { x: mapa.largura, y: 0 },

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { AreaDaNevoa, FormaDaNevoa } from '../schemas/mesa.ts';
-import { cobreOMapa, formaContem, sobNevoa } from './nevoa.ts';
+import type { AreaDoBreu, FormaDoBreu } from '../schemas/mesa.ts';
+import { cobreOMapa, formaContem, sobBreu } from './breu.ts';
 
-const quadrado: FormaDaNevoa = { tipo: 'retangulo', x: 100, y: 100, largura: 200, altura: 100 };
+const quadrado: FormaDoBreu = { tipo: 'retangulo', x: 100, y: 100, largura: 200, altura: 100 };
 /** Um "L": o canto de cima à direita fica de fora. */
-const ele: FormaDaNevoa = {
+const ele: FormaDoBreu = {
   tipo: 'poligono',
   pontos: [
     { x: 0, y: 0 },
@@ -39,28 +39,28 @@ describe('formaContem', () => {
   });
 });
 
-describe('sobNevoa', () => {
-  const cobrir = (id: string, forma: FormaDaNevoa): AreaDaNevoa => ({ id, modo: 'cobrir', forma });
-  const revelar = (id: string, forma: FormaDaNevoa): AreaDaNevoa => ({
+describe('sobBreu', () => {
+  const cobrir = (id: string, forma: FormaDoBreu): AreaDoBreu => ({ id, modo: 'cobrir', forma });
+  const revelar = (id: string, forma: FormaDoBreu): AreaDoBreu => ({
     id,
     modo: 'revelar',
     forma,
   });
-  const tudo: FormaDaNevoa = { tipo: 'retangulo', x: 0, y: 0, largura: 1000, altura: 1000 };
+  const tudo: FormaDoBreu = { tipo: 'retangulo', x: 0, y: 0, largura: 1000, altura: 1000 };
 
-  it('sem névoa, tudo à vista', () => {
-    expect(sobNevoa([], { x: 10, y: 10 })).toBe(false);
+  it('sem breu, tudo à vista', () => {
+    expect(sobBreu([], { x: 10, y: 10 })).toBe(false);
   });
 
   it('a última área que contém o ponto decide', () => {
-    const nevoa = [cobrir('n1', tudo), revelar('n2', quadrado)];
-    expect(sobNevoa(nevoa, { x: 150, y: 150 })).toBe(false);
-    expect(sobNevoa(nevoa, { x: 500, y: 500 })).toBe(true);
-    expect(sobNevoa([...nevoa, cobrir('n3', quadrado)], { x: 150, y: 150 })).toBe(true);
+    const breu = [cobrir('n1', tudo), revelar('n2', quadrado)];
+    expect(sobBreu(breu, { x: 150, y: 150 })).toBe(false);
+    expect(sobBreu(breu, { x: 500, y: 500 })).toBe(true);
+    expect(sobBreu([...breu, cobrir('n3', quadrado)], { x: 150, y: 150 })).toBe(true);
   });
 
   it('fora de todas as áreas, à vista', () => {
-    expect(sobNevoa([cobrir('n1', quadrado)], { x: 900, y: 900 })).toBe(false);
+    expect(sobBreu([cobrir('n1', quadrado)], { x: 900, y: 900 })).toBe(false);
   });
 });
 
@@ -74,7 +74,7 @@ describe('cobreOMapa', () => {
       true,
     );
     expect(cobreOMapa(quadrado, mapa)).toBe(false);
-    const todo: FormaDaNevoa = {
+    const todo: FormaDoBreu = {
       tipo: 'poligono',
       pontos: [
         { x: 0, y: 0 },

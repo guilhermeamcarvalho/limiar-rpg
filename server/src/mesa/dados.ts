@@ -1,5 +1,5 @@
 // Consultas da mesa ao vivo: o estado salvo, os mapas, o registro da sessão e os personagens.
-// O mapa ativo (com tokens, props e névoa) mora em `maps`, `tokens` e `props`; o resto do estado
+// O mapa ativo (com tokens, props e breu) mora em `maps`, `tokens` e `props`; o resto do estado
 // (rodada, trilha, salas, pistas...) em `table_states`. Os dois são gravados juntos.
 import { and, asc, desc, eq, inArray, isNull, max, ne, or, sql } from 'drizzle-orm';
 import {
@@ -7,7 +7,7 @@ import {
   esquemaFichaOp2,
   estadoVazioDaMesa,
   PERFIS_OP2,
-  type AreaDaNevoa,
+  type AreaDoBreu,
   type EstadoDaMesa,
   type EventoDaMesa,
   type FichaOp2,
@@ -48,12 +48,12 @@ export interface ConteudoDoMapa {
   mapa: MapaNaMesa;
   tokens: TokenNaMesa[];
   props: PropNaMesa[];
-  nevoa: AreaDaNevoa[];
+  breu: AreaDoBreu[];
 }
 
 type Transacao = Parameters<Parameters<Banco['transaction']>[0]>[0];
 
-/** O mapa do caso com os tokens (e o dono de cada um), os props e a névoa; ou nulo. */
+/** O mapa do caso com os tokens (e o dono de cada um), os props e o breu; ou nulo. */
 export function lerMapa(db: Banco, campanhaId: string, mapaId: string): ConteudoDoMapa | null {
   const linha = db
     .select()
@@ -104,7 +104,7 @@ export function lerMapa(db: Banco, campanhaId: string, mapaId: string): Conteudo
     },
     tokens: tokensDoMapa,
     props: propsDoMapa,
-    nevoa: linha.nevoa,
+    breu: linha.breu,
   };
 }
 
@@ -114,14 +114,14 @@ function semOMapa(salvo: Partial<EstadoDaMesa>): Partial<RestoDaMesa> {
   delete resto.mapa;
   delete resto.tokens;
   delete resto.props;
-  delete resto.nevoa;
+  delete resto.breu;
   return resto;
 }
 
 /** O que vai para `table_states`: campo a campo, para um campo novo no estado não ficar de fora. */
 function restoDe(estado: EstadoDaMesa): RestoDaMesa {
-  const { salas, pistas, comAlguem, rodada, trilha, guia, escudo } = estado;
-  return { salas, pistas, comAlguem, rodada, trilha, guia, escudo };
+  const { nevoa, salas, pistas, comAlguem, rodada, trilha, guia, escudo } = estado;
+  return { nevoa, salas, pistas, comAlguem, rodada, trilha, guia, escudo };
 }
 
 export function lerEstadoSalvo(db: Banco, campanhaId: string): EstadoSalvo | null {
@@ -141,7 +141,7 @@ export function lerEstadoSalvo(db: Banco, campanhaId: string): EstadoSalvo | nul
       mapa: conteudo?.mapa ?? null,
       tokens: conteudo?.tokens ?? [],
       props: conteudo?.props ?? [],
-      nevoa: conteudo?.nevoa ?? [],
+      breu: conteudo?.breu ?? [],
     },
     seq: resto?.seq ?? 0,
   };
@@ -165,11 +165,11 @@ export function lerEstadosSalvos(db: Banco): EstadoSalvo[] {
   return ids.flatMap((id) => lerEstadoSalvo(db, id) ?? []);
 }
 
-/** Grava a névoa, a grade, os tokens e os props do mapa (sem mexer em qual está ativo). */
+/** Grava o breu, a grade, os tokens e os props do mapa (sem mexer em qual está ativo). */
 function escreverMapa(tx: Transacao, estado: EstadoDaMesa) {
   const { mapa } = estado;
   if (!mapa) return;
-  tx.update(maps).set({ grade: mapa.grade, nevoa: estado.nevoa }).where(eq(maps.id, mapa.id)).run();
+  tx.update(maps).set({ grade: mapa.grade, breu: estado.breu }).where(eq(maps.id, mapa.id)).run();
 
   tx.delete(tokens).where(eq(tokens.mapId, mapa.id)).run();
   if (estado.tokens.length > 0) {

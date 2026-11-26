@@ -56,9 +56,9 @@ const textoLongo = z.string().max(5000, { error: 'No máximo 5000 caracteres.' }
 export const esquemaPonto = z.object({ x: coordenada, y: coordenada }).strict();
 export type Ponto = z.infer<typeof esquemaPonto>;
 
-/* ---------- Névoa ---------- */
+/* ---------- Breu ---------- */
 
-export const esquemaFormaDaNevoa = z.discriminatedUnion(
+export const esquemaFormaDoBreu = z.discriminatedUnion(
   'tipo',
   [
     z
@@ -82,7 +82,7 @@ export const esquemaFormaDaNevoa = z.discriminatedUnion(
   ],
   { error: 'Desenhe um retângulo ou um polígono.' },
 );
-export type FormaDaNevoa = z.infer<typeof esquemaFormaDaNevoa>;
+export type FormaDoBreu = z.infer<typeof esquemaFormaDoBreu>;
 
 /* ---------- Comandos (cliente → servidor) ---------- */
 
@@ -141,15 +141,25 @@ const propDelete = comando('prop.delete', { propId: id });
 /** Posição do prop durante o arrasto do mestre: não grava (como o token). */
 const propDrag = comando('prop.drag', { propId: id, x: coordenada, y: coordenada });
 
-// Névoa: cobrir e revelar empilham formas; a última que contém o ponto decide.
-const fogAdd = comando('fog.add', { forma: esquemaFormaDaNevoa });
-const fogReveal = comando('fog.reveal', { forma: esquemaFormaDaNevoa });
-const fogRemove = comando('fog.remove', {
-  /** Uma forma só, ou `tudo` para limpar a névoa inteira. */
+// Breu: cobrir e revelar empilham formas; a última que contém o ponto decide.
+const darknessAdd = comando('darkness.add', { forma: esquemaFormaDoBreu });
+const darknessReveal = comando('darkness.reveal', { forma: esquemaFormaDoBreu });
+const darknessRemove = comando('darkness.remove', {
+  /** Uma forma só, ou `tudo` para limpar o breu inteiro. */
   formaId: id.optional(),
   tudo: z.literal(true).optional(),
 }).refine((c) => (c.formaId === undefined) !== (c.tudo === undefined), {
   error: 'Diga qual área remover, ou remova tudo.',
+});
+
+// Névoa da Membrana: só visual, sobre o palco de todos. Não esconde nada nem barra movimento.
+/** O nível vai de 0 (sem névoa) a 100 (a Membrana quase rasgando). */
+export const NIVEL_MAXIMO_DA_NEVOA = 100;
+const mistSet = comando('mist.set', {
+  nivel: z
+    .int({ error: 'O nível da névoa é um número inteiro.' })
+    .min(0, { error: 'O nível da névoa vai de 0 a 100.' })
+    .max(NIVEL_MAXIMO_DA_NEVOA, { error: 'O nível da névoa vai de 0 a 100.' }),
 });
 
 const mapActivate = comando('map.activate', { mapaId: id });
@@ -249,9 +259,10 @@ export const esquemaComando = z.discriminatedUnion(
     propUpdate,
     propDelete,
     propDrag,
-    fogAdd,
-    fogReveal,
-    fogRemove,
+    darknessAdd,
+    darknessReveal,
+    darknessRemove,
+    mistSet,
     mapActivate,
     mapGrid,
     roomUpdate,
@@ -290,7 +301,7 @@ const ROTULOS: Record<string, string> = {
   type: 'tipo do comando',
   tokenId: 'token',
   propId: 'prop',
-  formaId: 'área da névoa',
+  formaId: 'área do breu',
   mapaId: 'mapa',
   salaId: 'sala',
   pistaId: 'pista',
@@ -380,10 +391,10 @@ export interface PropNaMesa {
   ordem: number;
 }
 
-export interface AreaDaNevoa {
+export interface AreaDoBreu {
   id: string;
   modo: 'cobrir' | 'revelar';
-  forma: FormaDaNevoa;
+  forma: FormaDoBreu;
 }
 
 /** Sala do mapa (Fase 3). Nada dela vai para o jogador. */
@@ -431,7 +442,9 @@ export interface EstadoDaMesa {
   mapa: MapaNaMesa | null;
   tokens: TokenNaMesa[];
   props: PropNaMesa[];
-  nevoa: AreaDaNevoa[];
+  breu: AreaDoBreu[];
+  /** Névoa da Membrana, de 0 a 100: só visual, todos veem igual. */
+  nevoa: number;
   salas: SalaNaMesa[];
   pistas: PistaNaMesa[];
   comAlguem: PistaComAlguem[];
@@ -447,7 +460,8 @@ export function estadoVazioDaMesa(): EstadoDaMesa {
     mapa: null,
     tokens: [],
     props: [],
-    nevoa: [],
+    breu: [],
+    nevoa: 0,
     salas: [],
     pistas: [],
     comAlguem: [],
@@ -478,7 +492,8 @@ export interface VisaoDaMesa {
   mapa: MapaNaMesa | null;
   tokens: TokenNaMesa[];
   props: PropNaMesa[];
-  nevoa: AreaDaNevoa[];
+  breu: AreaDoBreu[];
+  nevoa: number;
   pistas: (PistaNaMesa | PistaParaJogador)[];
   inventario: ItemDoInventario[];
   rodada: { numero: number };
@@ -513,7 +528,9 @@ export type EventoDaMesaSemSeq =
   | { type: 'prop.changed'; propId: string; prop: PropNaMesa | null }
   /** Posição do prop durante o arrasto: não grava. */
   | { type: 'prop.dragging'; propId: string; x: number; y: number }
-  | { type: 'fog.changed'; nevoa: AreaDaNevoa[] }
+  | { type: 'darkness.changed'; breu: AreaDoBreu[] }
+  /** O mestre mudou o nível da névoa da Membrana. */
+  | { type: 'mist.changed'; nivel: number }
   /** Troca de mapa: logo depois, cada um recebe um `mesa.estado` com o mapa novo inteiro. */
   | { type: 'map.activated'; mapa: MapaNaMesa | null }
   /** A grade do mapa ativo mudou. */
