@@ -22,6 +22,7 @@ import { Chat, filtrarEventosDoChat } from '../../mesa/Chat.tsx';
 import { mesclarEventosRegistrados } from '../../mesa/estado.ts';
 import { enviarImagemDaMesa, nomeDoArquivoSemExtensao } from '../../mesa/imagens.ts';
 import { dentroDoMapa } from '../../mesa/interacao.ts';
+import { CartaoPoi } from '../../mesa/CartaoPoi.tsx';
 import { MapaUpload } from '../../mesa/MapaUpload.tsx';
 import type { ModoDoPalco } from '../../mesa/medicao.ts';
 import { descreverNevoa, NevoaDaMembrana } from '../../mesa/NevoaDaMembrana.tsx';
@@ -294,6 +295,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const [seqResultadoFechado, setSeqResultadoFechado] = useState(0);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
   const [escolhendoPoi, setEscolhendoPoi] = useState<((ponto: Ponto) => void) | null>(null);
+  const [poiAbertoId, setPoiAbertoId] = useState<string | null>(null);
   const [modo, setModo] = useState<ModoDoPalco>('mover');
   const [pincel, setPincel] = useState<PincelDoBreu>({ modo: 'cobrir', forma: 'retangulo' });
   const [tracoSala, setTracoSala] = useState<TracoDaSala>('retangulo');
@@ -389,6 +391,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       if (e.key === 'Escape') {
         setEscolhendoGrupo(false);
         setEscolhendoPoi(null);
+        setPoiAbertoId(null);
         setModo('mover');
         return;
       }
@@ -755,6 +758,9 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               modo={modoEfetivo ?? 'mover'}
               ultimoPulso={mesa.ultimoPulso}
               aoMarcarPonto={(ponto) => void marcarPonto(ponto)}
+              aoAbrirPoi={(id) => {
+                setPoiAbertoId(id);
+              }}
             />
           ) : (
             <div className="mesa-vazia">
@@ -813,6 +819,29 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               </Button>
             </div>
           )}
+
+          {visao &&
+            poiAbertoId &&
+            (() => {
+              const poiAberto = visao.pois.find((p) => p.id === poiAbertoId);
+              if (!poiAberto) return null;
+              const novas =
+                mesa.ultimasDescobertas?.poiId === poiAberto.id
+                  ? mesa.ultimasDescobertas.infoIds
+                  : [];
+              return (
+                <CartaoPoi
+                  poi={poiAberto}
+                  papel={visao.papel}
+                  meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
+                  novasInfoIds={novas}
+                  enviar={enviar}
+                  aoFechar={() => {
+                    setPoiAbertoId(null);
+                  }}
+                />
+              );
+            })()}
 
           {visao && resultadoVisivel && (
             <Resultado

@@ -27,6 +27,7 @@ export type ItemDeAcontecimento = Extract<
     type:
       | 'test.resolved'
       | 'dice.rolled'
+      | 'poi.infoRevealed'
       | 'clue.presented'
       | 'map.activated'
       | 'round.started'
@@ -38,6 +39,7 @@ export function ehAcontecimento(evento: EventoDaMesa): evento is ItemDeAcontecim
   return (
     evento.type === 'test.resolved' ||
     evento.type === 'dice.rolled' ||
+    evento.type === 'poi.infoRevealed' ||
     evento.type === 'clue.presented' ||
     evento.type === 'map.activated' ||
     evento.type === 'round.started' ||
@@ -63,7 +65,7 @@ export function filtrarAcontecimentos(
       case 'testes':
         return e.type === 'test.resolved' || e.type === 'dice.rolled';
       case 'pistas':
-        return e.type === 'clue.presented';
+        return e.type === 'clue.presented' || e.type === 'poi.infoRevealed';
       case 'cenas':
         return e.type === 'map.activated' || e.type === 'round.started';
       case 'trilha':
@@ -85,6 +87,7 @@ function iconeDo(tipo: ItemDeAcontecimento['type']): NomeDoIcone {
     case 'dice.rolled':
       return 'dice';
     case 'clue.presented':
+    case 'poi.infoRevealed':
       return 'clue';
     case 'map.activated':
       return 'map';
@@ -181,6 +184,14 @@ export function Registro({ eventos, papel, membros, personagens }: RegistroProps
                     </span>
                     {item.secreta && <span className="small gold">Rolagem secreta</span>}
                   </>
+                )}
+
+                {item.type === 'poi.infoRevealed' && (
+                  <Note className="registro-pista">
+                    <b>Informação descoberta</b>
+                    <br />
+                    {item.texto}
+                  </Note>
                 )}
 
                 {item.type === 'clue.presented' && (

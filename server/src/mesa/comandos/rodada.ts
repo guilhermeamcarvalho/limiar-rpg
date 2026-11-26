@@ -25,9 +25,4 @@ export const tratadoresDaRodada: Tratadores = {
     ctx.estado.rodada.agiram = [];
     return [{ type: 'round.started', numero: ctx.estado.rodada.numero }];
   },
-
-  // Investigar ponto de interesse (o detalhe dos POIs chega na Fase 3; já aplica a regra da rodada).
-  'poi.investigate'(ctx) {
-    return consumirAcaoDaRodada(ctx);
-  },
 };

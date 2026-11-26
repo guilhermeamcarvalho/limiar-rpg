@@ -834,4 +834,89 @@ describe('salas e pontos de interesse (#82, #83)', () => {
     eventos(m.mesa.aplicar(m.ana, { type: 'poi.delete', poiId }));
     expect(m.mesa.estado.pois).toEqual([]);
   });
+
+  it('investigar, examinar (−1 PD sem novidade), interagir e desafio travado (#84, #85, #86)', () => {
+    // Semente com rolagem baixa para testar falha/sucesso previsíveis.
+    const m = montar({ sorteio: () => 0.1 });
+    eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'poi.create',
+        nome: 'Armário de fitas',
+        x: 160,
+        y: 390,
+        pericias: [{ periciaId: 'percepcao', dt: 7 }],
+        informacoes: [
+          { id: 'inf_facil', nivel: 2, texto: 'Fita 33 no fundo.' },
+          { id: 'inf_dificil', nivel: 20, texto: 'Código no verso.' },
+        ],
+        desafio: { tipo: 'destrancar', descricao: 'Cadeado de 3 dígitos', dt: 20 },
+      }),
+    );
+    const poiId = m.mesa.estado.pois[0]?.id ?? '';
+
+    // 1. Investigar revela informação com nível <= total e grava no session_log.
+    const inv = eventos(
+      m.mesa.aplicar(m.bia, {
+        type: 'poi.investigate',
+        poiId,
+        modo: 'investigar',
+        periciaId: 'percepcao',
+      }),
+    );
+    expect(inv.some((e) => e.type === 'poi.infoRevealed')).toBe(true);
+    expect(m.mesa.estado.pois[0]?.informacoes[0]?.descoberta).toBe(true);
+    expect(m.mesa.estado.pois[0]?.informacoes[1]?.descoberta).toBeFalsy();
+
+    // 2. Mestre encerra rodada; Bia Examina sem achar nada novo -> perde 1 PD.
+    eventos(m.mesa.aplicar(m.ana, { type: 'round.end' }));
+    const pdAntes = (
+      m.db.select().from(characters).where(eq(characters.id, m.davi)).get()?.ficha as {
+        pd: number;
+      }
+    ).pd;
+    eventos(
+      m.mesa.aplicar(m.bia, {
+        type: 'poi.investigate',
+        poiId,
+        modo: 'examinar',
+        periciaId: 'percepcao',
+      }),
+    );
+    const pdDepois = (
+      m.db.select().from(characters).where(eq(characters.id, m.davi)).get()?.ficha as {
+        pd: number;
+      }
+    ).pd;
+    expect(pdDepois).toBe(pdAntes - 1);
+
+    // 3. Interagir envia descrição ao chat da mesa.
+    eventos(m.mesa.aplicar(m.ana, { type: 'round.end' }));
+    const inter = eventos(
+      m.mesa.aplicar(m.bia, {
+        type: 'poi.investigate',
+        poiId,
+        modo: 'interagir',
+        texto: 'Lanço luz por baixo da fresta',
+      }),
+    );
+    expect(inter).toMatchObject([
+      { type: 'round.acted' },
+      { type: 'chat.message', texto: '[Armário de fitas] Lanço luz por baixo da fresta' },
+    ]);
+
+    // 4. Esgotar tentativas no desafio trava o ponto até o mestre liberar.
+    for (let i = 0; i < 4; i++) {
+      eventos(m.mesa.aplicar(m.ana, { type: 'round.end' }));
+      eventos(m.mesa.aplicar(m.bia, { type: 'poi.investigate', poiId, modo: 'desafio' }));
+    }
+    expect(m.mesa.estado.pois[0]?.estadoDesafio?.travado).toBe(true);
+
+    eventos(m.mesa.aplicar(m.ana, { type: 'round.end' }));
+    expect(
+      motivo(m.mesa.aplicar(m.bia, { type: 'poi.investigate', poiId, modo: 'investigar' })),
+    ).toBe('Este ponto está travado. Aguarde o mestre liberar.');
+
+    eventos(m.mesa.aplicar(m.ana, { type: 'poi.investigate', poiId, modo: 'liberar' }));
+    expect(m.mesa.estado.pois[0]?.estadoDesafio?.travado).toBe(false);
+  });
 });

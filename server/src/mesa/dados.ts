@@ -30,6 +30,8 @@ import {
   gameSystems,
   maps,
   memberships,
+  poiChallenges,
+  poiDiscoveries,
   pois,
   props,
   rooms,
@@ -172,6 +174,36 @@ export function lerEstadoSalvo(db: Banco, campanhaId: string): EstadoSalvo | nul
     .get();
   if (!resto && !ativo) return null;
   const conteudo = ativo ? lerMapa(db, campanhaId, ativo.id) : null;
+  const descobertas = db
+    .select({ poiId: poiDiscoveries.poiId, infoId: poiDiscoveries.infoId })
+    .from(poiDiscoveries)
+    .where(eq(poiDiscoveries.campaignId, campanhaId))
+    .all();
+  const desafiosSalvos = db
+    .select({ poiId: poiChallenges.poiId, estado: poiChallenges.estado })
+    .from(poiChallenges)
+    .where(eq(poiChallenges.campaignId, campanhaId))
+    .all();
+  const infosPorPoi = new Map<string, Set<string>>();
+  for (const d of descobertas) {
+    const conjunto = infosPorPoi.get(d.poiId) ?? new Set<string>();
+    conjunto.add(d.infoId);
+    infosPorPoi.set(d.poiId, conjunto);
+  }
+  const desafioPorPoi = new Map(desafiosSalvos.map((d) => [d.poiId, d.estado]));
+  const poisComEstado = (conteudo?.pois ?? []).map((p) => {
+    const reveladas = infosPorPoi.get(p.id);
+    const estadoDesafio = desafioPorPoi.get(p.id);
+    return {
+      ...p,
+      ...(reveladas && {
+        informacoes: p.informacoes.map((info) =>
+          reveladas.has(info.id) ? { ...info, descoberta: true } : info,
+        ),
+      }),
+      ...(estadoDesafio !== undefined && { estadoDesafio }),
+    };
+  });
   return {
     campanhaId,
     estado: {
@@ -182,7 +214,7 @@ export function lerEstadoSalvo(db: Banco, campanhaId: string): EstadoSalvo | nul
       props: conteudo?.props ?? [],
       breu: conteudo?.breu ?? [],
       salas: conteudo?.salas ?? [],
-      pois: conteudo?.pois ?? [],
+      pois: poisComEstado,
     },
     seq: resto?.seq ?? 0,
   };
@@ -320,6 +352,30 @@ export function gravarEstado(
         set: { estado: resto, seq, atualizadoEm: agora },
       })
       .run();
+
+    for (const p of estado.pois) {
+      for (const info of p.informacoes) {
+        if (!info.descoberta) continue;
+        tx.insert(poiDiscoveries)
+          .values({ campaignId: campanhaId, poiId: p.id, infoId: info.id, em: agora })
+          .onConflictDoNothing()
+          .run();
+      }
+      if (p.estadoDesafio) {
+        tx.insert(poiChallenges)
+          .values({
+            campaignId: campanhaId,
+            poiId: p.id,
+            estado: p.estadoDesafio,
+            atualizadoEm: agora,
+          })
+          .onConflictDoUpdate({
+            target: [poiChallenges.campaignId, poiChallenges.poiId],
+            set: { estado: p.estadoDesafio, atualizadoEm: agora },
+          })
+          .run();
+      }
+    }
   });
 }
 
@@ -547,4 +603,28 @@ export function gravarTesteDaMesa(
     ...registro,
     em: gravado.criadoEm.toISOString(),
   };
+}
+
+/** Desconta ou soma PV/PD direto na ficha do personagem (ex.: Examinar −1 PD ou Arrombar −1 PV). */
+export function ajustarRecursoDaFicha(
+  db: Banco,
+  personagemId: string,
+  campo: 'pv' | 'pd',
+  delta: number,
+) {
+  const linha = db
+    .select({ ficha: characters.ficha })
+    .from(characters)
+    .where(eq(characters.id, personagemId))
+    .get();
+  if (!linha) return;
+  const ficha = esquemaFichaOp2.parse(linha.ficha);
+  const atual = ficha[campo];
+  const proximo = Math.max(0, atual + delta);
+  if (proximo === atual) return;
+  const fichaNova: FichaOp2 = { ...ficha, [campo]: proximo };
+  db.update(characters)
+    .set({ ficha: fichaNova, atualizadoEm: new Date() })
+    .where(eq(characters.id, personagemId))
+    .run();
 }

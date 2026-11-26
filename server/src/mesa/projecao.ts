@@ -44,14 +44,28 @@ export function pistaParaJogador(pista: PistaNaMesa): PistaParaJogador | null {
   return { id, x, y, descoberta: true, titulo: pista.titulo, texto: pista.texto };
 }
 
-/** Ponto de interesse para o jogador: só número, nome, posição e se já foi todo descoberto. */
+/** Ponto de interesse para o jogador: sem contextoMestre e com informações ocultas como tarjas. */
 export function poiParaJogador(poi: PoiNaMesa): PoiParaJogador {
   return {
     id: poi.id,
     numero: poi.numero,
     nome: poi.nome,
+    descricao: poi.descricao,
     x: poi.x,
     y: poi.y,
+    pericias: poi.pericias,
+    informacoes: poi.informacoes.map((info) =>
+      info.descoberta
+        ? { id: info.id, nivel: info.nivel, descoberta: true, texto: info.texto }
+        : { id: info.id, nivel: info.nivel, descoberta: false },
+    ),
+    desafio: poi.desafio
+      ? {
+          tipo: poi.desafio.tipo,
+          ...(poi.desafio.dt !== undefined && { dt: poi.desafio.dt }),
+        }
+      : null,
+    ...(poi.estadoDesafio !== undefined && { estadoDesafio: poi.estadoDesafio }),
     tudoDescoberto:
       poi.informacoes.length > 0 && poi.informacoes.every((info) => info.descoberta === true),
   };
@@ -335,6 +349,8 @@ export function projetarRegistro(
         return !evento.secreta || evento.autorId === quem.id;
       case 'clue.presented':
         return itemVisivel(quem, evento.item);
+      case 'poi.infoRevealed':
+        return quem.personagemId !== null && evento.personagemIds.includes(quem.personagemId);
       case 'test.resolved':
       case 'map.activated':
       case 'audio.changed':

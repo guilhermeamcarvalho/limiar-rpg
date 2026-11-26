@@ -14,6 +14,7 @@ const TIPOS_REGISTRADOS: ReadonlySet<TipoDeEvento> = new Set([
   'chat.message',
   'dice.rolled',
   'test.resolved',
+  'poi.infoRevealed',
   'clue.presented',
   'map.activated',
   'audio.changed',
@@ -60,6 +61,8 @@ export interface MesaNoCliente {
   ultimoTeste: { seq: number; registro: RegistroDeTeste } | null;
   /** O último ponto marcado no mapa ao vivo (#79). */
   ultimoPulso: { seq: number; autorId: string; x: number; y: number } | null;
+  /** Informações recém-reveladas em um POI, para dar destaque no cartão (#86). */
+  ultimasDescobertas: { poiId: string; infoIds: string[] } | null;
   /** Contador por personagem: sobe a cada `character.changed`, para recarregar a ficha aberta. */
   versaoPersonagens: Record<string, number>;
 }
@@ -72,6 +75,7 @@ export const MESA_VAZIA: MesaNoCliente = {
   eventos: [],
   ultimoTeste: null,
   ultimoPulso: null,
+  ultimasDescobertas: null,
   versaoPersonagens: {},
 };
 
@@ -219,6 +223,16 @@ export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNo
         visao: {
           ...visao,
           pois: trocar(visao.pois, evento.poiId, evento.poi).sort((a, b) => a.numero - b.numero),
+        },
+      };
+    case 'poi.infoRevealed':
+      return {
+        ...mesa,
+        seq,
+        eventos,
+        ultimasDescobertas: {
+          poiId: evento.poiId,
+          infoIds: evento.infoIds ?? [],
         },
       };
     case 'clue.changed':

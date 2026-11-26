@@ -88,21 +88,43 @@ function poiTudoDescoberto(poi: PoiNaMesa | PoiParaJogador): boolean {
 export const CamadaDePois = memo(function CamadaDePois({
   pois,
   escala,
+  bloqueado = false,
+  aoAbrirPoi,
 }: {
   pois: (PoiNaMesa | PoiParaJogador)[];
   escala: number;
+  bloqueado?: boolean;
+  aoAbrirPoi?: (poiId: string) => void;
 }) {
   const c = cores();
   if (pois.length === 0) return null;
   const inv = 1 / Math.max(0.1, escala);
+  const interativo = Boolean(!bloqueado && aoAbrirPoi);
 
   return (
-    <Layer listening={false}>
+    <Layer listening={interativo}>
       {pois.map((poi) => {
         const cor = poiTudoDescoberto(poi) ? c.green : c.red;
         return (
-          <Group key={poi.id} x={poi.x} y={poi.y} scaleX={inv} scaleY={inv} listening={false}>
-            <Circle radius={13} fill={cor} stroke={c.bg} strokeWidth={2} listening={false} />
+          <Group
+            key={poi.id}
+            x={poi.x}
+            y={poi.y}
+            scaleX={inv}
+            scaleY={inv}
+            listening={interativo}
+            onClick={(e) => {
+              if (!interativo) return;
+              e.cancelBubble = true;
+              aoAbrirPoi?.(poi.id);
+            }}
+            onTap={(e) => {
+              if (!interativo) return;
+              e.cancelBubble = true;
+              aoAbrirPoi?.(poi.id);
+            }}
+          >
+            <Circle radius={13} fill={cor} stroke={c.bg} strokeWidth={2} />
             <Text
               x={-13}
               y={-6}

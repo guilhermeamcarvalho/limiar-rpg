@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { Papel } from '../permissoes.ts';
 import { MAPAS_PRONTOS, NPCS_PRONTOS, PROPS_PRONTOS } from '../mesa/prontos.ts';
 import type { PerfilOp2 } from './ficha-op2.ts';
+import type { EstadoDoDesafio } from '../regras/op2/desafios.ts';
 import { esquemaPedidoDeTeste, esquemaTesteInformado, type RegistroDeTeste } from './teste-op2.ts';
 
 /** O maior lado de um mapa depois do upload é 4096 px; a folga cobre token na borda. */
@@ -284,7 +285,13 @@ const testReport = esquemaTesteInformado.extend({
   personagemId: id,
 });
 
-const poiInvestigate = comando('poi.investigate', { poiId: id });
+const poiInvestigate = comando('poi.investigate', {
+  poiId: id,
+  modo: z.enum(['investigar', 'examinar', 'interagir', 'desafio', 'liberar']).optional(),
+  personagemId: id.optional(),
+  periciaId: z.string().trim().min(1).max(40).optional(),
+  texto: textoLongo.optional(),
+});
 
 const volume = z.number().min(0).max(1, { error: 'O volume vai de 0 a 1.' });
 const audioPlay = comando('audio.play', { faixaId: id, volume: volume.optional() });
@@ -488,17 +495,27 @@ export interface PoiNaMesa {
   pericias: PericiaDoPoi[];
   informacoes: InformacaoDoPoi[];
   desafio: DesafioDoPoi;
+  estadoDesafio?: EstadoDoDesafio | null;
   /** Nunca vai para o jogador. */
   contextoMestre: string;
 }
+
+export type InformacaoParaJogador =
+  | { id: string; nivel: number; descoberta: true; texto: string }
+  | { id: string; nivel: number; descoberta: false };
 
 /** O que o jogador vê de um ponto de interesse no mapa (sem contextoMestre nem segredos). */
 export interface PoiParaJogador {
   id: string;
   numero: number;
   nome: string;
+  descricao: string;
   x: number;
   y: number;
+  pericias: PericiaDoPoi[];
+  informacoes: InformacaoParaJogador[];
+  desafio: { tipo: string; dt?: number } | null;
+  estadoDesafio?: EstadoDoDesafio | null;
   tudoDescoberto: boolean;
 }
 
@@ -656,7 +673,14 @@ export type EventoDaMesaSemSeq =
       secreta: boolean;
     }
   | { type: 'test.resolved'; registro: RegistroDeTeste }
-  | { type: 'poi.infoRevealed'; poiId: string; personagemIds: string[]; texto: string }
+  | {
+      type: 'poi.infoRevealed';
+      poiId: string;
+      personagemIds: string[];
+      texto: string;
+      infoIds?: string[];
+      autorId?: string;
+    }
   | { type: 'audio.changed'; trilha: TrilhaTocando | null }
   | {
       type: 'chat.message';

@@ -27,6 +27,7 @@ const REGISTRADOS: ReadonlySet<TipoDeEvento> = new Set([
   'chat.message',
   'dice.rolled',
   'test.resolved',
+  'poi.infoRevealed',
   'clue.presented',
   'map.activated',
   'audio.changed',
@@ -61,6 +62,8 @@ export interface DependenciasDaMesa {
   fichaNoCaso: Contexto['fichaNoCaso'];
   /** Grava o resultado do teste oficial e atualiza a ficha no banco. */
   gravarTeste: Contexto['gravarTeste'];
+  /** Ajusta PV ou PD da ficha em ações de investigação/desafio. */
+  ajustarRecurso?: Contexto['ajustarRecurso'];
   /** O sorteio dos dados; sem ele, usa o criptográfico. */
   sorteio?: Rng;
   /**
@@ -135,6 +138,7 @@ export class Mesa {
           mapa: this.#deps.mapa,
           fichaNoCaso: this.#deps.fichaNoCaso,
           gravarTeste: this.#deps.gravarTeste,
+          ...(this.#deps.ajustarRecurso && { ajustarRecurso: this.#deps.ajustarRecurso }),
         },
         validacao.comando,
       );
