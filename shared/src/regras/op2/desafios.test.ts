@@ -34,10 +34,16 @@ describe('desafios de acesso (#84)', () => {
 
     estado = aplicarTentativaDeDesafio(estado, { sucesso: true });
     expect(estado.resolvido).toBe(true);
+    expect(aplicarTentativaDeDesafio(estado, { sucesso: false })).toBe(estado);
   });
 
   it('arrombar soma progresso até atingir a meta', () => {
+    expect(criarEstadoDoDesafio('arrombar').meta).toBe(12);
+
     let estado = criarEstadoDoDesafio('arrombar', { meta: 15 });
+    estado = aplicarTentativaDeDesafio(estado, { sucesso: false });
+    expect(estado.progresso).toBe(0);
+
     estado = aplicarTentativaDeDesafio(estado, { sucesso: true, valorObtido: 8 });
     expect(estado.resolvido).toBe(false);
     expect(estado.progresso).toBe(8);

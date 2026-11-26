@@ -18,7 +18,7 @@ export interface EstadoDoDesafio {
   ultimaDica?: 'baixo' | 'alto' | 'exato';
 }
 
-const TENTATIVAS_CRIME: Partial<Record<Dado, number>> = {
+const TENTATIVAS_CRIME: Record<Dado, number> = {
   d4: 1,
   d6: 2,
   d8: 3,
@@ -28,7 +28,7 @@ const TENTATIVAS_CRIME: Partial<Record<Dado, number>> = {
 
 /** Tentativas por rodada para Destrancar conforme o dado de Crime. */
 export function tentativasDeDestrancar(dadoCrime: Dado): number {
-  return TENTATIVAS_CRIME[dadoCrime] ?? TENTATIVAS_MAXIMAS_PADRAO;
+  return TENTATIVAS_CRIME[dadoCrime];
 }
 
 export function criarEstadoDoDesafio(
