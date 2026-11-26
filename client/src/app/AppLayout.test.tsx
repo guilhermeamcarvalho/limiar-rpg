@@ -116,7 +116,7 @@ describe('contexto da URL', () => {
     );
   });
 
-  it('/campanhas/:id/ficha diz com quem a pessoa joga, lido do caso', async () => {
+  it('/campanhas/:id/ficha diz com quem a pessoa joga e oferece abrir a ficha', async () => {
     servidor({
       'GET /api/campanhas/cmp_1': json(200, {
         campanha: detalhe({ meuPersonagem: { id: 'chr_9', nome: 'Davi Rocha' } }),
@@ -124,14 +124,20 @@ describe('contexto da URL', () => {
     });
     abrir('/campanhas/cmp_1/ficha');
 
-    expect(await screen.findByText(/Davi Rocha/)).toBeDefined();
+    expect(await screen.findByText('Davi Rocha')).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Abrir ficha' }).getAttribute('href')).toBe(
+      '/personagens/chr_9/ficha',
+    );
   });
 
-  it('sem personagem escolhido, a ficha avisa', async () => {
+  it('sem personagem escolhido, a ficha oferece criar ou escolher', async () => {
     servidor({ 'GET /api/campanhas/cmp_1': json(200, { campanha: detalhe() }) });
     abrir('/campanhas/cmp_1/ficha');
 
-    expect(await screen.findByText(/Você ainda não escolheu um personagem/)).toBeDefined();
+    expect(await screen.findByText(/Sem personagem neste caso/)).toBeDefined();
+    expect(screen.getByRole('link', { name: 'Criar personagem' }).getAttribute('href')).toBe(
+      '/personagens/novo?caso=cmp_1',
+    );
   });
 });
 

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { ConvitePublico } from '@membrana/shared';
 import { reiniciarConvitesPendentes } from '../convites/pendentes.ts';
-import { abrir, caso, json, semRede, servidor } from '../teste/apoio.tsx';
+import { abrir, caso, json, personagem, semRede, servidor } from '../teste/apoio.tsx';
 
 const CHAVE = 'membrana.convites-pendentes.v1';
 const AMANHA = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -216,5 +216,25 @@ describe('agenda', () => {
       'Maré de Concreto',
     ]);
     expect(within(bloco).getByText('você mestra')).toBeDefined();
+  });
+});
+
+describe('sobreviventes', () => {
+  it('mostra os personagens criados com PV, PD e link para a ficha', async () => {
+    servidor({
+      'GET /api/campanhas': json(200, { campanhas: [] }),
+      'GET /api/me/personagens': json(200, {
+        personagens: [personagem({ id: 'chr_1', emUso: true })],
+      }),
+    });
+    abrir('/');
+
+    const secao = (await screen.findByRole('heading', { name: 'Seus sobreviventes' })).closest(
+      'section',
+    );
+    if (!secao) throw new Error('sem seção');
+    const link = await within(secao).findByRole('link', { name: /Davi/ });
+    expect(link.getAttribute('href')).toBe('/personagens/chr_1/ficha');
+    expect(within(secao).getByText('Em uso')).toBeDefined();
   });
 });

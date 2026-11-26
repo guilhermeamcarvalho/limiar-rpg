@@ -1,0 +1,94 @@
+/* Escudo do mestre (artboard 13 · Sala do mestre). Só usa tokens. */
+
+.escudo {
+  padding-top: var(--s5);
+  padding-bottom: var(--s8);
+  gap: var(--s5);
+}
+
+.escudo-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 0.75fr);
+  gap: var(--s5);
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .escudo-grade {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .escudo-grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.escudo-coluna {
+  gap: var(--s3);
+}
+
+.escudo-faixa {
+  margin: 0;
+  padding: var(--s3) var(--s4);
+  background: var(--red);
+  color: var(--white);
+  font-size: 22px;
+  clip-path: polygon(0 0, 100% 4%, 98% 100%, 1% 92%);
+}
+
+.escudo-bloco {
+  padding: var(--s4);
+  gap: var(--s3);
+}
+
+.escudo-bloco .kv {
+  border-color: var(--paper-line);
+}
+
+.escudo-sala {
+  padding: var(--s4);
+  gap: var(--s2);
+}
+
+.escudo-poi-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px solid var(--line);
+}
+
+.escudo-poi-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.escudo-poi-info {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--panel-2);
+}
+
+.escudo-poi-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s2);
+}
+
+.escudo-poi-dt {
+  width: 88px;
+  flex: none;
+}
+
+.escudo-poi-texto {
+  flex: 1 1 160px;
+  min-width: 0;
+}
