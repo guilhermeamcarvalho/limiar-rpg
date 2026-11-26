@@ -1,7 +1,8 @@
 // O palco da mesa (Konva). Camadas de baixo para cima: mapa e grade, props, salas, breu, pistas
 // e tokens. Tudo em pixels do mapa; a câmera (posição e zoom) fica no Stage.
-// Navegar: roda do mouse ou pinça para o zoom; botão do meio, espaço + arrasto ou dois dedos para
-// arrastar o mapa. Um dedo (ou o botão esquerdo) arrasta token e prop.
+// Navegar: roda do mouse ou pinça para o zoom; arrastar no vazio do mapa, botão direito, botão do
+// meio, espaço + arrasto ou dois dedos para mover o mapa. Um dedo (ou botão esquerdo sobre um item)
+// arrasta token e prop.
 // Clicar num token ou prop seleciona e mostra a barra dele; as setas movem o token uma célula;
 // Esc tira a seleção. Com a ferramenta do breu aberta, o botão esquerdo desenha (Breu.tsx).
 // Desempenho no celular: as camadas estáticas não escutam clique, a grade é um
@@ -292,9 +293,13 @@ export function Palco({
   }
 
   function aoApertar(e: KonvaEventObject<MouseEvent>) {
-    comecouNoVazio.current = e.target === e.target.getStage();
+    const noVazio = e.target === e.target.getStage();
+    comecouNoVazio.current = noVazio;
     const botaoDoMeio = e.evt.button === 1;
-    if (botaoDoMeio || (espaco && e.evt.button === 0)) {
+    const botaoDireito = e.evt.button === 2;
+    const arrastarNoVazio =
+      e.evt.button === 0 && noVazio && !escolhendo && pincel === null && modoAtivo === 'mover';
+    if (botaoDoMeio || botaoDireito || (espaco && e.evt.button === 0) || arrastarNoVazio) {
       e.evt.preventDefault();
       ultimoPonto.current = { x: e.evt.clientX, y: e.evt.clientY };
       setArrastandoMapa(true);
