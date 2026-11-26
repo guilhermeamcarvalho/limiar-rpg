@@ -489,3 +489,174 @@ describe('dados, testes, chat e registro da sessão', () => {
     expect(evtCaio.registro.falhaCritica).toEqual(testeHttp.falhaCritica);
   });
 });
+
+describe('dois clientes e latência (#78, #80)', () => {
+  it('movimento chega ao outro cliente e mover token alheio é recusado', async () => {
+    const { url, caso, ana, bia, caio, davi } = await servidor();
+    const mestre = abrir(url, ana, caso);
+    const jBia = abrir(url, bia, caso);
+    const jCaio = abrir(url, caio, caso);
+    await Promise.all([conectado(mestre), conectado(jBia), conectado(jCaio)]);
+    await Promise.all([mestre, jBia, jCaio].map((p) => p.esperar(ehDo('mesa.estado'))));
+
+    expect(
+      await mestre.emitir({
+        type: 'token.create',
+        nome: 'Davi',
+        x: 100,
+        y: 100,
+        personagemId: davi,
+      }),
+    ).toEqual({ ok: true });
+    const criado = await jBia.esperar(ehDo('token.changed'));
+    if (criado.type !== 'token.changed' || !criado.token) throw new Error('esperava token');
+    const tokenId = criado.token.id;
+
+    // Bia move o próprio token: mestre e Caio recebem token.moved.
+    expect(await jBia.emitir({ type: 'token.move', tokenId, x: 220, y: 180 })).toEqual({
+      ok: true,
+    });
+    const [noMestre, noCaio] = await Promise.all([
+      mestre.esperar((e) => e.type === 'token.moved' && e.tokenId === tokenId),
+      jCaio.esperar((e) => e.type === 'token.moved' && e.tokenId === tokenId),
+    ]);
+    expect(noMestre).toMatchObject({ x: 220, y: 180 });
+    expect(noCaio).toMatchObject({ x: 220, y: 180 });
+
+    // Caio não pode mover o token de Bia.
+    const recusadoCaio = await jCaio.emitir({ type: 'token.move', tokenId, x: 300, y: 300 });
+    expect(recusadoCaio.ok).toBe(false);
+  });
+
+  it('destino no breu é recusado e NPC entrando ou saindo do breu some e reaparece', async () => {
+    const { url, caso, ana, bia, davi } = await servidor();
+    const mestre = abrir(url, ana, caso);
+    const jogadora = abrir(url, bia, caso);
+    await Promise.all([conectado(mestre), conectado(jogadora)]);
+    await Promise.all([mestre, jogadora].map((p) => p.esperar(ehDo('mesa.estado'))));
+
+    await mestre.emitir({ type: 'token.create', nome: 'Davi', x: 100, y: 100, personagemId: davi });
+    await mestre.emitir({ type: 'token.create', nome: 'Vulto', x: 150, y: 150 });
+    const criadoDavi = await jogadora.esperar(
+      (e) => e.type === 'token.changed' && e.token?.nome === 'Davi',
+    );
+    const criadoVulto = await jogadora.esperar(
+      (e) => e.type === 'token.changed' && e.token?.nome === 'Vulto',
+    );
+    if (
+      criadoDavi.type !== 'token.changed' ||
+      !criadoDavi.token ||
+      criadoVulto.type !== 'token.changed' ||
+      !criadoVulto.token
+    ) {
+      throw new Error('esperava tokens');
+    }
+
+    // Mestre cobre a metade direita com breu.
+    expect(
+      await mestre.emitir({
+        type: 'darkness.add',
+        forma: { tipo: 'retangulo', x: 400, y: 0, largura: 400, altura: 600 },
+      }),
+    ).toEqual({ ok: true });
+    await jogadora.esperar(ehDo('darkness.changed'));
+
+    // Jogadora tenta mover o próprio token para dentro do breu: recusado.
+    const fora = await jogadora.emitir({
+      type: 'token.move',
+      tokenId: criadoDavi.token.id,
+      x: 500,
+      y: 200,
+    });
+    expect(fora.ok).toBe(false);
+
+    // Mestre move NPC para o breu -> jogadora recebe token: null; tira -> recebe o token de volta.
+    const antesDeSumir = jogadora.eventos.length;
+    await mestre.emitir({ type: 'token.move', tokenId: criadoVulto.token.id, x: 500, y: 200 });
+    expect(
+      await jogadora.esperar(
+        (e) => e.type === 'token.changed' && e.tokenId === criadoVulto.token?.id,
+        antesDeSumir,
+      ),
+    ).toMatchObject({ token: null });
+
+    const antesDeVoltar = jogadora.eventos.length;
+    await mestre.emitir({ type: 'token.move', tokenId: criadoVulto.token.id, x: 180, y: 180 });
+    expect(
+      await jogadora.esperar(
+        (e) => e.type === 'token.changed' && e.tokenId === criadoVulto.token?.id,
+        antesDeVoltar,
+      ),
+    ).toMatchObject({ token: { nome: 'Vulto', x: 180, y: 180 } });
+  });
+
+  it('rodadas e névoa sincronizam entre mestre e jogador em tempo real e na reconexão', async () => {
+    const { url, caso, ana, bia } = await servidor();
+    const mestre = abrir(url, ana, caso);
+    const jogadora = abrir(url, bia, caso);
+    await Promise.all([conectado(mestre), conectado(jogadora)]);
+    await Promise.all([mestre, jogadora].map((p) => p.esperar(ehDo('mesa.estado'))));
+
+    // Névoa muda ao vivo para todos.
+    expect(await mestre.emitir({ type: 'mist.set', nivel: 65 })).toEqual({ ok: true });
+    expect(await jogadora.esperar(ehDo('mist.changed'))).toMatchObject({ nivel: 65 });
+
+    // Jogadora age na rodada 1; segunda ação na mesma rodada é recusada até o mestre encerrar.
+    expect(await jogadora.emitir({ type: 'poi.investigate', poiId: 'poi_1' })).toEqual({
+      ok: true,
+    });
+    await mestre.esperar((e) => e.type === 'round.acted' && e.userId === bia.id);
+
+    const segundaAcao = await jogadora.emitir({ type: 'poi.investigate', poiId: 'poi_2' });
+    expect(segundaAcao.ok).toBe(false);
+
+    expect(await mestre.emitir({ type: 'round.end' })).toEqual({ ok: true });
+    expect(
+      await jogadora.esperar((e) => e.type === 'round.started' && e.numero === 2),
+    ).toBeDefined();
+
+    expect(await jogadora.emitir({ type: 'poi.investigate', poiId: 'poi_2' })).toEqual({
+      ok: true,
+    });
+
+    // Reconexão recebe névoa e rodada atualizadas no mesa.estado.
+    jogadora.cliente.disconnect();
+    const reconectada = abrir(url, bia, caso);
+    await conectado(reconectada);
+    expect(await reconectada.esperar(ehDo('mesa.estado'))).toMatchObject({
+      estado: { nevoa: 65, rodada: { numero: 2, agiram: [bia.id] } },
+    });
+  });
+
+  it('latência de movimento entre dois clientes fica abaixo de 200 ms', async () => {
+    const { url, caso, ana, bia, davi } = await servidor();
+    const mestre = abrir(url, ana, caso);
+    const jogadora = abrir(url, bia, caso);
+    await Promise.all([conectado(mestre), conectado(jogadora)]);
+    await Promise.all([mestre, jogadora].map((p) => p.esperar(ehDo('mesa.estado'))));
+
+    await mestre.emitir({ type: 'token.create', nome: 'Davi', x: 80, y: 80, personagemId: davi });
+    const criado = await jogadora.esperar(ehDo('token.changed'));
+    if (criado.type !== 'token.changed' || !criado.token) throw new Error('esperava token');
+
+    const amostras: number[] = [];
+    for (let i = 1; i <= 5; i++) {
+      const inicio = performance.now();
+      const espera = mestre.esperar((e) => e.type === 'token.moved' && e.x === 80 + i * 20);
+      expect(
+        await jogadora.emitir({
+          type: 'token.move',
+          tokenId: criado.token.id,
+          x: 80 + i * 20,
+          y: 80,
+        }),
+      ).toEqual({ ok: true });
+      await espera;
+      amostras.push(performance.now() - inicio);
+    }
+
+    const media = amostras.reduce((s, v) => s + v, 0) / amostras.length;
+    expect(media).toBeLessThan(200);
+    expect(Math.max(...amostras)).toBeLessThan(200);
+  });
+});

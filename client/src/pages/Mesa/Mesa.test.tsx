@@ -1081,4 +1081,17 @@ describe('layout recolhível, painel do jogador e ordem da rodada', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(palco().modo).toBe('mover');
   });
+
+  it('modo celular (#80): jogador acessa Você, Dados, Chat e ferramentas do mapa sem controles do mestre', async () => {
+    await naMesa(visao({ papel: 'jogador' }));
+
+    expect(screen.getByRole('button', { name: 'Você' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Dados' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Chat' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Mover meu token' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Medir distância' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Marcar um ponto para todos' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Encerrar rodada' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Breu, ferramenta do mestre' })).toBeNull();
+  });
 });
