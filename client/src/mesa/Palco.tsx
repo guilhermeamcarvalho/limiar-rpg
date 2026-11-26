@@ -129,6 +129,7 @@ export function Palco({
   const ultimoPonto = useRef<Ponto | null>(null);
   const ultimosToques = useRef<[Ponto, Ponto] | null>(null);
   const cancelarArrasto = useRef(false);
+  const timersDosPulsos = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
   /** O toque ou clique começou no vazio (fora de token e prop): só esse tira a seleção. */
   const comecouNoVazio = useRef(false);
   const stage = useRef<Konva.Stage>(null);
@@ -179,15 +180,24 @@ export function Palco({
     );
   }
 
-  // Cada pulso de "marcar ponto" fica visível por alguns segundos e depois some sozinho.
+  // Cada pulso de "marcar ponto" tem seu próprio timer para sumir, mesmo com vários em sequência.
+  useEffect(() => {
+    const timers = timersDosPulsos.current;
+    return () => {
+      for (const timer of timers.values()) clearTimeout(timer);
+      timers.clear();
+    };
+  }, []);
+
   useEffect(() => {
     if (!ultimoPulso) return;
+    const seq = ultimoPulso.seq;
+    if (timersDosPulsos.current.has(seq)) return;
     const timer = setTimeout(() => {
-      setPulsos((atuais) => atuais.filter((p) => p.seq !== ultimoPulso.seq));
+      timersDosPulsos.current.delete(seq);
+      setPulsos((atuais) => atuais.filter((p) => p.seq !== seq));
     }, DURACAO_DO_PULSO_MS);
-    return () => {
-      clearTimeout(timer);
-    };
+    timersDosPulsos.current.set(seq, timer);
   }, [ultimoPulso]);
 
   const meio = useCallback(
