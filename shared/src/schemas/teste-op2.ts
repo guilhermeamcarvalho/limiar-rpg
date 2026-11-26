@@ -70,10 +70,12 @@ export type TesteInformado = z.input<typeof esquemaTesteInformado>;
 /** Quem rolou: o app (virtual) ou o jogador, que informou os valores (físico). */
 export type OrigemDoTeste = 'virtual' | 'fisico';
 
-/** Um teste no histórico da ficha. */
+/** Um teste no histórico da ficha ou da mesa. */
 export interface RegistroDeTeste {
   id: string;
   personagemId: string;
+  /** Nome na ficha na hora do teste; opcional para registros antigos. */
+  personagemNome?: string | undefined;
   /** O caso onde o teste aconteceu, se o personagem estava num. */
   campanhaId: string | null;
   /** Quem pediu o teste (o jogador ou o mestre). Nulo se a conta foi apagada. */

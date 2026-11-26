@@ -1,13 +1,16 @@
 // As mesas em memória, uma por campanha, ligadas ao banco: carregam o último estado salvo,
 // agendam o salvamento a cada mudança e gravam os eventos importantes no registro da sessão.
+import type { Rng } from '@membrana/shared';
 import type { Banco } from '../db/index.ts';
 import { membrosDe } from '../http/campanhas/dados.ts';
 import {
   donoDoPersonagemNoCaso,
   gravarEstado,
   gravarMapa,
+  gravarTesteDaMesa,
   lerEstadoSalvo,
   lerEstadosSalvos,
+  lerFichaNoCaso,
   lerMapa,
   personagensDoGrupo,
   registrarEventos,
@@ -20,6 +23,8 @@ import { criarAgendador, type Agendador } from './persistencia.ts';
 export interface OpcoesDasMesas {
   /** Atraso do salvamento (os testes encurtam). */
   atrasoMs?: number;
+  /** O sorteio dos dados (criptográfico no app; semente fixa nos testes). */
+  sorteio?: Rng;
   /** Um salvamento falhou: vai para o log e para o Sentry. */
   aoFalhar?: (erro: unknown, campanhaId: string) => void;
 }
@@ -28,9 +33,11 @@ export class Mesas {
   readonly #db: Banco;
   readonly #mesas = new Map<string, Mesa>();
   readonly #agendador: Agendador;
+  readonly #sorteio: Rng | undefined;
 
   constructor(db: Banco, opcoes: OpcoesDasMesas = {}) {
     this.#db = db;
+    this.#sorteio = opcoes.sorteio;
     this.#agendador = criarAgendador((campanhaId) => {
       this.#salvar(campanhaId);
     }, opcoes);
@@ -107,6 +114,9 @@ export class Mesas {
         personagem: (personagemId) => donoDoPersonagemNoCaso(db, campanhaId, personagemId),
         grupo: () => personagensDoGrupo(db, campanhaId),
         mapa: (mapaId) => lerMapa(db, campanhaId, mapaId),
+        fichaNoCaso: (personagemId) => lerFichaNoCaso(db, campanhaId, personagemId),
+        gravarTeste: (entrada) => gravarTesteDaMesa(db, campanhaId, entrada),
+        ...(this.#sorteio && { sorteio: this.#sorteio }),
         guardarMapa: (estado) => {
           gravarMapa(db, estado);
         },

@@ -56,6 +56,19 @@ export function podeEditarFicha(
   return papel === 'jogador' && personagem.donoId === quem?.id;
 }
 
+/** Dados físicos (`test.report`): só quem joga com o próprio personagem informa o que rolou na mão. */
+export function podeInformarTeste(
+  quem: Quem,
+  personagem: PersonagemMinimo,
+  campanha: CampanhaComMembros,
+): boolean {
+  return (
+    personagem.campanhaId === campanha.id &&
+    podeVerCampanha(quem, campanha) &&
+    personagem.donoId === quem?.id
+  );
+}
+
 /** Ver a ficha de outro jogador só se a campanha permitir. */
 export function podeVerFicha(
   quem: Quem,

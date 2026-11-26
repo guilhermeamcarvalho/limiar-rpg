@@ -132,6 +132,7 @@ function gravarTeste(
   const resposta: RegistroDeTeste = {
     id: gravado.id,
     personagemId: linha.personagem.id,
+    personagemNome: fichaNova.nome,
     campanhaId: linha.personagem.campaignId,
     autor: { id: usuario.id, nome: usuario.nome },
     origem,

@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import type { EventoDaMesa, TokenNaMesa } from '@membrana/shared';
-import { characters, memberships, sessionLog } from '../db/schema.ts';
+import {
+  fichaDoDavi,
+  rngComSemente,
+  type EventoDaMesa,
+  type FichaOp2,
+  type Rng,
+  type TokenNaMesa,
+} from '@membrana/shared';
+import { campaigns, characters, memberships, sessionLog, testLog } from '../db/schema.ts';
 import { bancoDeTeste, casoDeTeste, mapaDeTeste } from '../teste/apoio.ts';
 import type { ResultadoDoComando } from './Mesa.ts';
 import { casasEmVolta } from './comandos/tokens.ts';
@@ -13,12 +20,17 @@ afterEach(() => {
 });
 
 /** O caso com um mapa de 2000 × 1500 já na mesa (salvo como ativo: a mesa abre com ele). */
-function montar({ comMapa = true } = {}) {
+function montar({ comMapa = true, sorteio }: { comMapa?: boolean; sorteio?: Rng } = {}) {
   const { db, sqlite } = bancoDeTeste();
-  bancos.push(sqlite);
   const pessoas = casoDeTeste({ db });
   const mapa = comMapa ? mapaDeTeste({ db }, pessoas.caso, { ativo: true }) : null;
-  const mesas = new Mesas(db);
+  const mesas = new Mesas(db, sorteio ? { sorteio } : {});
+  bancos.push({
+    close: () => {
+      mesas.salvarTudo();
+      sqlite.close();
+    },
+  });
   return { db, mesas, mapa, mesa: mesas.obter(pessoas.caso), ...pessoas };
 }
 
@@ -86,7 +98,7 @@ describe('Mesa.aplicar', () => {
 
   it('comando do contrato que ainda não tem tratador é recusado com aviso', () => {
     const m = montar();
-    expect(motivo(m.mesa.aplicar(m.bia, { type: 'chat.send', texto: 'oi' }))).toBe(
+    expect(motivo(m.mesa.aplicar(m.ana, { type: 'audio.stop' }))).toBe(
       'Este comando ainda não está disponível na mesa.',
     );
   });
@@ -492,5 +504,216 @@ describe('props: prontos, trava e arrasto', () => {
     ).toMatchObject([{ type: 'prop.dragging', propId: prop.id, x: 50, y: 60 }]);
     expect(m.mesa.estado.props[0]).toMatchObject({ x: 100, y: 100 });
     expect(m.mesas.pendentes).toBe(0);
+  });
+});
+
+describe('dados avulsos, testes da ficha e chat', () => {
+  it('dice.roll: rola expressão simples ou secreta, grava no registro e recusa expressão inválida', () => {
+    const m = montar({ sorteio: rngComSemente(11) });
+    const [publica] = eventos(m.mesa.aplicar(m.bia, { type: 'dice.roll', expressao: '2d6 + 1' }));
+    expect(publica).toMatchObject({
+      type: 'dice.rolled',
+      autorId: m.bia.id,
+      expressao: '2d6+1',
+      secreta: false,
+    });
+    if (publica?.type !== 'dice.rolled') throw new Error('esperava dice.rolled');
+    expect(publica.dados).toHaveLength(2);
+    expect(publica.total).toBe((publica.dados[0] ?? 0) + (publica.dados[1] ?? 0) + 1);
+
+    const [secreta] = eventos(
+      m.mesa.aplicar(m.ana, { type: 'dice.roll', expressao: 'd20', secreta: true }),
+    );
+    expect(secreta).toMatchObject({
+      type: 'dice.rolled',
+      autorId: m.ana.id,
+      expressao: 'd20',
+      secreta: true,
+    });
+
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'dice.roll', expressao: 'banana' }))).toBe(
+      'Expressão inválida. Use algo como d20, 2d6 ou 2d6+1.',
+    );
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'dice.roll', expressao: '1d1' }))).toBe(
+      'O dado precisa ter entre 2 e 100 lados.',
+    );
+    expect(
+      m.db
+        .select()
+        .from(sessionLog)
+        .all()
+        .map((l) => l.tipo),
+    ).toEqual(['dice.rolled', 'dice.rolled']);
+  });
+
+  it('test.resolve: aplica consequências na ficha, avisa todos e grava sem repetir no registro', () => {
+    const fila: [number, number][] = [
+      [5, 6],
+      [9, 10],
+      [3, 4],
+      [2, 4],
+    ];
+    const m = montar({
+      sorteio: () => {
+        const par = fila.shift();
+        if (!par) throw new Error('faltou dado');
+        return (par[0] - 0.5) / par[1];
+      },
+    });
+
+    const gerados = eventos(
+      m.mesa.aplicar(m.bia, {
+        type: 'test.resolve',
+        personagemId: m.davi,
+        periciaId: 'maquinas',
+        impeto: true,
+        habilidades: ['gambiarra'],
+      }),
+    );
+    expect(gerados).toMatchObject([
+      {
+        type: 'test.resolved',
+        registro: {
+          personagemId: m.davi,
+          personagemNome: 'Davi Rocha',
+          autor: { id: m.bia.id, nome: 'Bia' },
+          origem: 'virtual',
+          periciaId: 'maquinas',
+          atributo: 'mente',
+          resultado: { total: 17, dt: 7, veredito: 'sucesso' },
+          efeitos: ['Ímpeto gasto: +d4.', 'Gambiarra usada: −2 PV.'],
+        },
+      },
+      { type: 'character.changed', campanhaId: m.caso, personagemId: m.davi, removido: false },
+    ]);
+
+    const salvo = m.db.select().from(characters).where(eq(characters.id, m.davi)).get();
+    expect(salvo?.ficha).toMatchObject({ impeto: 0, pv: 10, usadasNaCena: ['gambiarra'] });
+    expect(m.db.select().from(testLog).all()).toHaveLength(1);
+    // Só test.resolved entra em session_log (character.changed não repete lá).
+    expect(
+      m.db
+        .select()
+        .from(sessionLog)
+        .all()
+        .map((l) => l.tipo),
+    ).toEqual(['test.resolved']);
+
+    // Outro jogador não testa pela ficha alheia; o mestre pode.
+    expect(
+      motivo(
+        m.mesa.aplicar(m.caio, {
+          type: 'test.resolve',
+          personagemId: m.davi,
+          periciaId: 'luta',
+        }),
+      ),
+    ).toBe('Só quem joga com este personagem ou o mestre do caso pode testar por ele.');
+  });
+
+  it('test.report: modo físico com valores ou veredito, falha crítica e permissões', () => {
+    const m = montar();
+    const fichaFisica: FichaOp2 = { ...fichaDoDavi(), modoDados: 'fisico' };
+    m.db.update(characters).set({ ficha: fichaFisica }).where(eq(characters.id, m.davi)).run();
+
+    // No modo físico, test.resolve avisa para informar manualmente.
+    expect(
+      motivo(
+        m.mesa.aplicar(m.bia, {
+          type: 'test.resolve',
+          personagemId: m.davi,
+          periciaId: 'maquinas',
+        }),
+      ),
+    ).toBe('Esta ficha está no modo de dados físicos: role na mão e informe o resultado.');
+
+    // Nem outro jogador nem o mestre informam dados físicos na ficha alheia.
+    for (const quem of [m.caio, m.ana]) {
+      expect(
+        motivo(
+          m.mesa.aplicar(quem, {
+            type: 'test.report',
+            personagemId: m.davi,
+            periciaId: 'maquinas',
+            resultado: { modo: 'dados', valores: [5, 8] },
+          }),
+        ),
+      ).toBe('Só quem joga com este personagem pode informar dados físicos.');
+    }
+
+    const gerados = eventos(
+      m.mesa.aplicar(m.bia, {
+        type: 'test.report',
+        personagemId: m.davi,
+        periciaId: 'maquinas',
+        impeto: true,
+        resultado: { modo: 'veredito', veredito: 'falhaCritica' },
+        falhaCritica: { d8: 5, d4: 3 },
+      }),
+    );
+    expect(gerados[0]).toMatchObject({
+      type: 'test.resolved',
+      registro: {
+        origem: 'fisico',
+        falhaCritica: { d8: 5, d4: 3, nome: 'Acidente' },
+      },
+    });
+    const salvo = m.db.select().from(characters).where(eq(characters.id, m.davi)).get();
+    expect(salvo?.ficha).toMatchObject({ pv: 9, impeto: 1 });
+
+    m.db.update(campaigns).set({ dadosFisicos: false }).where(eq(campaigns.id, m.caso)).run();
+    expect(
+      motivo(
+        m.mesa.aplicar(m.bia, {
+          type: 'test.report',
+          personagemId: m.davi,
+          periciaId: 'maquinas',
+          resultado: { modo: 'veredito', veredito: 'sucesso' },
+        }),
+      ),
+    ).toBe('O mestre deste caso não permite dados físicos. Troque a ficha para dados virtuais.');
+  });
+
+  it('chat.send: mensagem comum, narração só do mestre e sussurro só para membro do caso', () => {
+    const m = montar();
+    expect(
+      eventos(m.mesa.aplicar(m.bia, { type: 'chat.send', texto: 'Olhem os faders.' })),
+    ).toMatchObject([
+      {
+        type: 'chat.message',
+        autorId: m.bia.id,
+        texto: 'Olhem os faders.',
+        para: null,
+        narracao: false,
+      },
+    ]);
+
+    expect(
+      motivo(m.mesa.aplicar(m.bia, { type: 'chat.send', texto: 'Escurece.', narracao: true })),
+    ).toBe('Só o mestre pode narrar.');
+    expect(
+      eventos(m.mesa.aplicar(m.ana, { type: 'chat.send', texto: 'O ar esfria.', narracao: true })),
+    ).toMatchObject([{ type: 'chat.message', autorId: m.ana.id, narracao: true, para: null }]);
+
+    expect(
+      motivo(
+        m.mesa.aplicar(m.ana, {
+          type: 'chat.send',
+          texto: 'Segredo',
+          narracao: true,
+          para: m.bia.id,
+        }),
+      ),
+    ).toBe('A narração é para toda a mesa, não um sussurro.');
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'chat.send', texto: 'Oi', para: m.bia.id }))).toBe(
+      'Escolha outra pessoa para sussurrar.',
+    );
+    expect(
+      motivo(m.mesa.aplicar(m.bia, { type: 'chat.send', texto: 'Oi', para: m.estranho.id })),
+    ).toBe('Essa pessoa não está neste caso.');
+
+    expect(
+      eventos(m.mesa.aplicar(m.ana, { type: 'chat.send', texto: 'Ouviu isso?', para: m.bia.id })),
+    ).toMatchObject([{ type: 'chat.message', autorId: m.ana.id, para: m.bia.id, narracao: false }]);
   });
 });

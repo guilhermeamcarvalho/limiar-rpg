@@ -1,27 +1,33 @@
 // /campanhas/:id/mesa: a mesa ao vivo (artboards "10 · Mesa" e "11 · Mesa-Mestre"). Tela cheia,
-// sem o cabeçalho comum. O palco com o mapa e, para o mestre, as ferramentas "Tokens e NPCs" (T),
-// "Props" (O), "Névoa" (N) e "Mapa e grade" (G). Os painéis laterais, o chat e a barra completa chegam com o
-// layout da mesa (#74).
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+// sem o cabeçalho comum. O palco com o mapa, o cartão de resultado no canto, as ferramentas e o
+// painel lateral com Chat e Registro (Acontecimentos). Os painéis recolhíveis e o painel esquerdo
+// do jogador chegam no #74/#75.
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   tituloDaPagina,
   type CampanhaDetalhe,
   type FormaDaNevoa,
   type MapaNaMesa,
+  type RespostaDoRegistro,
   type VisaoDaMesa,
 } from '@membrana/shared';
 import { pedir } from '../../auth/api.ts';
 import { useMe } from '../../auth/sessao.tsx';
 import type { Ponto } from '../../mesa/camera.ts';
+import { Chat, filtrarEventosDoChat } from '../../mesa/Chat.tsx';
+import { mesclarEventosRegistrados } from '../../mesa/estado.ts';
 import { enviarImagemDaMesa, nomeDoArquivoSemExtensao } from '../../mesa/imagens.ts';
 import { dentroDoMapa } from '../../mesa/interacao.ts';
 import { MapaUpload } from '../../mesa/MapaUpload.tsx';
 import type { PincelDaNevoa } from '../../mesa/Nevoa.tsx';
+import { DadosETestes } from '../../mesa/painel/DadosETestes.tsx';
 import { FerramentaDaNevoa } from '../../mesa/painel/Nevoa.tsx';
 import { NovoProp } from '../../mesa/painel/NovoProp.tsx';
 import { Npcs } from '../../mesa/painel/Npcs.tsx';
 import { Palco } from '../../mesa/Palco.tsx';
+import { filtrarAcontecimentos, Registro } from '../../mesa/Registro.tsx';
+import { Resultado } from '../../mesa/Resultado.tsx';
 import { useMesaAoVivo, type SituacaoDaConexao } from '../../mesa/useMesaAoVivo.ts';
 import {
   Banner,
@@ -30,29 +36,45 @@ import {
   cx,
   EmptyState,
   Icon,
+  TabPanel,
+  Tabs,
   useCarga,
   useToast,
   type NomeDoIcone,
 } from '../../ui/index.ts';
 import './mesa.css';
 
-type Ferramenta = 'tokens' | 'props' | 'nevoa' | 'mapa';
+type Ferramenta = 'dados' | 'tokens' | 'props' | 'nevoa' | 'mapa';
+type AbaLateral = 'chat' | 'registro';
 
-const FERRAMENTAS: {
+interface DefinicaoDeFerramenta {
   id: Ferramenta;
   titulo: string;
   tecla: string;
   icone: NomeDoIcone;
   rotulo: string;
+  soMestre: boolean;
   /** Precisa de um mapa na mesa. */
   comMapa: boolean;
-}[] = [
+}
+
+const FERRAMENTAS: DefinicaoDeFerramenta[] = [
+  {
+    id: 'dados',
+    titulo: 'Dados e testes',
+    tecla: 'd',
+    icone: 'dice',
+    rotulo: 'Rolar dados',
+    soMestre: false,
+    comMapa: false,
+  },
   {
     id: 'tokens',
     titulo: 'Tokens e NPCs',
     tecla: 't',
     icone: 'token',
     rotulo: 'Tokens e NPCs, ferramenta do mestre',
+    soMestre: true,
     comMapa: true,
   },
   {
@@ -61,6 +83,7 @@ const FERRAMENTAS: {
     tecla: 'o',
     icone: 'image',
     rotulo: 'Props, ferramenta do mestre',
+    soMestre: true,
     comMapa: true,
   },
   {
@@ -69,6 +92,7 @@ const FERRAMENTAS: {
     tecla: 'n',
     icone: 'fog',
     rotulo: 'Névoa, ferramenta do mestre',
+    soMestre: true,
     comMapa: true,
   },
   {
@@ -77,9 +101,12 @@ const FERRAMENTAS: {
     tecla: 'g',
     icone: 'grid',
     rotulo: 'Mapa e grade, ferramenta do mestre',
+    soMestre: true,
     comMapa: false,
   },
 ];
+
+const REGISTRO_VAZIO: RespostaDoRegistro = { eventos: [], personagens: [] };
 
 function TextoDaSituacao({ situacao }: { situacao: SituacaoDaConexao }) {
   if (situacao.estado === 'conectada') return <Chip status="online">Ao vivo</Chip>;
@@ -122,36 +149,92 @@ export function Mesa() {
 }
 
 function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
+  const idAbas = useId();
   const { sessao } = useMe();
   const avisos = useToast();
   const { mesa, situacao, enviar } = useMesaAoVivo(campanhaId);
   const [painel, setPainel] = useState<Ferramenta | null>(null);
+  const [aba, setAba] = useState<AbaLateral>('chat');
+  const [conversaMovel, setConversaMovel] = useState(false);
+  const [seqVistoChat, setSeqVistoChat] = useState<number | null>(null);
+  const [seqVistoRegistro, setSeqVistoRegistro] = useState<number | null>(null);
+  const [seqResultadoFechado, setSeqResultadoFechado] = useState(0);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
   const [pincel, setPincel] = useState<PincelDaNevoa>({ modo: 'cobrir', forma: 'retangulo' });
   const centroRef = useRef<Ponto | null>(null);
+
   const caso = useCarga(`/api/campanhas/${campanhaId}`, (signal) =>
     pedir<{ campanha: CampanhaDetalhe }>(`/api/campanhas/${encodeURIComponent(campanhaId)}`, {
       signal,
     }).then((r) => r.campanha),
   );
+  const registroInicial = useCarga(`/api/campanhas/${campanhaId}/registro`, (signal) =>
+    pedir<RespostaDoRegistro>(`/api/campanhas/${encodeURIComponent(campanhaId)}/registro`, {
+      signal,
+    }).catch(() => REGISTRO_VAZIO),
+  );
+
   const detalhe = caso.carga.estado === 'pronto' ? caso.carga.dados : null;
+  const historico =
+    registroInicial.carga.estado === 'pronto' ? registroInicial.carga.dados : REGISTRO_VAZIO;
   const nomeDoCaso = detalhe?.nome ?? null;
   const nomes = useMemo(
     () => Object.fromEntries((detalhe?.membros ?? []).map((m) => [m.id, m.nome])),
     [detalhe],
   );
+  const personagens = useMemo(() => {
+    const porId = new Map(historico.personagens.map((p) => [p.id, p]));
+    if (detalhe?.meuPersonagem && !porId.has(detalhe.meuPersonagem.id)) {
+      const eu = sessao.estado === 'logado' ? sessao.usuario.id : '';
+      porId.set(detalhe.meuPersonagem.id, {
+        id: detalhe.meuPersonagem.id,
+        donoId: eu,
+        nome: detalhe.meuPersonagem.nome,
+        perfil: null,
+      });
+    }
+    return [...porId.values()];
+  }, [historico.personagens, detalhe, sessao]);
+  const nomesDePersonagens = useMemo(
+    () => Object.fromEntries(personagens.map((p) => [p.id, p.nome])),
+    [personagens],
+  );
+  const eventosRegistrados = useMemo(
+    () => mesclarEventosRegistrados(historico.eventos, mesa.eventos),
+    [historico.eventos, mesa.eventos],
+  );
+
   const { visao } = mesa;
   const mestre = visao?.papel === 'mestre';
   const temMapa = Boolean(visao?.mapa);
   const meuId = sessao.estado === 'logado' ? sessao.usuario.id : '';
 
+  const maxSeqInicial = historico.eventos.at(-1)?.seq ?? 0;
+  const baseChat = seqVistoChat ?? maxSeqInicial;
+  const baseRegistro = seqVistoRegistro ?? maxSeqInicial;
+  const novosNoChat =
+    aba === 'chat'
+      ? 0
+      : filtrarEventosDoChat(eventosRegistrados).filter((e) => e.seq > baseChat).length;
+  const novosNoRegistro =
+    aba === 'registro'
+      ? 0
+      : filtrarAcontecimentos(eventosRegistrados).filter((e) => e.seq > baseRegistro).length;
+
+  function trocarAba(nova: AbaLateral) {
+    const topoSeq = eventosRegistrados.at(-1)?.seq ?? 0;
+    setSeqVistoChat(topoSeq);
+    setSeqVistoRegistro(topoSeq);
+    setAba(nova);
+  }
+
   useEffect(() => {
     document.title = tituloDaPagina(nomeDoCaso ? `Mesa · ${nomeDoCaso}` : 'Mesa');
   }, [nomeDoCaso]);
 
-  // T, O, N e G abrem e fecham as ferramentas do mestre; Esc cancela a escolha do ponto.
+  // D abre Dados e testes para qualquer pessoa; T, O, N e G abrem as ferramentas do mestre.
   useEffect(() => {
-    if (!mestre) return;
+    if (!visao) return;
     const aoTeclar = (e: KeyboardEvent) => {
       const alvo = e.target as HTMLElement | null;
       if (alvo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return;
@@ -161,14 +244,16 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const ferramenta = FERRAMENTAS.find((f) => f.tecla === e.key.toLowerCase());
-      if (!ferramenta || (ferramenta.comMapa && !temMapa)) return;
+      if (!ferramenta) return;
+      if (ferramenta.soMestre && !mestre) return;
+      if (ferramenta.comMapa && !temMapa) return;
       setPainel((aberto) => (aberto === ferramenta.id ? null : ferramenta.id));
     };
     window.addEventListener('keydown', aoTeclar);
     return () => {
       window.removeEventListener('keydown', aoTeclar);
     };
-  }, [mestre, temMapa]);
+  }, [visao, mestre, temMapa]);
 
   /** RF-24: imagem solta sobre o mapa vira token ali (mestre) ou a imagem do próprio token. */
   async function aoSoltarImagem(
@@ -233,7 +318,15 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   }
 
   const comMapa = visao?.mapa ? (visao as VisaoDaMesa & { mapa: MapaNaMesa }) : null;
-  const aberta = FERRAMENTAS.find((f) => f.id === painel && (!f.comMapa || comMapa));
+  const aberta = FERRAMENTAS.find(
+    (f) => f.id === painel && (!f.soMestre || mestre) && (!f.comMapa || comMapa),
+  );
+  const ferramentasVisiveis = FERRAMENTAS.filter((f) => !f.soMestre || mestre);
+  const mostrarBarra = Boolean(visao && (mestre || comMapa));
+  const resultadoVisivel =
+    mesa.ultimoTeste && mesa.ultimoTeste.seq > seqResultadoFechado
+      ? mesa.ultimoTeste.registro
+      : null;
 
   return (
     <div className="mesa">
@@ -244,6 +337,33 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
         <h1 className="mesa-titulo">{nomeDoCaso ?? 'Mesa'}</h1>
         {visao && <span className="small muted">Rodada {visao.rodada.numero}</span>}
         <span className="grow" />
+        {visao && (
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Icon name="dice" size="sm" />}
+            aria-pressed={painel === 'dados'}
+            onClick={() => {
+              setPainel((agora) => (agora === 'dados' ? null : 'dados'));
+            }}
+          >
+            Dados
+          </Button>
+        )}
+        {visao && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mesa-botao-chat"
+            icon={<Icon name="chat" size="sm" />}
+            aria-pressed={conversaMovel}
+            onClick={() => {
+              setConversaMovel((abertaAgora) => !abertaAgora);
+            }}
+          >
+            Chat
+          </Button>
+        )}
         {mesa.online.length > 0 && (
           <span
             className="small muted mesa-online"
@@ -259,147 +379,222 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
         <Banner tone="warn">Conexão perdida. Tentando voltar…</Banner>
       )}
 
-      <section
-        className="mesa-palco"
-        aria-label={mestre ? 'Mapa na visão do mestre' : 'Mapa'}
-        aria-busy={!visao}
-      >
-        {!visao ? (
-          <div className="mesa-vazia">
-            <p className="muted">Conectando à mesa…</p>
-          </div>
-        ) : comMapa ? (
-          <Palco
-            visao={comMapa}
-            arrastando={mesa.arrastando}
-            meuId={meuId}
-            nomes={nomes}
-            campanhaId={campanhaId}
-            enviar={enviar}
-            centroRef={centroRef}
-            aoEscolherPonto={escolhendoGrupo ? (ponto) => void trazerGrupo(ponto) : null}
-            aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
-            pincelDaNevoa={mestre && aberta?.id === 'nevoa' ? pincel : null}
-            aoDesenharNevoa={(forma) => void desenharNevoa(forma)}
-          />
-        ) : (
-          <div className="mesa-vazia">
-            <EmptyState
-              icon={<Icon name="map" size="xl" />}
-              title="Nenhum mapa na mesa"
-              {...(mestre && {
-                action: (
-                  <Button
-                    variant="primary"
-                    icon={<Icon name="upload" size="sm" />}
-                    onClick={() => {
-                      setPainel('mapa');
-                    }}
-                  >
-                    Escolher mapa
-                  </Button>
-                ),
-              })}
-            >
-              {mestre
-                ? 'Envie um mapa e ponha na mesa: todos passam a ver na hora.'
-                : 'O mestre ainda não pôs um mapa na mesa.'}
-            </EmptyState>
-          </div>
-        )}
+      <div className="mesa-corpo">
+        <section
+          className="mesa-palco"
+          aria-label={mestre ? 'Mapa na visão do mestre' : 'Mapa'}
+          aria-busy={!visao}
+        >
+          {!visao ? (
+            <div className="mesa-vazia">
+              <p className="muted">Conectando à mesa…</p>
+            </div>
+          ) : comMapa ? (
+            <Palco
+              visao={comMapa}
+              arrastando={mesa.arrastando}
+              meuId={meuId}
+              nomes={nomes}
+              campanhaId={campanhaId}
+              enviar={enviar}
+              centroRef={centroRef}
+              aoEscolherPonto={escolhendoGrupo ? (ponto) => void trazerGrupo(ponto) : null}
+              aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
+              pincelDaNevoa={mestre && aberta?.id === 'nevoa' ? pincel : null}
+              aoDesenharNevoa={(forma) => void desenharNevoa(forma)}
+            />
+          ) : (
+            <div className="mesa-vazia">
+              <EmptyState
+                icon={<Icon name="map" size="xl" />}
+                title="Nenhum mapa na mesa"
+                {...(mestre && {
+                  action: (
+                    <Button
+                      variant="primary"
+                      icon={<Icon name="upload" size="sm" />}
+                      onClick={() => {
+                        setPainel('mapa');
+                      }}
+                    >
+                      Escolher mapa
+                    </Button>
+                  ),
+                })}
+              >
+                {mestre
+                  ? 'Envie um mapa e ponha na mesa: todos passam a ver na hora.'
+                  : 'O mestre ainda não pôs um mapa na mesa.'}
+              </EmptyState>
+            </div>
+          )}
 
-        {/* Flutua sobre o mapa: uma faixa no fluxo empurraria o mapa bem na hora do clique. */}
-        {escolhendoGrupo && (
-          <div className="mesa-dica" role="status">
-            <span className="small">Clique no mapa onde o grupo deve ficar.</span>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setEscolhendoGrupo(false);
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        )}
-
-        {/* Legenda do artboard 11: o mestre vê através, mas o jogador não. */}
-        {mestre && comMapa && comMapa.nevoa.length > 0 && (
-          <div className="mesa-legenda">
-            <Chip status="alert">Névoa: jogadores veem preto</Chip>
-          </div>
-        )}
-
-        {mestre && (
-          <div className="tool" role="toolbar" aria-label="Ferramentas">
-            {FERRAMENTAS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className={cx('tbtn gm', painel === f.id && 'on')}
-                aria-pressed={painel === f.id}
-                aria-label={f.rotulo}
-                title={`${f.titulo} (${f.tecla.toUpperCase()})`}
-                disabled={f.comMapa && !comMapa}
+          {/* Flutua sobre o mapa: uma faixa no fluxo empurraria o mapa bem na hora do clique. */}
+          {escolhendoGrupo && (
+            <div className="mesa-dica" role="status">
+              <span className="small">Clique no mapa onde o grupo deve ficar.</span>
+              <Button
+                size="sm"
+                variant="ghost"
                 onClick={() => {
-                  setPainel((agora) => (agora === f.id ? null : f.id));
+                  setEscolhendoGrupo(false);
                 }}
               >
-                <Icon name={f.icone} />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {mestre && aberta && (
-          <aside className="mesa-painel" aria-label={aberta.titulo}>
-            <div className="row between">
-              <h2 className="h3">{aberta.titulo}</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={<Icon name="close" size="sm" />}
-                aria-label={`Fechar ${aberta.titulo.toLowerCase()}`}
-                onClick={() => {
-                  setPainel(null);
-                }}
-              />
+                Cancelar
+              </Button>
             </div>
-            {aberta.id === 'mapa' && (
-              <MapaUpload campanhaId={campanhaId} mapaNaMesa={visao.mapa} enviar={enviar} />
-            )}
-            {aberta.id === 'tokens' && (
-              <Npcs
-                campanhaId={campanhaId}
-                visao={visao}
-                enviar={enviar}
-                centroRef={centroRef}
-                nomes={nomes}
-                aoTrazerGrupo={() => {
-                  setEscolhendoGrupo(true);
-                }}
-              />
-            )}
-            {aberta.id === 'nevoa' && comMapa && (
-              <FerramentaDaNevoa
-                visao={comMapa}
-                pincel={pincel}
-                aoMudarPincel={setPincel}
-                enviar={enviar}
-              />
-            )}
-            {aberta.id === 'props' && (
-              <NovoProp
-                campanhaId={campanhaId}
-                enviar={enviar}
-                centroRef={centroRef}
-                visao={visao}
-              />
-            )}
+          )}
+
+          {visao && resultadoVisivel && (
+            <Resultado
+              registro={resultadoVisivel}
+              papel={visao.papel}
+              nomesDePersonagens={nomesDePersonagens}
+              aoFechar={() => {
+                setSeqResultadoFechado(mesa.ultimoTeste?.seq ?? 0);
+              }}
+            />
+          )}
+
+          {/* Legenda do artboard 11: o mestre vê através, mas o jogador não. */}
+          {mestre && comMapa && comMapa.nevoa.length > 0 && (
+            <div className="mesa-legenda">
+              <Chip status="alert">Névoa: jogadores veem preto</Chip>
+            </div>
+          )}
+
+          {mostrarBarra && (
+            <div
+              className="tool"
+              role="toolbar"
+              aria-label={mestre ? 'Ferramentas' : 'Ferramentas do jogador'}
+            >
+              {ferramentasVisiveis.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className={cx('tbtn', f.soMestre && 'gm', painel === f.id && 'on')}
+                  aria-pressed={painel === f.id}
+                  aria-label={f.rotulo}
+                  title={`${f.titulo} (${f.tecla.toUpperCase()})`}
+                  disabled={f.comMapa && !comMapa}
+                  onClick={() => {
+                    setPainel((agora) => (agora === f.id ? null : f.id));
+                  }}
+                >
+                  <Icon name={f.icone} />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {visao && aberta && (
+            <aside className="mesa-painel" aria-label={aberta.titulo}>
+              <div className="row between">
+                <h2 className="h3">{aberta.titulo}</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon name="close" size="sm" />}
+                  aria-label={`Fechar ${aberta.titulo.toLowerCase()}`}
+                  onClick={() => {
+                    setPainel(null);
+                  }}
+                />
+              </div>
+              {aberta.id === 'dados' && (
+                <DadosETestes
+                  papel={visao.papel}
+                  meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
+                  personagens={personagens}
+                  versaoPersonagens={mesa.versaoPersonagens}
+                  dtPadrao={detalhe?.dtPadrao}
+                  permitirFisico={detalhe?.dadosFisicos !== false}
+                  enviar={enviar}
+                />
+              )}
+              {mestre && aberta.id === 'mapa' && (
+                <MapaUpload campanhaId={campanhaId} mapaNaMesa={visao.mapa} enviar={enviar} />
+              )}
+              {mestre && aberta.id === 'tokens' && (
+                <Npcs
+                  campanhaId={campanhaId}
+                  visao={visao}
+                  enviar={enviar}
+                  centroRef={centroRef}
+                  nomes={nomes}
+                  aoTrazerGrupo={() => {
+                    setEscolhendoGrupo(true);
+                  }}
+                />
+              )}
+              {mestre && aberta.id === 'nevoa' && comMapa && (
+                <FerramentaDaNevoa
+                  visao={comMapa}
+                  pincel={pincel}
+                  aoMudarPincel={setPincel}
+                  enviar={enviar}
+                />
+              )}
+              {mestre && aberta.id === 'props' && (
+                <NovoProp
+                  campanhaId={campanhaId}
+                  enviar={enviar}
+                  centroRef={centroRef}
+                  visao={visao}
+                />
+              )}
+            </aside>
+          )}
+        </section>
+
+        {visao && (
+          <aside
+            className={cx('mesa-lateral', conversaMovel && 'aberta')}
+            aria-label="Chat e registros"
+          >
+            <Tabs
+              idBase={idAbas}
+              label="Conversa e registro da sessão"
+              dense
+              value={aba}
+              onChange={trocarAba}
+              items={[
+                {
+                  id: 'chat',
+                  label: 'Chat',
+                  ...(novosNoChat > 0 && { count: novosNoChat, isNew: true }),
+                },
+                {
+                  id: 'registro',
+                  label: 'Registro',
+                  ...(novosNoRegistro > 0 && { count: novosNoRegistro, isNew: true }),
+                },
+              ]}
+            />
+            <TabPanel idBase={idAbas} id={aba} className="mesa-aba-corpo">
+              {aba === 'chat' ? (
+                <Chat
+                  eventos={eventosRegistrados}
+                  meuId={meuId}
+                  papel={visao.papel}
+                  membros={detalhe?.membros ?? []}
+                  personagens={personagens}
+                  meuPersonagemNome={detalhe?.meuPersonagem?.nome ?? null}
+                  enviar={enviar}
+                />
+              ) : (
+                <Registro
+                  eventos={eventosRegistrados}
+                  papel={visao.papel}
+                  membros={detalhe?.membros ?? []}
+                  personagens={personagens}
+                />
+              )}
+            </TabPanel>
           </aside>
         )}
-      </section>
+      </div>
     </div>
   );
 }

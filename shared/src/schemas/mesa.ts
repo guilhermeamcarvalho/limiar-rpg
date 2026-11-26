@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import type { Papel } from '../permissoes.ts';
 import { MAPAS_PRONTOS, NPCS_PRONTOS, PROPS_PRONTOS } from '../mesa/prontos.ts';
+import type { PerfilOp2 } from './ficha-op2.ts';
 import { esquemaPedidoDeTeste, esquemaTesteInformado, type RegistroDeTeste } from './teste-op2.ts';
 
 /** O maior lado de um mapa depois do upload é 4096 px; a folga cobre token na borda. */
@@ -608,3 +609,18 @@ export interface MapaDoCaso {
  */
 export const USOS_DE_IMAGEM_DA_MESA = ['token', 'prop'] as const;
 export type UsoDeImagemDaMesa = (typeof USOS_DE_IMAGEM_DA_MESA)[number];
+
+/* ---------- Registro da sessão (GET /api/campanhas/:id/registro) ---------- */
+
+/** Personagem em uso no caso, para identificar autor, avatar e pistas na mesa. */
+export interface PersonagemNaMesa {
+  id: string;
+  donoId: string;
+  nome: string;
+  perfil: PerfilOp2 | null;
+}
+
+export interface RespostaDoRegistro {
+  eventos: EventoDaMesa[];
+  personagens: PersonagemNaMesa[];
+}

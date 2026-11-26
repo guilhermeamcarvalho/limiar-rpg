@@ -10,6 +10,7 @@ import { inserirConvite } from '../convites/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
 import { rotaExcluir } from './excluir.ts';
 import { rotaMeuPersonagem } from './meu-personagem.ts';
+import { rotaRegistro } from './registro.ts';
 import {
   campanhaVisivel,
   convitesDoMestre,
@@ -133,6 +134,7 @@ export const rotas: FastifyPluginAsync = (app) => {
 
   rotaMeuPersonagem(app);
   rotaExcluir(app);
+  rotaRegistro(app);
 
   return Promise.resolve();
 };

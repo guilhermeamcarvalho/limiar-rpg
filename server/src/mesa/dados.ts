@@ -1,26 +1,39 @@
 // Consultas da mesa ao vivo: o estado salvo, os mapas, o registro da sessão e os personagens.
 // O mapa ativo (com tokens, props e névoa) mora em `maps`, `tokens` e `props`; o resto do estado
 // (rodada, trilha, salas, pistas...) em `table_states`. Os dois são gravados juntos.
-import { and, asc, eq, inArray, isNull, max, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, max, ne, or, sql } from 'drizzle-orm';
 import {
+  atributoDaPericia,
+  esquemaFichaOp2,
   estadoVazioDaMesa,
+  PERFIS_OP2,
   type AreaDaNevoa,
   type EstadoDaMesa,
   type EventoDaMesa,
+  type FichaOp2,
   type MapaNaMesa,
+  type OrigemDoTeste,
+  type PerfilOp2,
+  type PericiaOp2,
+  type PersonagemNaMesa,
   type PropNaMesa,
+  type RegistroDeTeste,
+  type TesteDaFicha,
   type TokenNaMesa,
 } from '@membrana/shared';
 import type { Banco } from '../db/index.ts';
 import {
   campaigns,
   characters,
+  gameSystems,
   maps,
   memberships,
   props,
   sessionLog,
   tableStates,
+  testLog,
   tokens,
+  users,
   type RestoDaMesa,
 } from '../db/schema.ts';
 
@@ -298,4 +311,152 @@ export function personagensDoGrupo(db: Banco, campanhaId: string): PersonagemDoG
     .where(and(eq(memberships.campaignId, campanhaId), eq(memberships.papel, 'jogador')))
     .orderBy(sql`json_extract(${characters.ficha}, '$.nome')`)
     .all();
+}
+
+export const LIMITE_DO_REGISTRO_DA_SESSAO = 500;
+
+/** Os últimos eventos gravados em `session_log`, em ordem crescente de `seq`. */
+export function lerRegistroDaSessao(
+  db: Banco,
+  campanhaId: string,
+  limite = LIMITE_DO_REGISTRO_DA_SESSAO,
+): EventoDaMesa[] {
+  return db
+    .select({ dados: sessionLog.dados })
+    .from(sessionLog)
+    .where(eq(sessionLog.campaignId, campanhaId))
+    .orderBy(desc(sessionLog.seq))
+    .limit(limite)
+    .all()
+    .reverse()
+    .map((l) => l.dados);
+}
+
+const PERFIS_VALIDOS: ReadonlySet<string> = new Set(PERFIS_OP2);
+
+/** Personagens ligados ao caso (em uso ou criados nele), para identificar autores e avatares. */
+export function personagensNaMesa(db: Banco, campanhaId: string): PersonagemNaMesa[] {
+  return db
+    .selectDistinct({
+      id: characters.id,
+      donoId: characters.ownerId,
+      nome: sql<string>`coalesce(json_extract(${characters.ficha}, '$.nome'), 'Sem nome')`,
+      perfilBruto: sql<string | null>`json_extract(${characters.ficha}, '$.perfil')`,
+    })
+    .from(characters)
+    .leftJoin(
+      memberships,
+      and(eq(memberships.characterId, characters.id), eq(memberships.campaignId, campanhaId)),
+    )
+    .where(or(eq(characters.campaignId, campanhaId), eq(memberships.campaignId, campanhaId)))
+    .orderBy(sql`json_extract(${characters.ficha}, '$.nome')`)
+    .all()
+    .map(({ perfilBruto, ...resto }) => ({
+      ...resto,
+      perfil: perfilBruto && PERFIS_VALIDOS.has(perfilBruto) ? (perfilBruto as PerfilOp2) : null,
+    }));
+}
+
+export interface FichaNoCaso {
+  personagemId: string;
+  donoId: string;
+  /** O caso salvo no próprio personagem (pode ser nulo se veio da lista do dono). */
+  campanhaDoPersonagem: string | null;
+  tipo: 'op2' | 'inventado';
+  ficha: unknown;
+  dtPadrao: number;
+  dadosFisicos: boolean;
+}
+
+/** O personagem e as regras do caso para rodar um teste pela mesa; nulo se não for deste caso. */
+export function lerFichaNoCaso(
+  db: Banco,
+  campanhaId: string,
+  personagemId: string,
+): FichaNoCaso | null {
+  const caso = db
+    .select({ dtPadrao: campaigns.dtPadrao, dadosFisicos: campaigns.dadosFisicos })
+    .from(campaigns)
+    .where(eq(campaigns.id, campanhaId))
+    .get();
+  if (!caso) return null;
+  const linha = db
+    .selectDistinct({
+      personagemId: characters.id,
+      donoId: characters.ownerId,
+      campanhaDoPersonagem: characters.campaignId,
+      tipo: gameSystems.tipo,
+      ficha: characters.ficha,
+    })
+    .from(characters)
+    .innerJoin(gameSystems, eq(gameSystems.id, characters.systemId))
+    .leftJoin(
+      memberships,
+      and(eq(memberships.characterId, characters.id), eq(memberships.campaignId, campanhaId)),
+    )
+    .where(
+      and(
+        eq(characters.id, personagemId),
+        or(eq(characters.campaignId, campanhaId), eq(memberships.campaignId, campanhaId)),
+      ),
+    )
+    .get();
+  if (!linha) return null;
+  return { ...linha, ...caso };
+}
+
+export interface EntradaDeTesteDaMesa {
+  personagemId: string;
+  autorId: string;
+  origem: OrigemDoTeste;
+  periciaId: PericiaOp2;
+  teste: TesteDaFicha;
+}
+
+/** Grava a ficha atualizada e o histórico em `test_log` numa transação só, devolvendo o registro. */
+export function gravarTesteDaMesa(
+  db: Banco,
+  campanhaId: string,
+  entrada: EntradaDeTesteDaMesa,
+): RegistroDeTeste {
+  const fichaNova: FichaOp2 = esquemaFichaOp2.parse(entrada.teste.ficha);
+  const autorLinha = db
+    .select({ id: users.id, nome: users.nome })
+    .from(users)
+    .where(eq(users.id, entrada.autorId))
+    .get();
+  const registro = {
+    periciaId: entrada.periciaId,
+    atributo: atributoDaPericia(entrada.periciaId),
+    resultado: entrada.teste.resultado,
+    falhaCritica: entrada.teste.falhaCritica,
+    efeitos: entrada.teste.efeitos,
+  };
+  const gravado = db.transaction((tx) => {
+    tx.update(characters)
+      .set({ ficha: fichaNova, atualizadoEm: new Date() })
+      .where(eq(characters.id, entrada.personagemId))
+      .run();
+    return tx
+      .insert(testLog)
+      .values({
+        characterId: entrada.personagemId,
+        campaignId: campanhaId,
+        userId: autorLinha ? autorLinha.id : null,
+        origem: entrada.origem,
+        registro,
+      })
+      .returning({ id: testLog.id, criadoEm: testLog.criadoEm })
+      .get();
+  });
+  return {
+    id: gravado.id,
+    personagemId: entrada.personagemId,
+    personagemNome: fichaNova.nome,
+    campanhaId,
+    autor: autorLinha ? { id: autorLinha.id, nome: autorLinha.nome } : null,
+    origem: entrada.origem,
+    ...registro,
+    em: gravado.criadoEm.toISOString(),
+  };
 }

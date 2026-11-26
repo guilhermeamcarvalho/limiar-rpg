@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { EventoDaMesa, TokenNaMesa, VisaoDaMesa } from '@membrana/shared';
-import { aplicarEvento, MESA_VAZIA, type MesaNoCliente } from './estado.ts';
+import type { EventoDaMesa, RegistroDeTeste, TokenNaMesa, VisaoDaMesa } from '@membrana/shared';
+import {
+  aplicarEvento,
+  MESA_VAZIA,
+  mesclarEventosRegistrados,
+  type MesaNoCliente,
+} from './estado.ts';
 
 const token = (id: string, x = 10, y = 10): TokenNaMesa => ({
   id,
@@ -170,5 +175,69 @@ describe('props no arrasto', () => {
     });
     expect(mesa.arrastando).toEqual({});
     expect(mesa.visao?.props[0]).toMatchObject({ x: 60, y: 70 });
+  });
+});
+
+describe('registro, testes e deduplicação por seq', () => {
+  const registroTeste: RegistroDeTeste = {
+    id: 'tst_1',
+    personagemId: 'chr_1',
+    personagemNome: 'Davi',
+    campanhaId: 'cmp_1',
+    autor: { id: 'usr_1', nome: 'Bia' },
+    periciaId: 'percepcao',
+    atributo: 'mente',
+    origem: 'virtual',
+    resultado: {
+      dados: [
+        { tipo: 'd6', valor: 4, papel: 'atributo', descartado: false },
+        { tipo: 'd6', valor: 5, papel: 'pericia', descartado: false },
+      ],
+      total: 9,
+      dt: 7,
+      ra: 5,
+      rb: 4,
+      veredito: 'sucesso',
+      informado: false,
+    },
+    falhaCritica: null,
+    efeitos: [],
+    em: '2026-11-26T12:00:00.000Z',
+  };
+
+  it('une histórico HTTP e eventos ao vivo sem repetir nenhum seq', () => {
+    const fala: EventoDaMesa = {
+      type: 'chat.message',
+      id: 'msg_1',
+      autorId: 'usr_1',
+      texto: 'Oi',
+      para: null,
+      narracao: false,
+      em: '2026-11-26T12:00:00.000Z',
+      seq: 3,
+    };
+    const rodada: EventoDaMesa = { type: 'round.started', numero: 2, seq: 4 };
+    const movimento: EventoDaMesa = { type: 'token.moved', tokenId: 'tok_1', x: 1, y: 2, seq: 5 };
+
+    const unidos = mesclarEventosRegistrados([fala, rodada], [rodada, movimento, fala]);
+    expect(unidos.map((e) => e.seq)).toEqual([3, 4]);
+  });
+
+  it('guarda o último teste e incrementa a versão do personagem mudado', () => {
+    let mesa = comEstado(2);
+    mesa = aplicar(
+      mesa,
+      { type: 'test.resolved', registro: registroTeste, seq: 3 },
+      {
+        type: 'character.changed',
+        campanhaId: 'cmp_1',
+        personagemId: 'chr_1',
+        removido: false,
+        seq: 4,
+      },
+    );
+    expect(mesa.ultimoTeste).toEqual({ seq: 3, registro: registroTeste });
+    expect(mesa.versaoPersonagens).toEqual({ chr_1: 1 });
+    expect(mesa.eventos.map((e) => e.type)).toEqual(['test.resolved']);
   });
 });

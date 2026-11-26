@@ -16,21 +16,25 @@ export type Rng = () => number;
 const FAIXA = 2 ** 32;
 
 /**
- * Rola um dado: de 1 até o número de faces, todas com exatamente a mesma chance.
+ * Rola um dado de `n` lados (`n >= 2`): de 1 até `n`, todas as faces com a mesma chance.
  *
  * Os 2³² números do sorteio não se dividem por igual entre as faces (no d6 sobram 4, no d10
  * sobram 6). Se cada sobra fosse para uma face, essa face sairia um pouco mais. Então só vale a
  * faixa que é múltiplo exato das faces; caiu na sobra (cerca de 1 vez em 1 bilhão), sorteia de
  * novo. O número descartado nunca vira resultado: quem joga recebe uma face só.
  */
-export function rolar(dado: Dado, rng: Rng): number {
-  const n = faces(dado);
+export function rolarFaces(n: number, rng: Rng): number {
   const valida = FAIXA - (FAIXA % n);
   const porFace = valida / n;
   for (;;) {
     const sorteado = Math.floor(rng() * FAIXA);
     if (sorteado < valida) return 1 + Math.floor(sorteado / porFace);
   }
+}
+
+/** Rola um dado padrão do sistema: de 1 até o número de faces. */
+export function rolar(dado: Dado, rng: Rng): number {
+  return rolarFaces(faces(dado), rng);
 }
 
 /** Sorteio previsível (mulberry32): a mesma semente dá sempre a mesma sequência. Para testes. */
