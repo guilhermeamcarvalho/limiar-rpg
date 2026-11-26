@@ -110,6 +110,7 @@ O mapa tem camadas, de baixo para cima: imagem do mapa, grade, props, contornos 
 | RF-22 | Breu: o mestre arrasta para cobrir e para revelar, apaga blocos, cobre ou limpa o mapa inteiro, e cobre ou revela uma sala com um clique |
 | RF-23 | Jogadores veem o breu em preto; o mestre vê hachurado e enxerga o que está embaixo |
 | RF-88 | Névoa da Membrana: o mestre ajusta numa régua de 0 a 100 (com atalhos Sem névoa, Fina, Densa e Espessa) o quanto a névoa está densa na cena, e todos veem a mesma névoa animada sobre o mapa. É só visual: não esconde tokens, props nem pistas e não impede movimento; vale mesmo sem mapa na mesa |
+| RF-89 | Atalhos entre mapas: o mestre pode vincular um ponto de interesse no mapa (ex.: uma casa no mapa da cidade) a outro mapa do caso (`destinoMapaId`). Ao clicar no marcador no mapa, a mesa troca direto para o mapa de destino (`map.activate`), mantendo o vínculo oculto dos jogadores até a troca |
 | RF-24 | Soltar uma imagem do computador sobre o mapa cria um token ali (mestre) ou troca a imagem do próprio token (jogador) |
 
 ## Pistas, inventário e acontecimentos

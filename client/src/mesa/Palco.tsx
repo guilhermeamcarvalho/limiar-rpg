@@ -89,6 +89,8 @@ export interface PalcoProps {
   ultimoPulso?: PulsoNoMapa | null;
   /** Clique no mapa com a ferramenta "Marcar ponto" ativa. */
   aoMarcarPonto?: (ponto: Ponto) => void;
+  /** Clique em um marcador de ponto de interesse para abrir seu cartão (#85). */
+  aoAbrirPoi?: (poiId: string) => void;
 }
 
 /** Os dois toques, na tela, relativos ao palco. */
@@ -122,6 +124,7 @@ export function Palco({
   modo = 'mover',
   ultimoPulso = null,
   aoMarcarPonto,
+  aoAbrirPoi,
 }: PalcoProps) {
   const { mapa } = visao;
   const avisos = useToast();
@@ -487,7 +490,12 @@ export function Palco({
           {visao.salas && <CamadaDeSalas salas={visao.salas} />}
           <CamadaDoBreu breu={visao.breu} mapa={mapa} mestre={mestre} />
           <CamadaDePistas pistas={visao.pistas} celula={celula} />
-          <CamadaDePois pois={visao.pois} escala={camera.escala} />
+          <CamadaDePois
+            pois={visao.pois}
+            escala={camera.escala}
+            bloqueado={bloqueado}
+            {...(aoAbrirPoi && { aoAbrirPoi })}
+          />
           <CamadaDeTokens
             tokens={visao.tokens}
             mapa={mapa}

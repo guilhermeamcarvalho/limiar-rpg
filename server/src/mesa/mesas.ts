@@ -4,6 +4,7 @@ import type { Rng } from '@membrana/shared';
 import type { Banco } from '../db/index.ts';
 import { membrosDe } from '../http/campanhas/dados.ts';
 import {
+  ajustarRecursoDaFicha,
   casoUsaRodadas,
   donoDoPersonagemNoCaso,
   gravarEstado,
@@ -118,6 +119,9 @@ export class Mesas {
         mapa: (mapaId) => lerMapa(db, campanhaId, mapaId),
         fichaNoCaso: (personagemId) => lerFichaNoCaso(db, campanhaId, personagemId),
         gravarTeste: (entrada) => gravarTesteDaMesa(db, campanhaId, entrada),
+        ajustarRecurso: (personagemId, campo, delta) => {
+          ajustarRecursoDaFicha(db, personagemId, campo, delta);
+        },
         ...(this.#sorteio && { sorteio: this.#sorteio }),
         guardarMapa: (estado) => {
           gravarMapa(db, estado);

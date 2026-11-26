@@ -962,3 +962,96 @@
 .mesa-nevoa-regua {
   width: 100%;
 }
+
+/* Cartão do ponto de interesse (#85, #86) */
+.cartao-poi {
+  position: absolute;
+  top: 68px;
+  right: 16px;
+  z-index: 8;
+  width: min(340px, calc(100% - 32px));
+  max-height: calc(100% - 92px);
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+}
+
+.cartao-poi-topo {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.cartao-poi-titulo {
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cartao-poi-desc {
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.cartao-poi-corpo {
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.cartao-poi-travado {
+  padding: 8px 10px;
+  border: 1px solid var(--red);
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+}
+
+.cartao-poi .opt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cartao-poi .opt.red {
+  border-color: var(--red);
+}
+
+.cartao-poi .opt span {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.cartao-poi .opt:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.poi-tarja {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.poi-info {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+}
+
+.poi-info.destaque {
+  border-color: var(--gold);
+  background: var(--panel);
+}

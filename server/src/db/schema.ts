@@ -18,6 +18,7 @@ import {
   type ConfigDeSistema,
   type DesafioDoPoi,
   type EstadoDaMesa,
+  type EstadoDoDesafio,
   type EventoDaMesa,
   type Formato,
   type GradeDoMapa,
@@ -369,6 +370,43 @@ export const pois = sqliteTable(
     contextoMestre: text('contexto_mestre').notNull().default(''),
   },
   (t) => [index('pois_map').on(t.mapId)],
+);
+
+/** Descobertas salvas por campanha (#86): o que o grupo já revelou de cada ponto de interesse. */
+export const poiDiscoveries = sqliteTable(
+  'poi_discoveries',
+  {
+    campaignId: text('campaign_id')
+      .notNull()
+      .references(() => campaigns.id, { onDelete: 'cascade' }),
+    poiId: text('poi_id')
+      .notNull()
+      .references(() => pois.id, { onDelete: 'cascade' }),
+    infoId: text('info_id').notNull(),
+    por: text('por').references(() => users.id, { onDelete: 'set null' }),
+    em: integer('em', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch('subsec') * 1000)`),
+  },
+  (t) => [primaryKey({ columns: [t.campaignId, t.poiId, t.infoId] })],
+);
+
+/** Estado dos desafios de acesso por campanha (#84): tentativas, progresso e se está travado. */
+export const poiChallenges = sqliteTable(
+  'poi_challenges',
+  {
+    campaignId: text('campaign_id')
+      .notNull()
+      .references(() => campaigns.id, { onDelete: 'cascade' }),
+    poiId: text('poi_id')
+      .notNull()
+      .references(() => pois.id, { onDelete: 'cascade' }),
+    estado: text('estado', { mode: 'json' }).$type<EstadoDoDesafio>().notNull(),
+    atualizadoEm: integer('atualizado_em', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch('subsec') * 1000)`),
+  },
+  (t) => [primaryKey({ columns: [t.campaignId, t.poiId] })],
 );
 
 /** O que a mesa guarda além do mapa ativo (este fica em `maps`, `tokens`, `props`, `rooms` e `pois`). */

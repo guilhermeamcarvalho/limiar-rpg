@@ -71,6 +71,13 @@
       "when": 1795717677080,
       "tag": "0009_lowly_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795720267591,
+      "tag": "0010_robust_sir_ram",
+      "breakpoints": true
     }
   ]
 }

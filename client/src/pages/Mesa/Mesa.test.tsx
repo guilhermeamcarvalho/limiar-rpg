@@ -1127,4 +1127,49 @@ describe('layout recolhível, painel do jogador e ordem da rodada', () => {
     );
     expect(await screen.findByText('Balcão')).toBeDefined();
   });
+
+  it('cartão do ponto de interesse: custos visíveis, tarjas pretas e envio de poi.investigate (#85, #86)', async () => {
+    await naMesa(
+      visao({
+        pois: [
+          {
+            id: 'poi_2',
+            numero: 2,
+            nome: 'Mesa de som',
+            descricao: 'Os faders estão no máximo.',
+            x: 445,
+            y: 64,
+            pericias: [{ periciaId: 'percepcao', dt: 7 }],
+            informacoes: [
+              { id: 'inf_1', nivel: 5, descoberta: true, texto: 'Fita marcada 33.' },
+              { id: 'inf_2', nivel: 12, descoberta: false },
+            ],
+            desafio: null,
+            tudoDescoberto: false,
+          },
+        ],
+      }),
+    );
+
+    act(() => {
+      palco().aoAbrirPoi?.('poi_2');
+    });
+
+    const cartao = await screen.findByRole('dialog', { name: 'Ponto 2: Mesa de som' });
+    expect(within(cartao).getByText(/gasta sua ação da rodada/)).toBeDefined();
+    expect(within(cartao).getByText(/custa 1 PD se não houver nada novo/)).toBeDefined();
+    expect(within(cartao).getByText(/Descreva a ação; o mestre decide o teste/)).toBeDefined();
+    expect(within(cartao).getByText('Fita marcada 33.')).toBeDefined();
+    expect(within(cartao).getByLabelText('Informação oculta')).toBeDefined();
+
+    fireEvent.click(within(cartao).getByRole('button', { name: /Investigar/ }));
+    await waitFor(() => {
+      expect(socket().comandos).toContainEqual({
+        type: 'poi.investigate',
+        poiId: 'poi_2',
+        modo: 'investigar',
+        periciaId: 'percepcao',
+      });
+    });
+  });
 });

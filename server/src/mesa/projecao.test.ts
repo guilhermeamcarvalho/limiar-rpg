@@ -512,6 +512,7 @@ describe('projetarRegistro (session_log)', () => {
     expect(projetarRegistro(BIA, gravados).map((e) => e.type)).toEqual(['round.started']);
     expect(projetarRegistro(CAIO, gravados).map((e) => e.type)).toEqual([
       'chat.message',
+      'poi.infoRevealed',
       'round.started',
     ]);
     expect(projetarRegistro(ANA, gravados)).toEqual(gravados);

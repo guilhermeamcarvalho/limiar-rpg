@@ -38,6 +38,8 @@ export interface Contexto {
   fichaNoCaso: (personagemId: string) => FichaNoCaso | null;
   /** Persiste a ficha atualizada e o registro do teste oficial. */
   gravarTeste: (entrada: EntradaDeTesteDaMesa) => RegistroDeTeste;
+  /** Ajusta PV ou PD da ficha em ações de investigação/desafio (#84, #85). */
+  ajustarRecurso?: (personagemId: string, campo: 'pv' | 'pd', delta: number) => void;
 }
 
 export type ComandoDo<T extends TipoDeComando> = Extract<ComandoValidado, { type: T }>;
