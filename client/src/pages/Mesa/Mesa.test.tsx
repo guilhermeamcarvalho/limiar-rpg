@@ -21,6 +21,7 @@ class SocketFalso {
   ouvintes = new Map<string, Ouvinte[]>();
   comandos: ComandoDaMesa[] = [];
   responder: (comando: ComandoDaMesa) => RespostaDoComando = () => ({ ok: true });
+  connect = vi.fn();
   disconnect = vi.fn();
   readonly opcoes: unknown;
   constructor(opcoes: unknown) {
@@ -173,12 +174,64 @@ describe('conexão', () => {
     expect(screen.getByRole('link', { name: 'Voltar para a Central' })).toBeDefined();
   });
 
-  it('caiu: avisa que está tentando voltar, sem tirar o mapa da tela', async () => {
+  it('caiu: avisa com faixa no topo e cartão Reconectando, sem tirar o mapa da tela', async () => {
     await naMesa(visao());
+    socket().connected = false;
     socket().disparar('disconnect');
-    expect(await screen.findByText('Conexão perdida. Tentando voltar…')).toBeDefined();
+    expect(await screen.findByText(/Conexão com a mesa perdida\./)).toBeDefined();
+    expect(screen.getByRole('status', { name: 'Reconectando à mesa' })).toBeDefined();
     expect(screen.getByTestId('palco')).toBeDefined();
     expect(screen.getByText('Sem conexão')).toBeDefined();
+  });
+
+  it('offline: enfileira movimentos e mensagens, bloqueia rolagens e reenvia ao reconectar', async () => {
+    await naMesa(visao({ tokens: [token({ id: 'tok_1', nome: 'Davi' })] }));
+    socket().connected = false;
+    socket().disparar('disconnect');
+
+    // Movimento offline vai para a fila (sem ir ao socket enquanto está desconectado).
+    await act(async () => {
+      await palco().enviar({ type: 'token.move', tokenId: 'tok_1', x: 200, y: 300 });
+    });
+
+    // Mensagem offline vai para a fila.
+    const campo = screen.getByPlaceholderText(/Mensagem/);
+    fireEvent.change(campo, { target: { value: 'Vou checar a mesa de som' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }));
+    await waitFor(() => {
+      expect((campo as HTMLInputElement).value).toBe('');
+    });
+
+    // Rolagem offline é bloqueada com explicação.
+    fireEvent.change(campo, { target: { value: '/r 2d6' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }));
+    const lateral = screen.getByRole('complementary', { name: 'Chat e registros' });
+    expect(await within(lateral).findByRole('alert')).toHaveProperty(
+      'textContent',
+      expect.stringContaining('Rolagens só voltam com a conexão'),
+    );
+
+    const filaLista = await screen.findByLabelText('Ações na fila');
+    expect(within(filaLista).getByText('Mover Davi')).toBeDefined();
+    expect(within(filaLista).getByText('“Vou checar a mesa de som”')).toBeDefined();
+    expect(socket().comandos).toEqual([]);
+
+    // Tentar agora chama socket.connect().
+    const botoesTentar = screen.getAllByRole('button', { name: 'Tentar agora' });
+    const primeiroBotao = botoesTentar[0];
+    if (!primeiroBotao) throw new Error('faltou botão Tentar agora');
+    fireEvent.click(primeiroBotao);
+    expect(socket().connect).toHaveBeenCalled();
+
+    // Ao reconectar, reenvia a fila na ordem e limpa o aviso.
+    socket().conectar();
+    await waitFor(() => {
+      expect(socket().comandos).toEqual([
+        { type: 'token.move', tokenId: 'tok_1', x: 200, y: 300 },
+        { type: 'chat.send', texto: 'Vou checar a mesa de som' },
+      ]);
+    });
+    expect(screen.queryByRole('status', { name: 'Reconectando à mesa' })).toBeNull();
   });
 
   it('sair da página fecha a conexão', async () => {

@@ -33,11 +33,11 @@ import { Npcs } from '../../mesa/painel/Npcs.tsx';
 import { Palco } from '../../mesa/Palco.tsx';
 import { filtrarAcontecimentos, Registro } from '../../mesa/Registro.tsx';
 import { Resultado } from '../../mesa/Resultado.tsx';
+import { CartaoReconectando, FaixaSemConexao } from '../../mesa/SemConexao.tsx';
 import { useMesaAoVivo, type SituacaoDaConexao } from '../../mesa/useMesaAoVivo.ts';
 import { linkDaFicha, primeiroNome } from '../../personagens/formatos.ts';
 import {
   Async,
-  Banner,
   Button,
   Chip,
   cx,
@@ -261,7 +261,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const idAbas = useId();
   const { sessao } = useMe();
   const avisos = useToast();
-  const { mesa, situacao, enviar } = useMesaAoVivo(campanhaId);
+  const { mesa, situacao, fila, enviar, tentarAgora } = useMesaAoVivo(campanhaId);
   const [painel, setPainel] = useState<Ferramenta | null>(null);
   const [aba, setAba] = useState<AbaLateral>('chat');
   const [paineis, setPaineis] = useState<PaineisSalvos>(lerPaineisSalvos);
@@ -557,7 +557,11 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       </header>
 
       {situacao.estado === 'caiu' && visao && (
-        <Banner tone="warn">Conexão perdida. Tentando voltar…</Banner>
+        <FaixaSemConexao
+          tentativa={situacao.tentativa}
+          emSegundos={situacao.emSegundos}
+          aoTentarAgora={tentarAgora}
+        />
       )}
 
       <div className="mesa-corpo">
@@ -654,7 +658,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           ))}
 
         <section
-          className="mesa-palco"
+          className={cx('mesa-palco', situacao.estado === 'caiu' && visao && 'offline')}
           aria-label={mestre ? 'Mapa na visão do mestre' : 'Mapa'}
           aria-busy={!visao}
         >
@@ -703,6 +707,15 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           )}
 
           {visao && <NevoaDaMembrana nivel={visao.nevoa} />}
+
+          {situacao.estado === 'caiu' && visao && (
+            <CartaoReconectando
+              tentativa={situacao.tentativa}
+              emSegundos={situacao.emSegundos}
+              fila={fila}
+              aoTentarAgora={tentarAgora}
+            />
+          )}
 
           {/* Flutua sobre o mapa: uma faixa no fluxo empurraria o mapa bem na hora do clique. */}
           {escolhendoGrupo && (
