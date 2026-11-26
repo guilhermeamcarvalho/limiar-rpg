@@ -596,6 +596,63 @@
   align-items: center;
 }
 
+/* Tela de conexão perdida (artboard 18 e Celular · 18, #77). */
+.mesa-faixa-erro {
+  justify-content: center;
+  border-right: 0;
+  border-left: 0;
+}
+
+.mesa-palco.offline .palco {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.mesa-reconectando {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  width: min(420px, calc(100% - 32px));
+  padding: 24px;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  box-shadow: var(--shadow-xl);
+}
+
+.mesa-reconectando h2 {
+  margin: 0;
+}
+
+.mesa-reconectando p {
+  margin: 0;
+}
+
+.mesa-fila {
+  width: 100%;
+  max-height: 150px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.mesa-fila-item {
+  min-height: 38px;
+}
+
+.mesa-aviso-rolagens {
+  width: 100%;
+  text-align: left;
+}
+
+.mesa-reconectando-acoes {
+  justify-content: center;
+  width: 100%;
+}
+
 /* Chat da sessão: conversa, narração em Special Elite, sussurro e resultados. */
 .chat-coluna {
   display: flex;
