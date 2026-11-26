@@ -12,6 +12,8 @@ export interface CampanhaComMembros {
   membros: readonly { userId: string; papel: Papel }[];
   /** O mestre pode deixar os jogadores verem as fichas uns dos outros. */
   fichasVisiveis?: boolean;
+  /** Mesa em rodadas: cada jogador tem uma ação importante por rodada. */
+  rodadas?: boolean;
 }
 
 export interface PersonagemMinimo {

@@ -265,6 +265,16 @@ export function ultimoSeqRegistrado(db: Banco, campanhaId: string): number {
   return linha?.seq ?? 0;
 }
 
+/** Se o caso limita a uma ação importante por rodada (`campaigns.rodadas`). */
+export function casoUsaRodadas(db: Pick<Banco, 'select'>, campaignId: string): boolean {
+  const linha = db
+    .select({ rodadas: campaigns.rodadas })
+    .from(campaigns)
+    .where(eq(campaigns.id, campaignId))
+    .get();
+  return linha?.rodadas ?? true;
+}
+
 /** O dono do personagem, se ele for deste caso: do caso, ou escolhido por alguém para jogar nele. */
 export function donoDoPersonagemNoCaso(
   db: Banco,

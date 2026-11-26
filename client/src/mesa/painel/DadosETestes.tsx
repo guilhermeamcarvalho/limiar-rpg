@@ -376,7 +376,7 @@ export function DadosETestes({
           </Button>
         </form>
 
-        <Switch checked={secreta} onChange={setSecreta} label="Rolagem secreta (só o mestre vê)" />
+        <Switch checked={secreta} onChange={setSecreta} label="Rolagem secreta" />
       </section>
 
       <hr className="hr" />

@@ -45,6 +45,8 @@ export type ResultadoDoComando =
 export interface DependenciasDaMesa {
   /** Os membros do caso agora, lidos a cada comando: quem saiu perde o acesso na hora. */
   membros: () => CampanhaComMembros['membros'];
+  /** Se o caso limita a uma ação importante por rodada (`campaigns.rodadas`). */
+  rodadas?: () => boolean;
   /** O dono do personagem, se ele for deste caso. */
   personagem: (personagemId: string) => { donoId: string } | null;
   /** Um mapa deste caso, como está salvo. */
@@ -84,7 +86,12 @@ export class Mesa {
     this.#deps = deps;
     this.#sorteio = deps.sorteio ?? rngCripto();
     // Campos que vieram depois do último salvamento (uma versão nova do app) nascem vazios.
-    this.#estado = { ...estadoVazioDaMesa(), ...salvo?.estado };
+    const vazio = estadoVazioDaMesa();
+    this.#estado = {
+      ...vazio,
+      ...salvo?.estado,
+      rodada: { ...vazio.rodada, ...salvo?.estado?.rodada },
+    };
     this.#seq = salvo?.seq ?? 0;
   }
 
@@ -103,7 +110,11 @@ export class Mesa {
     const validacao = validarComando(entrada);
     if (!validacao.ok) return validacao;
 
-    const campanha: CampanhaComMembros = { id: this.campanhaId, membros: this.#deps.membros() };
+    const campanha: CampanhaComMembros = {
+      id: this.campanhaId,
+      membros: this.#deps.membros(),
+      rodadas: this.#deps.rodadas?.() ?? true,
+    };
     if (!podeVerCampanha(quem, campanha)) return { ok: false, motivo: 'Você não está neste caso.' };
 
     const rascunho = structuredClone(this.#estado);

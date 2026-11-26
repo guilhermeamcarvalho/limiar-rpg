@@ -183,6 +183,7 @@ function projetarParaJogador(
     case 'test.resolved':
     case 'audio.changed':
     case 'round.started':
+    case 'round.acted':
     case 'mist.changed':
       return [evento];
 

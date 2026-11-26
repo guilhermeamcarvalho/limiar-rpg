@@ -115,7 +115,7 @@ const visao = (campos: Partial<VisaoDaMesa> = {}): VisaoDaMesa => ({
   nevoa: 0,
   pistas: [],
   inventario: [],
-  rodada: { numero: 3 },
+  rodada: { numero: 3, agiram: [] },
   trilha: null,
   ...campos,
 });
@@ -143,6 +143,7 @@ async function naMesa(estado: VisaoDaMesa, rotas: Parameters<typeof servidor>[0]
 beforeEach(() => {
   falso.sockets.length = 0;
   falso.palco = null;
+  localStorage.clear();
 });
 afterEach(() => {
   cleanup();
@@ -867,5 +868,125 @@ describe('dados, testes, chat e registro na página da Mesa', () => {
         resultado: { modo: 'veredito', veredito: 'sucesso' },
       });
     });
+  });
+});
+
+describe('layout recolhível, painel do jogador e ordem da rodada', () => {
+  it('recolhe os painéis esquerdo e direito e lembra a escolha ao reabrir', async () => {
+    await naMesa(visao());
+    expect(await screen.findByRole('complementary', { name: 'Você e o grupo' })).toBeDefined();
+    expect(screen.getByRole('complementary', { name: 'Chat e registros' })).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recolher painel esquerdo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Recolher painel direito' }));
+
+    expect(screen.queryByRole('complementary', { name: 'Você e o grupo' })).toBeNull();
+    expect(screen.queryByRole('complementary', { name: 'Chat e registros' })).toBeNull();
+    expect(localStorage.getItem('membrana:mesa-paineis')).toBe(
+      JSON.stringify({ esquerdo: false, direito: false }),
+    );
+
+    cleanup();
+    await naMesa(visao());
+    expect(await screen.findByRole('button', { name: 'Expandir painel esquerdo' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Expandir painel direito' })).toBeDefined();
+    expect(screen.queryByRole('complementary', { name: 'Você e o grupo' })).toBeNull();
+  });
+
+  it('mostra PV, PD, Ímpeto e testes rápidos do jogador, e atualiza PV ao receber character.changed', async () => {
+    let pvAtual = 12;
+    await naMesa(visao(), {
+      'GET /api/campanhas/cmp_1': json(200, {
+        campanha: detalhe({ meuPersonagem: { id: 'chr_davi', nome: 'Davi Rocha' } }),
+      }),
+      'GET /api/personagens/chr_davi': () =>
+        json(200, { personagem: personagem({}, { pv: pvAtual }) }),
+    });
+
+    const esquerdo = await screen.findByRole('complementary', { name: 'Você e o grupo' });
+    expect(await within(esquerdo).findByText('12/12')).toBeDefined();
+    expect(within(esquerdo).getByText('Testes rápidos')).toBeDefined();
+
+    // O mestre aplica dano e a mesa recebe `character.changed`: o PV muda na hora.
+    pvAtual = 8;
+    socket().receber({
+      type: 'character.changed',
+      campanhaId: 'cmp_1',
+      personagemId: 'chr_davi',
+      removido: false,
+      seq: 2,
+    });
+    expect(await within(esquerdo).findByText('8/12')).toBeDefined();
+
+    // Botão "Teste livre ou dados avulsos" abre o painel de dados.
+    fireEvent.click(within(esquerdo).getByRole('button', { name: 'Teste livre ou dados avulsos' }));
+    expect(await screen.findByRole('complementary', { name: 'Dados e testes' })).toBeDefined();
+  });
+
+  it('ordem da rodada mostra quem age, quem já agiu e quem está ausente; mestre encerra a rodada', async () => {
+    await naMesa(
+      visao({
+        papel: 'mestre',
+        rodada: { numero: 3, agiram: ['usr_1'] },
+      }),
+      {
+        'GET /api/campanhas/cmp_1': json(200, {
+          campanha: detalhe({
+            papel: 'mestre',
+            membros: [
+              { id: 'usr_9', nome: 'Helena Duarte', papel: 'mestre' },
+              { id: 'usr_1', nome: 'Marta', papel: 'jogador' },
+              { id: 'usr_2', nome: 'Caio', papel: 'jogador' },
+              { id: 'usr_3', nome: 'Téo', papel: 'jogador' },
+            ],
+          }),
+        }),
+      },
+    );
+
+    socket().receber({
+      type: 'presence.changed',
+      online: [
+        { id: 'usr_9', nome: 'Helena Duarte', papel: 'mestre', personagemId: null },
+        { id: 'usr_1', nome: 'Marta', papel: 'jogador', personagemId: null },
+        { id: 'usr_2', nome: 'Caio', papel: 'jogador', personagemId: null },
+      ],
+      seq: 2,
+    });
+
+    const ordem = await screen.findByRole('list', { name: 'Ordem da rodada' });
+    const [martaItem, caioItem, teoItem] = within(ordem).getAllByRole('listitem');
+    if (!martaItem || !caioItem || !teoItem) throw new Error('faltou item na ordem');
+    expect(within(martaItem).getByLabelText('Já agiu')).toBeDefined();
+    expect(within(caioItem).getByText('Agindo')).toBeDefined();
+    expect(within(teoItem).getByText('ausente')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Encerrar rodada' }));
+    await waitFor(() => {
+      expect(socket().comandos).toContainEqual({ type: 'round.end' });
+    });
+  });
+
+  it('abas compactas do painel direito incluem Pistas e Itens sem erro', async () => {
+    await naMesa(
+      visao({
+        inventario: [
+          {
+            pistaId: 'pst_1',
+            personagemId: 'chr_davi',
+            apresentada: false,
+            em: '2026-11-26T20:00:00.000Z',
+            titulo: 'Fita 33',
+            texto: 'Gravada às 3h33.',
+          },
+        ],
+      }),
+    );
+
+    fireEvent.click(await screen.findByRole('tab', { name: /Pistas/ }));
+    expect(await screen.findByText('Fita 33')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Itens' }));
+    expect(await screen.findByText('Sem personagem em uso')).toBeDefined();
   });
 });
