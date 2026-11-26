@@ -97,14 +97,21 @@ describe('contexto da URL', () => {
   it('/campanhas/:id/escudo mostra o caso no cabeçalho e links só com o caso', async () => {
     servidor({
       'GET /api/campanhas/cmp_1': json(200, { campanha: detalhe({ papel: 'mestre' }) }),
+      'GET /api/campanhas/cmp_1/escudo': json(200, {
+        campanha: { id: 'cmp_1', nome: 'O Sinal de Santa Ermida' },
+        mapa: null,
+        salas: [],
+        pois: [],
+      }),
     });
     abrir('/campanhas/cmp_1/escudo');
 
     expect(await screen.findByText('você mestra')).toBeDefined();
     expect(
-      await screen.findByRole('heading', { name: 'O Sinal de Santa Ermida', level: 1 }),
+      await screen.findByRole('heading', { name: 'Escudo do mestre', level: 1 }),
     ).toBeDefined();
-    expect(screen.getByRole('link', { name: 'Mesa' }).getAttribute('href')).toBe(
+    expect(screen.getAllByText('O Sinal de Santa Ermida').length).toBeGreaterThan(0);
+    expect(screen.getByRole('link', { name: 'Abrir mesa' }).getAttribute('href')).toBe(
       '/campanhas/cmp_1/mesa',
     );
   });

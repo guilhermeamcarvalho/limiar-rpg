@@ -659,4 +659,71 @@ describe('dois clientes e latência (#78, #80)', () => {
     expect(media).toBeLessThan(200);
     expect(Math.max(...amostras)).toBeLessThan(200);
   });
+
+  it('editar sala ou ponto de interesse no Escudo atualiza a mesa ao vivo sem vazar segredos (#82, #83)', async () => {
+    const { a, url, caso, ana, bia } = await servidor();
+    const mestre = abrir(url, ana, caso);
+    const jogadora = abrir(url, bia, caso);
+    await Promise.all([conectado(mestre), conectado(jogadora)]);
+    await Promise.all([mestre, jogadora].map((p) => p.esperar(ehDo('mesa.estado'))));
+
+    // Criar sala via HTTP do Escudo: só o mestre recebe `room.updated`.
+    const resSala = await a.inject({
+      method: 'POST',
+      url: `/api/campanhas/${caso}/escudo/comandos`,
+      cookies: ana.cookies,
+      payload: {
+        type: 'room.create',
+        nome: 'Estúdio B',
+        area: [
+          { x: 0, y: 0 },
+          { x: 200, y: 0 },
+          { x: 200, y: 200 },
+        ],
+        notasMestre: 'SEGREDO-SALA',
+      },
+    });
+    expect(resSala.statusCode).toBe(200);
+    const evtSala = await mestre.esperar(ehDo('room.updated'));
+    expect(evtSala).toMatchObject({ sala: { nome: 'Estúdio B', notasMestre: 'SEGREDO-SALA' } });
+
+    // Criar POI via HTTP do Escudo: mestre recebe tudo; jogadora recebe só resumo sem contextoMestre.
+    const resPoi = await a.inject({
+      method: 'POST',
+      url: `/api/campanhas/${caso}/escudo/comandos`,
+      cookies: ana.cookies,
+      payload: {
+        type: 'poi.create',
+        nome: 'Mesa de som',
+        x: 120,
+        y: 140,
+        contextoMestre: 'SEGREDO-POI',
+      },
+    });
+    expect(resPoi.statusCode).toBe(200);
+    const poiId = resPoi.json<{ pois: { id: string }[] }>().pois[0]?.id ?? '';
+
+    const [poiMestre, poiJogadora] = await Promise.all([
+      mestre.esperar(ehDo('poi.changed')),
+      jogadora.esperar(ehDo('poi.changed')),
+    ]);
+    expect(poiMestre).toMatchObject({
+      poi: { nome: 'Mesa de som', contextoMestre: 'SEGREDO-POI' },
+    });
+    expect(poiJogadora).toMatchObject({ poi: { id: poiId, numero: 1, nome: 'Mesa de som' } });
+    expect(JSON.stringify(jogadora.eventos)).not.toContain('SEGREDO-SALA');
+    expect(JSON.stringify(jogadora.eventos)).not.toContain('SEGREDO-POI');
+
+    // Editar nome no Escudo muda na mesa na hora.
+    const resEdicao = await a.inject({
+      method: 'POST',
+      url: `/api/campanhas/${caso}/escudo/comandos`,
+      cookies: ana.cookies,
+      payload: { type: 'poi.update', poiId, nome: 'Gravador de rolo' },
+    });
+    expect(resEdicao.statusCode).toBe(200);
+    expect(
+      await jogadora.esperar((e) => e.type === 'poi.changed' && e.poi?.nome === 'Gravador de rolo'),
+    ).toBeDefined();
+  });
 });

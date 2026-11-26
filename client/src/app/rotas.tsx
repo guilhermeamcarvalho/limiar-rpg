@@ -63,10 +63,7 @@ const FichaDoPersonagem = pagina(() => import('../pages/Ficha/index.tsx'), 'Fich
 const Arquivo = pagina(() => import('../pages/Arquivo/index.tsx'), 'Arquivo');
 const Perfil = pagina(() => import('../pages/Perfil.tsx'), 'Perfil');
 const Mesa = pagina(() => import('../pages/Mesa/index.tsx'), 'Mesa');
-const Escudo = lazy(async () => {
-  const { PaginaDaCampanhaEmBreve } = await carregarModulo(() => import('../pages/EmBreve.tsx'));
-  return { default: () => <PaginaDaCampanhaEmBreve pagina="escudo" /> };
-});
+const Escudo = pagina(() => import('../pages/Escudo/index.tsx'), 'Escudo');
 const Ficha = lazy(async () => {
   const { PaginaDaCampanhaEmBreve } = await carregarModulo(() => import('../pages/EmBreve.tsx'));
   return { default: () => <PaginaDaCampanhaEmBreve pagina="ficha" /> };

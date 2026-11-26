@@ -115,11 +115,14 @@ describe('recuperação ao reiniciar', () => {
   it('caiu antes de salvar: a sequência continua do registro, sem repetir número', () => {
     const m = mesaMexida();
     // Sem salvarTudo: o estado não chegou ao banco, mas o round.started (seq 3) já foi registrado.
-    const depois = new Mesas(m.db).obter(m.caso);
+    const outrasMesas = new Mesas(m.db);
+    const depois = outrasMesas.obter(m.caso);
     expect(depois.estado.tokens).toEqual([]);
     expect(depois.seq).toBe(3);
     const r = depois.aplicar(m.ana, { type: 'round.end' });
     expect(r.ok && r.eventos[0]?.seq).toBe(4);
+    m.mesas.descartar(m.caso);
+    outrasMesas.descartar(m.caso);
     m.sqlite.close();
   });
 

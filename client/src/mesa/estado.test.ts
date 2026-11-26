@@ -33,6 +33,7 @@ const visao = (campos: Partial<VisaoDaMesa> = {}): VisaoDaMesa => ({
   props: [],
   breu: [],
   nevoa: 0,
+  pois: [],
   pistas: [],
   inventario: [],
   rodada: { numero: 1, agiram: [] },

@@ -16,10 +16,14 @@ import {
   type Agenda,
   type AreaDoBreu,
   type ConfigDeSistema,
+  type DesafioDoPoi,
   type EstadoDaMesa,
   type EventoDaMesa,
   type Formato,
   type GradeDoMapa,
+  type InformacaoDoPoi,
+  type PericiaDoPoi,
+  type Ponto,
   type Tom,
 } from '@membrana/shared';
 import { novoId } from './ids.ts';
@@ -320,8 +324,58 @@ export const props = sqliteTable(
   (t) => [index('props_map').on(t.mapId)],
 );
 
-/** O que a mesa guarda além do mapa ativo (este fica em `maps`, `tokens` e `props`). */
-export type RestoDaMesa = Omit<EstadoDaMesa, 'mapa' | 'tokens' | 'props' | 'breu'>;
+/** Salas desenhadas sobre o mapa (só o mestre vê, #82). */
+export const rooms = sqliteTable(
+  'rooms',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('rom')),
+    mapId: text('map_id')
+      .notNull()
+      .references(() => maps.id, { onDelete: 'cascade' }),
+    nome: text('nome').notNull(),
+    area: text('area', { mode: 'json' }).$type<Ponto[]>().notNull(),
+    notasMestre: text('notas_mestre').notNull().default(''),
+  },
+  (t) => [index('rooms_map').on(t.mapId)],
+);
+
+/** Pontos de interesse (tabela única na mesa e no escudo, #83). */
+export const pois = sqliteTable(
+  'pois',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('poi')),
+    mapId: text('map_id')
+      .notNull()
+      .references(() => maps.id, { onDelete: 'cascade' }),
+    roomId: text('room_id').references(() => rooms.id, { onDelete: 'set null' }),
+    numero: integer('numero').notNull(),
+    nome: text('nome').notNull(),
+    descricao: text('descricao').notNull().default(''),
+    x: real('x').notNull(),
+    y: real('y').notNull(),
+    pericias: text('pericias', { mode: 'json' })
+      .$type<PericiaDoPoi[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    informacoes: text('informacoes', { mode: 'json' })
+      .$type<InformacaoDoPoi[]>()
+      .notNull()
+      .default(sql`'[]'`),
+    desafio: text('desafio', { mode: 'json' }).$type<DesafioDoPoi>(),
+    contextoMestre: text('contexto_mestre').notNull().default(''),
+  },
+  (t) => [index('pois_map').on(t.mapId)],
+);
+
+/** O que a mesa guarda além do mapa ativo (este fica em `maps`, `tokens`, `props`, `rooms` e `pois`). */
+export type RestoDaMesa = Omit<
+  EstadoDaMesa,
+  'mapa' | 'tokens' | 'props' | 'breu' | 'salas' | 'pois'
+>;
 
 /**
  * O resto do estado de cada mesa ao vivo (rodada, trilha, salas, pistas...), salvo junto com o

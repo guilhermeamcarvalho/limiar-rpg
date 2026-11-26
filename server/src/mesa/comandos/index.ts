@@ -9,6 +9,7 @@ import { tratadoresDoBreu } from './breu.ts';
 import { tratadoresDaNevoa } from './nevoa.ts';
 import { tratadoresDeProps } from './props.ts';
 import { tratadoresDaRodada } from './rodada.ts';
+import { tratadoresDeSalas } from './salas.ts';
 import { tratadoresDeTestes } from './testes.ts';
 import { tratadoresDeTokens } from './tokens.ts';
 
@@ -18,6 +19,7 @@ const TRATADORES: Tratadores = {
   ...tratadoresDoBreu,
   ...tratadoresDaNevoa,
   ...tratadoresDaRodada,
+  ...tratadoresDeSalas,
   ...tratadoresDoMapa,
   ...tratadoresDeDados,
   ...tratadoresDeTestes,

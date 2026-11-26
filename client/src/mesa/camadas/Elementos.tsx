@@ -2,7 +2,13 @@
 // Fase 3. Tokens e props, que se arrastam, ficam em Tokens.tsx e Props.tsx.
 import { memo } from 'react';
 import { Circle, Group, Layer, Line, Text } from 'react-konva';
-import type { PistaNaMesa, PistaParaJogador, SalaNaMesa } from '@membrana/shared';
+import type {
+  PistaNaMesa,
+  PistaParaJogador,
+  PoiNaMesa,
+  PoiParaJogador,
+  SalaNaMesa,
+} from '@membrana/shared';
 import { cores } from '../cores.ts';
 
 /* ---------- Salas (só o mestre recebe) ---------- */
@@ -66,6 +72,49 @@ export const CamadaDePistas = memo(function CamadaDePistas({
             {...(!pista.descoberta && { dash: [6, 4] })}
             opacity={oculta ? 0.55 : 1}
           />
+        );
+      })}
+    </Layer>
+  );
+});
+
+/* ---------- Pontos de interesse (#83) ---------- */
+
+function poiTudoDescoberto(poi: PoiNaMesa | PoiParaJogador): boolean {
+  if ('tudoDescoberto' in poi) return poi.tudoDescoberto;
+  return poi.informacoes.length > 0 && poi.informacoes.every((info) => info.descoberta === true);
+}
+
+export const CamadaDePois = memo(function CamadaDePois({
+  pois,
+  escala,
+}: {
+  pois: (PoiNaMesa | PoiParaJogador)[];
+  escala: number;
+}) {
+  const c = cores();
+  if (pois.length === 0) return null;
+  const inv = 1 / Math.max(0.1, escala);
+
+  return (
+    <Layer listening={false}>
+      {pois.map((poi) => {
+        const cor = poiTudoDescoberto(poi) ? c.green : c.red;
+        return (
+          <Group key={poi.id} x={poi.x} y={poi.y} scaleX={inv} scaleY={inv} listening={false}>
+            <Circle radius={13} fill={cor} stroke={c.bg} strokeWidth={2} listening={false} />
+            <Text
+              x={-13}
+              y={-6}
+              width={26}
+              align="center"
+              text={String(poi.numero)}
+              fill={c.white}
+              fontSize={12}
+              fontStyle="bold"
+              listening={false}
+            />
+          </Group>
         );
       })}
     </Layer>

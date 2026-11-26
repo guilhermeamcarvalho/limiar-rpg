@@ -781,3 +781,57 @@ describe('dados avulsos, testes da ficha e chat', () => {
     );
   });
 });
+
+describe('salas e pontos de interesse (#82, #83)', () => {
+  it('mestre cria, edita e apaga salas e pontos de interesse; jogador é recusado', () => {
+    const m = montar();
+    const area = [
+      { x: 10, y: 10 },
+      { x: 200, y: 10 },
+      { x: 200, y: 150 },
+      { x: 10, y: 150 },
+    ];
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'room.create', nome: 'Hall', area }))).toBe(
+      'Só o mestre mexe nas salas e pontos de interesse.',
+    );
+
+    const criada = eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'room.create',
+        nome: 'Recepção',
+        area,
+        notasMestre: 'Nota secreta',
+      }),
+    );
+    expect(criada).toMatchObject([
+      { type: 'room.updated', sala: { nome: 'Recepção', notasMestre: 'Nota secreta' } },
+    ]);
+    const salaId = m.mesa.estado.salas[0]?.id ?? '';
+
+    eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'poi.create',
+        salaId,
+        nome: 'Balcão',
+        x: 60,
+        y: 80,
+        contextoMestre: 'Chave escondida',
+      }),
+    );
+    expect(m.mesa.estado.pois).toMatchObject([
+      { numero: 1, salaId, nome: 'Balcão', contextoMestre: 'Chave escondida' },
+    ]);
+    const poiId = m.mesa.estado.pois[0]?.id ?? '';
+
+    eventos(m.mesa.aplicar(m.ana, { type: 'poi.update', poiId, nome: 'Mesa de som' }));
+    expect(m.mesa.estado.pois[0]?.nome).toBe('Mesa de som');
+
+    // Remover a sala desvincula os POIs dela sem apagá-los.
+    eventos(m.mesa.aplicar(m.ana, { type: 'room.delete', salaId }));
+    expect(m.mesa.estado.salas).toEqual([]);
+    expect(m.mesa.estado.pois[0]?.salaId).toBeNull();
+
+    eventos(m.mesa.aplicar(m.ana, { type: 'poi.delete', poiId }));
+    expect(m.mesa.estado.pois).toEqual([]);
+  });
+});

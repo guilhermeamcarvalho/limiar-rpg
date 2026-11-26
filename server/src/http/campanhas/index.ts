@@ -8,6 +8,7 @@ import { campaigns, gameSystems, memberships } from '../../db/schema.ts';
 import { exigirLogin, usuarioLogado } from '../auth/sessao.ts';
 import { inserirConvite } from '../convites/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
+import { rotaEscudo } from './escudo.ts';
 import { rotaExcluir } from './excluir.ts';
 import { rotaMeuPersonagem } from './meu-personagem.ts';
 import { rotaRegistro } from './registro.ts';
@@ -133,6 +134,7 @@ export const rotas: FastifyPluginAsync = (app) => {
   });
 
   rotaMeuPersonagem(app);
+  rotaEscudo(app);
   rotaExcluir(app);
   rotaRegistro(app);
 

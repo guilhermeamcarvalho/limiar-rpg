@@ -11,6 +11,7 @@ const NOMES = [
   'red-hi',
   'red',
   'gold',
+  'green',
   'npc',
   'av-red',
   'av-npc',

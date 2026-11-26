@@ -16,8 +16,10 @@ import {
   type PerfilOp2,
   type PericiaOp2,
   type PersonagemNaMesa,
+  type PoiNaMesa,
   type PropNaMesa,
   type RegistroDeTeste,
+  type SalaNaMesa,
   type TesteDaFicha,
   type TokenNaMesa,
 } from '@membrana/shared';
@@ -28,7 +30,9 @@ import {
   gameSystems,
   maps,
   memberships,
+  pois,
   props,
+  rooms,
   sessionLog,
   tableStates,
   testLog,
@@ -49,6 +53,8 @@ export interface ConteudoDoMapa {
   tokens: TokenNaMesa[];
   props: PropNaMesa[];
   breu: AreaDoBreu[];
+  salas: SalaNaMesa[];
+  pois: PoiNaMesa[];
 }
 
 type Transacao = Parameters<Parameters<Banco['transaction']>[0]>[0];
@@ -93,6 +99,35 @@ export function lerMapa(db: Banco, campanhaId: string, mapaId: string): Conteudo
     .where(eq(props.mapId, mapaId))
     .orderBy(asc(props.ordem), sql`"props"."rowid"`)
     .all();
+  const salasDoMapa = db
+    .select({
+      id: rooms.id,
+      nome: rooms.nome,
+      area: rooms.area,
+      notasMestre: rooms.notasMestre,
+    })
+    .from(rooms)
+    .where(eq(rooms.mapId, mapaId))
+    .orderBy(sql`"rooms"."rowid"`)
+    .all();
+  const poisDoMapa = db
+    .select({
+      id: pois.id,
+      salaId: pois.roomId,
+      numero: pois.numero,
+      nome: pois.nome,
+      descricao: pois.descricao,
+      x: pois.x,
+      y: pois.y,
+      pericias: pois.pericias,
+      informacoes: pois.informacoes,
+      desafio: pois.desafio,
+      contextoMestre: pois.contextoMestre,
+    })
+    .from(pois)
+    .where(eq(pois.mapId, mapaId))
+    .orderBy(asc(pois.numero), sql`"pois"."rowid"`)
+    .all();
   return {
     mapa: {
       id: linha.id,
@@ -105,6 +140,8 @@ export function lerMapa(db: Banco, campanhaId: string, mapaId: string): Conteudo
     tokens: tokensDoMapa,
     props: propsDoMapa,
     breu: linha.breu,
+    salas: salasDoMapa,
+    pois: poisDoMapa,
   };
 }
 
@@ -115,13 +152,15 @@ function semOMapa(salvo: Partial<EstadoDaMesa>): Partial<RestoDaMesa> {
   delete resto.tokens;
   delete resto.props;
   delete resto.breu;
+  delete resto.salas;
+  delete resto.pois;
   return resto;
 }
 
 /** O que vai para `table_states`: campo a campo, para um campo novo no estado não ficar de fora. */
 function restoDe(estado: EstadoDaMesa): RestoDaMesa {
-  const { nevoa, salas, pistas, comAlguem, rodada, trilha, guia, escudo } = estado;
-  return { nevoa, salas, pistas, comAlguem, rodada, trilha, guia, escudo };
+  const { nevoa, pistas, comAlguem, rodada, trilha, guia, escudo } = estado;
+  return { nevoa, pistas, comAlguem, rodada, trilha, guia, escudo };
 }
 
 export function lerEstadoSalvo(db: Banco, campanhaId: string): EstadoSalvo | null {
@@ -142,6 +181,8 @@ export function lerEstadoSalvo(db: Banco, campanhaId: string): EstadoSalvo | nul
       tokens: conteudo?.tokens ?? [],
       props: conteudo?.props ?? [],
       breu: conteudo?.breu ?? [],
+      salas: conteudo?.salas ?? [],
+      pois: conteudo?.pois ?? [],
     },
     seq: resto?.seq ?? 0,
   };
@@ -206,6 +247,43 @@ function escreverMapa(tx: Transacao, estado: EstadoDaMesa) {
   if (estado.props.length > 0) {
     tx.insert(props)
       .values(estado.props.map((p) => ({ ...p, mapId: mapa.id })))
+      .run();
+  }
+
+  tx.delete(pois).where(eq(pois.mapId, mapa.id)).run();
+  tx.delete(rooms).where(eq(rooms.mapId, mapa.id)).run();
+  if (estado.salas.length > 0) {
+    tx.insert(rooms)
+      .values(
+        estado.salas.map((s) => ({
+          id: s.id,
+          mapId: mapa.id,
+          nome: s.nome,
+          area: s.area,
+          notasMestre: s.notasMestre,
+        })),
+      )
+      .run();
+  }
+  if (estado.pois.length > 0) {
+    const idsDeSalas = new Set(estado.salas.map((s) => s.id));
+    tx.insert(pois)
+      .values(
+        estado.pois.map((p) => ({
+          id: p.id,
+          mapId: mapa.id,
+          roomId: p.salaId && idsDeSalas.has(p.salaId) ? p.salaId : null,
+          numero: p.numero,
+          nome: p.nome,
+          descricao: p.descricao,
+          x: p.x,
+          y: p.y,
+          pericias: p.pericias,
+          informacoes: p.informacoes,
+          desafio: p.desafio,
+          contextoMestre: p.contextoMestre,
+        })),
+      )
       .run();
   }
 }

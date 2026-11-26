@@ -114,6 +114,7 @@ const visao = (campos: Partial<VisaoDaMesa> = {}): VisaoDaMesa => ({
   props: [],
   breu: [],
   nevoa: 0,
+  pois: [],
   pistas: [],
   inventario: [],
   rodada: { numero: 3, agiram: [] },
@@ -1093,5 +1094,37 @@ describe('layout recolhível, painel do jogador e ordem da rodada', () => {
     expect(screen.getByRole('button', { name: 'Marcar um ponto para todos' })).toBeDefined();
     expect(screen.queryByRole('button', { name: 'Encerrar rodada' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Breu, ferramenta do mestre' })).toBeNull();
+  });
+
+  it('mestre: ferramentas Salas (S) e Pontos de interesse (I) criam salas e POIs (#82, #83)', async () => {
+    await naMesa(
+      visao({
+        papel: 'mestre',
+        salas: [{ id: 'rom_1', nome: 'Recepção', area: [{ x: 0, y: 0 }], notasMestre: '' }],
+        pois: [
+          {
+            id: 'poi_1',
+            salaId: 'rom_1',
+            numero: 1,
+            nome: 'Balcão',
+            descricao: '',
+            x: 100,
+            y: 120,
+            pericias: [],
+            informacoes: [],
+            desafio: null,
+            contextoMestre: '',
+          },
+        ],
+      }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Salas, ferramenta do mestre' }));
+    expect(await screen.findByDisplayValue('Recepção')).toBeDefined();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Pontos de interesse, ferramenta do mestre' }),
+    );
+    expect(await screen.findByText('Balcão')).toBeDefined();
   });
 });

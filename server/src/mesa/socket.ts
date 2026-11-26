@@ -186,6 +186,10 @@ export function ligarMesaAoVivo(app: FastifyInstance): ServidorDaMesa {
   const pararDeOuvir = app.mesa.ouvir((evento) => {
     const sala = salaDa(evento.campanhaId);
     if (!io.sockets.adapter.rooms.has(sala)) return;
+    if (evento.type === 'mesa.aplicados') {
+      transmitir(evento.campanhaId, evento.eventos, evento.antes, evento.depois);
+      return;
+    }
     // Com alguém na sala, a mesa já está em memória (a conexão a abriu).
     const mesa = app.mesas.existente(evento.campanhaId);
     if (!mesa) return;

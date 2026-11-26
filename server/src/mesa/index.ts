@@ -1,10 +1,24 @@
 // O canal por onde as rotas HTTP avisam a mesa ao vivo de uma mudança (como uma ficha editada).
 // O socket.ts ouve aqui e repassa para a sala da campanha, com número de sequência.
 // A mesa em si: Mesa.ts (estado e comandos), projecao.ts (o que cada um recebe), socket.ts.
-import type { EventoCasoExcluido, EventoPersonagemMudou } from '@membrana/shared';
+import type {
+  EstadoDaMesa,
+  EventoCasoExcluido,
+  EventoDaMesa as EventoDaMesaAoVivo,
+  EventoPersonagemMudou,
+} from '@membrana/shared';
 
 /** Eventos que nascem fora da mesa (numa rota HTTP) e vão para a sala de uma campanha. */
-export type EventoDaMesa = EventoPersonagemMudou | EventoCasoExcluido;
+export type EventoDaMesa =
+  | EventoPersonagemMudou
+  | EventoCasoExcluido
+  | {
+      type: 'mesa.aplicados';
+      campanhaId: string;
+      eventos: readonly EventoDaMesaAoVivo[];
+      antes: EstadoDaMesa;
+      depois: EstadoDaMesa;
+    };
 
 export type OuvinteDaMesa = (evento: EventoDaMesa) => void;
 

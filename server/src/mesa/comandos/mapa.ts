@@ -19,6 +19,8 @@ export const tratadoresDoMapa: Tratadores = {
     ctx.estado.tokens = conteudo.tokens;
     ctx.estado.props = conteudo.props;
     ctx.estado.breu = conteudo.breu;
+    ctx.estado.salas = conteudo.salas;
+    ctx.estado.pois = conteudo.pois;
     return [{ type: 'map.activated', mapa: conteudo.mapa }];
   },
 

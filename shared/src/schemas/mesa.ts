@@ -177,11 +177,70 @@ export const esquemaGrade = z
   .strict();
 const mapGrid = comando('map.grid', { grade: esquemaGrade });
 
+const roomCreate = comando('room.create', {
+  nome: nomeCurto,
+  area: z
+    .array(esquemaPonto)
+    .min(3, { error: 'Uma sala precisa de pelo menos 3 pontos.' })
+    .max(200, { error: 'No máximo 200 pontos.' }),
+  notasMestre: textoLongo.optional(),
+});
 const roomUpdate = comando('room.update', {
   salaId: id,
   nome: nomeCurto.optional(),
   notasMestre: textoLongo.optional(),
 }).refine(algumCampo('salaId'), NADA_PARA_MUDAR);
+const roomDelete = comando('room.delete', { salaId: id });
+
+export const esquemaPericiaDoPoi = z
+  .object({
+    periciaId: z.string().trim().min(1).max(40),
+    dt: z.int().min(1).max(30),
+  })
+  .strict();
+export const esquemaInformacaoDoPoi = z
+  .object({
+    id: z.string().trim().min(1).max(40),
+    nivel: z.int().min(1).max(30),
+    texto: textoLongo,
+    descoberta: z.boolean().optional(),
+  })
+  .strict();
+export const esquemaDesafioDoPoi = z
+  .object({
+    tipo: nomeCurto,
+    descricao: textoLongo,
+    dt: z.int().min(1).max(30).optional(),
+  })
+  .strict()
+  .nullable();
+
+const poiCreate = comando('poi.create', {
+  salaId: id.nullable().optional(),
+  numero: z.int().min(1).max(999).optional(),
+  nome: nomeCurto,
+  descricao: textoLongo.optional(),
+  x: coordenada,
+  y: coordenada,
+  pericias: z.array(esquemaPericiaDoPoi).max(20).optional(),
+  informacoes: z.array(esquemaInformacaoDoPoi).max(30).optional(),
+  desafio: esquemaDesafioDoPoi.optional(),
+  contextoMestre: textoLongo.optional(),
+});
+const poiUpdate = comando('poi.update', {
+  poiId: id,
+  salaId: id.nullable().optional(),
+  numero: z.int().min(1).max(999).optional(),
+  nome: nomeCurto.optional(),
+  descricao: textoLongo.optional(),
+  x: coordenada.optional(),
+  y: coordenada.optional(),
+  pericias: z.array(esquemaPericiaDoPoi).max(20).optional(),
+  informacoes: z.array(esquemaInformacaoDoPoi).max(30).optional(),
+  desafio: esquemaDesafioDoPoi.optional(),
+  contextoMestre: textoLongo.optional(),
+}).refine(algumCampo('poiId'), NADA_PARA_MUDAR);
+const poiDelete = comando('poi.delete', { poiId: id });
 
 // Pistas (Fase 3).
 const clueCreate = comando('clue.create', {
@@ -267,7 +326,12 @@ export const esquemaComando = z.discriminatedUnion(
     mistSet,
     mapActivate,
     mapGrid,
+    roomCreate,
     roomUpdate,
+    roomDelete,
+    poiCreate,
+    poiUpdate,
+    poiDelete,
     clueCreate,
     clueUpdate,
     clueDelete,
@@ -408,6 +472,36 @@ export interface SalaNaMesa {
   notasMestre: string;
 }
 
+export type PericiaDoPoi = z.infer<typeof esquemaPericiaDoPoi>;
+export type InformacaoDoPoi = z.infer<typeof esquemaInformacaoDoPoi>;
+export type DesafioDoPoi = z.infer<typeof esquemaDesafioDoPoi>;
+
+/** Ponto de interesse (tabela única `pois` na mesa e no escudo, #83). */
+export interface PoiNaMesa {
+  id: string;
+  salaId: string | null;
+  numero: number;
+  nome: string;
+  descricao: string;
+  x: number;
+  y: number;
+  pericias: PericiaDoPoi[];
+  informacoes: InformacaoDoPoi[];
+  desafio: DesafioDoPoi;
+  /** Nunca vai para o jogador. */
+  contextoMestre: string;
+}
+
+/** O que o jogador vê de um ponto de interesse no mapa (sem contextoMestre nem segredos). */
+export interface PoiParaJogador {
+  id: string;
+  numero: number;
+  nome: string;
+  x: number;
+  y: number;
+  tudoDescoberto: boolean;
+}
+
 /** Pista no mapa (Fase 3). */
 export interface PistaNaMesa {
   id: string;
@@ -455,6 +549,7 @@ export interface EstadoDaMesa {
   /** Névoa da Membrana, de 0 a 100: só visual, todos veem igual. */
   nevoa: number;
   salas: SalaNaMesa[];
+  pois: PoiNaMesa[];
   pistas: PistaNaMesa[];
   comAlguem: PistaComAlguem[];
   rodada: EstadoDaRodada;
@@ -472,6 +567,7 @@ export function estadoVazioDaMesa(): EstadoDaMesa {
     breu: [],
     nevoa: 0,
     salas: [],
+    pois: [],
     pistas: [],
     comAlguem: [],
     rodada: { numero: 1, agiram: [] },
@@ -503,6 +599,7 @@ export interface VisaoDaMesa {
   props: PropNaMesa[];
   breu: AreaDoBreu[];
   nevoa: number;
+  pois: (PoiNaMesa | PoiParaJogador)[];
   pistas: (PistaNaMesa | PistaParaJogador)[];
   inventario: ItemDoInventario[];
   rodada: EstadoDaRodada;
@@ -545,6 +642,7 @@ export type EventoDaMesaSemSeq =
   /** A grade do mapa ativo mudou. */
   | { type: 'map.changed'; mapa: MapaNaMesa }
   | { type: 'room.updated'; salaId: string; sala: SalaNaMesa | null }
+  | { type: 'poi.changed'; poiId: string; poi: PoiNaMesa | PoiParaJogador | null }
   | { type: 'clue.changed'; pistaId: string; pista: PistaNaMesa | PistaParaJogador | null }
   | { type: 'clue.received'; item: ItemDoInventario }
   | { type: 'clue.revoked'; pistaId: string; personagemId: string }
