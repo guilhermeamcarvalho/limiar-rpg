@@ -4,6 +4,7 @@ import type { Rng } from '@membrana/shared';
 import type { Banco } from '../db/index.ts';
 import { membrosDe } from '../http/campanhas/dados.ts';
 import {
+  casoUsaRodadas,
   donoDoPersonagemNoCaso,
   gravarEstado,
   gravarMapa,
@@ -111,6 +112,7 @@ export class Mesas {
       campanhaId,
       {
         membros: () => membrosDe(db, campanhaId),
+        rodadas: () => casoUsaRodadas(db, campanhaId),
         personagem: (personagemId) => donoDoPersonagemNoCaso(db, campanhaId, personagemId),
         grupo: () => personagensDoGrupo(db, campanhaId),
         mapa: (mapaId) => lerMapa(db, campanhaId, mapaId),

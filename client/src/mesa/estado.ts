@@ -182,7 +182,18 @@ export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNo
     case 'map.changed':
       return { ...mesa, seq, eventos, visao: { ...visao, mapa: evento.mapa } };
     case 'round.started':
-      return { ...mesa, seq, eventos, visao: { ...visao, rodada: { numero: evento.numero } } };
+      return {
+        ...mesa,
+        seq,
+        eventos,
+        visao: { ...visao, rodada: { numero: evento.numero, agiram: [] } },
+      };
+    case 'round.acted': {
+      const agiram = visao.rodada.agiram.includes(evento.userId)
+        ? visao.rodada.agiram
+        : [...visao.rodada.agiram, evento.userId];
+      return { ...mesa, seq, eventos, visao: { ...visao, rodada: { ...visao.rodada, agiram } } };
+    }
     case 'clue.changed':
       return {
         ...mesa,

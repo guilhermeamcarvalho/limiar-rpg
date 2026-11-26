@@ -338,6 +338,31 @@ describe('props, breu e rodada', () => {
     ]);
   });
 
+  it('uma ação por rodada: recusa a segunda ação do jogador e libera ao encerrar; sem rodadas, é livre', () => {
+    const m = montar();
+    expect(eventos(m.mesa.aplicar(m.bia, { type: 'poi.investigate', poiId: 'poi_1' }))).toEqual([
+      { type: 'round.acted', userId: m.bia.id, seq: 1 },
+    ]);
+    expect(m.mesa.estado.rodada.agiram).toEqual([m.bia.id]);
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'poi.investigate', poiId: 'poi_2' }))).toBe(
+      'Você já usou sua ação nesta rodada. Aguarde o mestre encerrar a rodada.',
+    );
+    // Outro jogador ainda pode agir; o mestre encerra e todos voltam a agir.
+    expect(eventos(m.mesa.aplicar(m.caio, { type: 'poi.investigate', poiId: 'poi_1' }))).toEqual([
+      { type: 'round.acted', userId: m.caio.id, seq: 2 },
+    ]);
+    eventos(m.mesa.aplicar(m.ana, { type: 'round.end' }));
+    expect(m.mesa.estado.rodada.agiram).toEqual([]);
+    expect(eventos(m.mesa.aplicar(m.bia, { type: 'poi.investigate', poiId: 'poi_2' }))).toEqual([
+      { type: 'round.acted', userId: m.bia.id, seq: 4 },
+    ]);
+
+    // Com a opção desligada no caso, não há limite de ações.
+    m.db.update(campaigns).set({ rodadas: false }).where(eq(campaigns.id, m.caso)).run();
+    expect(eventos(m.mesa.aplicar(m.bia, { type: 'poi.investigate', poiId: 'poi_3' }))).toEqual([]);
+    expect(eventos(m.mesa.aplicar(m.bia, { type: 'poi.investigate', poiId: 'poi_4' }))).toEqual([]);
+  });
+
   it('movimento não entra no registro da sessão', () => {
     const m = montar();
     criarToken(m);

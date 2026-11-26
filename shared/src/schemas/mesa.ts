@@ -437,6 +437,12 @@ export interface TrilhaTocando {
   iniciadaEm: string;
 }
 
+export interface EstadoDaRodada {
+  numero: number;
+  /** Ids dos usuários que já gastaram sua ação nesta rodada (quando `campaigns.rodadas` está ativo). */
+  agiram: string[];
+}
+
 /** O estado completo de uma mesa, como o servidor guarda. O mestre recebe tudo. */
 export interface EstadoDaMesa {
   mapa: MapaNaMesa | null;
@@ -448,7 +454,7 @@ export interface EstadoDaMesa {
   salas: SalaNaMesa[];
   pistas: PistaNaMesa[];
   comAlguem: PistaComAlguem[];
-  rodada: { numero: number };
+  rodada: EstadoDaRodada;
   trilha: TrilhaTocando | null;
   /** Guia de cena e notas do escudo (Fase 3): nunca vão para o jogador. */
   guia: string;
@@ -465,7 +471,7 @@ export function estadoVazioDaMesa(): EstadoDaMesa {
     salas: [],
     pistas: [],
     comAlguem: [],
-    rodada: { numero: 1 },
+    rodada: { numero: 1, agiram: [] },
     trilha: null,
     guia: '',
     escudo: '',
@@ -496,7 +502,7 @@ export interface VisaoDaMesa {
   nevoa: number;
   pistas: (PistaNaMesa | PistaParaJogador)[];
   inventario: ItemDoInventario[];
-  rodada: { numero: number };
+  rodada: EstadoDaRodada;
   trilha: TrilhaTocando | null;
   /** Só o mestre. */
   salas?: SalaNaMesa[];
@@ -562,7 +568,8 @@ export type EventoDaMesaSemSeq =
       /** ISO. */
       em: string;
     }
-  | { type: 'round.started'; numero: number };
+  | { type: 'round.started'; numero: number }
+  | { type: 'round.acted'; userId: string };
 
 /** Todo evento leva o número de sequência da mesa: chegam e se aplicam nessa ordem. */
 export type EventoDaMesa = EventoDaMesaSemSeq & { seq: number };

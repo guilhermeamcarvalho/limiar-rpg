@@ -1,7 +1,7 @@
 // /campanhas/:id/mesa: a mesa ao vivo (artboards "10 · Mesa" e "11 · Mesa-Mestre"). Tela cheia,
-// sem o cabeçalho comum. O palco com o mapa, o cartão de resultado no canto, as ferramentas e o
-// painel lateral com Chat e Registro (Acontecimentos). Por cima do palco, a névoa da Membrana no
-// nível escolhido pelo mestre. Os painéis recolhíveis e o painel esquerdo do jogador chegam no #74/#75.
+// sem o cabeçalho comum: cabeçalho compacto, painel esquerdo (Você / Ordem da rodada), palco com o
+// mapa, cartão de resultado no canto, barra de ferramentas em grupos, e painel direito recolhível
+// com Chat, Registro, Pistas e Itens. O estado recolhido dos painéis fica salvo no navegador.
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import {
@@ -9,11 +9,13 @@ import {
   type CampanhaDetalhe,
   type FormaDoBreu,
   type MapaNaMesa,
+  type Personagem,
   type RespostaDoRegistro,
   type VisaoDaMesa,
 } from '@membrana/shared';
 import { pedir } from '../../auth/api.ts';
 import { useMe } from '../../auth/sessao.tsx';
+import { linkDaCampanha } from '../../casos/formatos.ts';
 import type { Ponto } from '../../mesa/camera.ts';
 import { Chat, filtrarEventosDoChat } from '../../mesa/Chat.tsx';
 import { mesclarEventosRegistrados } from '../../mesa/estado.ts';
@@ -24,6 +26,7 @@ import { descreverNevoa, NevoaDaMembrana } from '../../mesa/NevoaDaMembrana.tsx'
 import type { PincelDoBreu } from '../../mesa/Breu.tsx';
 import { FerramentaDoBreu } from '../../mesa/painel/Breu.tsx';
 import { DadosETestes } from '../../mesa/painel/DadosETestes.tsx';
+import { Jogador } from '../../mesa/painel/Jogador.tsx';
 import { FerramentaDaNevoa } from '../../mesa/painel/Nevoa.tsx';
 import { NovoProp } from '../../mesa/painel/NovoProp.tsx';
 import { Npcs } from '../../mesa/painel/Npcs.tsx';
@@ -31,15 +34,20 @@ import { Palco } from '../../mesa/Palco.tsx';
 import { filtrarAcontecimentos, Registro } from '../../mesa/Registro.tsx';
 import { Resultado } from '../../mesa/Resultado.tsx';
 import { useMesaAoVivo, type SituacaoDaConexao } from '../../mesa/useMesaAoVivo.ts';
+import { linkDaFicha, primeiroNome } from '../../personagens/formatos.ts';
 import {
+  Async,
   Banner,
   Button,
   Chip,
   cx,
   EmptyState,
   Icon,
+  Note,
+  Skeleton,
   TabPanel,
   Tabs,
+  Tag,
   useCarga,
   useToast,
   type NomeDoIcone,
@@ -47,7 +55,36 @@ import {
 import './mesa.css';
 
 type Ferramenta = 'dados' | 'tokens' | 'props' | 'breu' | 'nevoa' | 'mapa';
-type AbaLateral = 'chat' | 'registro';
+type AbaLateral = 'chat' | 'registro' | 'pistas' | 'itens';
+
+interface PaineisSalvos {
+  esquerdo: boolean;
+  direito: boolean;
+}
+
+const CHAVE_PAINEIS = 'membrana:mesa-paineis';
+
+function lerPaineisSalvos(): PaineisSalvos {
+  try {
+    const bruto = localStorage.getItem(CHAVE_PAINEIS);
+    if (!bruto) return { esquerdo: true, direito: true };
+    const lido = JSON.parse(bruto) as Partial<PaineisSalvos>;
+    return {
+      esquerdo: typeof lido.esquerdo === 'boolean' ? lido.esquerdo : true,
+      direito: typeof lido.direito === 'boolean' ? lido.direito : true,
+    };
+  } catch {
+    return { esquerdo: true, direito: true };
+  }
+}
+
+function salvarPaineis(paineis: PaineisSalvos) {
+  try {
+    localStorage.setItem(CHAVE_PAINEIS, JSON.stringify(paineis));
+  } catch {
+    // Armazenamento indisponível não impede de usar a mesa.
+  }
+}
 
 interface DefinicaoDeFerramenta {
   id: Ferramenta;
@@ -126,6 +163,66 @@ function TextoDaSituacao({ situacao }: { situacao: SituacaoDaConexao }) {
   return <Chip status="off">Sem conexão</Chip>;
 }
 
+function AbaItens({ personagemId, versao }: { personagemId: string | null; versao: number }) {
+  const url = personagemId
+    ? `/api/personagens/${encodeURIComponent(personagemId)}#${String(versao)}`
+    : null;
+  const uso = useCarga(url, (signal) =>
+    pedir<{ personagem: Personagem }>(
+      `/api/personagens/${encodeURIComponent(personagemId ?? '')}`,
+      {
+        signal,
+      },
+    ).then((r) => r.personagem),
+  );
+
+  if (!personagemId) {
+    return (
+      <div className="registro-vazio">
+        <EmptyState icon={<Icon name="key" size="xl" />} title="Sem personagem em uso">
+          Escolha um personagem neste caso para ver os itens dele aqui.
+        </EmptyState>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mesa-aba-lista">
+      <Async
+        uso={uso}
+        falha="Os itens não carregaram."
+        esqueleto={
+          <div className="col">
+            <Skeleton />
+            <Skeleton width="70%" />
+          </div>
+        }
+        vazio={{
+          se: (p) => p.ficha.itens.length === 0,
+          mostrar: (
+            <EmptyState icon={<Icon name="key" size="xl" />} title="Nenhum item ainda">
+              Os itens adicionados na ficha aparecem aqui.
+            </EmptyState>
+          ),
+        }}
+      >
+        {(p) => (
+          <ul className="list">
+            {p.ficha.itens.map((item) => (
+              <li key={item.id} className="li">
+                <div className="col" style={{ gap: 2 }}>
+                  <b className="small">{item.nome}</b>
+                  {item.descricao && <span className="small muted">{item.descricao}</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Async>
+    </div>
+  );
+}
+
 function TelaFechada({
   icone,
   titulo,
@@ -167,6 +264,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const { mesa, situacao, enviar } = useMesaAoVivo(campanhaId);
   const [painel, setPainel] = useState<Ferramenta | null>(null);
   const [aba, setAba] = useState<AbaLateral>('chat');
+  const [paineis, setPaineis] = useState<PaineisSalvos>(lerPaineisSalvos);
+  const [esquerdaMovel, setEsquerdaMovel] = useState(false);
   const [conversaMovel, setConversaMovel] = useState(false);
   const [seqVistoChat, setSeqVistoChat] = useState<number | null>(null);
   const [seqVistoRegistro, setSeqVistoRegistro] = useState<number | null>(null);
@@ -220,6 +319,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const mestre = visao?.papel === 'mestre';
   const temMapa = Boolean(visao?.mapa);
   const meuId = sessao.estado === 'logado' ? sessao.usuario.id : '';
+  const rodadasAtivo = detalhe?.rodadas !== false;
+  const jaAgiuNaRodada = Boolean(visao?.rodada.agiram.includes(meuId));
 
   const maxSeqInicial = historico.eventos.at(-1)?.seq ?? 0;
   const baseChat = seqVistoChat ?? maxSeqInicial;
@@ -232,6 +333,14 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     aba === 'registro'
       ? 0
       : filtrarAcontecimentos(eventosRegistrados).filter((e) => e.seq > baseRegistro).length;
+
+  function alternarPainel(lado: keyof PaineisSalvos) {
+    setPaineis((atual) => {
+      const proximo = { ...atual, [lado]: !atual[lado] };
+      salvarPaineis(proximo);
+      return proximo;
+    });
+  }
 
   function trocarAba(nova: AbaLateral) {
     const topoSeq = eventosRegistrados.at(-1)?.seq ?? 0;
@@ -316,6 +425,12 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para trazer o grupo', text: r.motivo });
   }
 
+  async function encerrarRodada() {
+    const r = await enviar({ type: 'round.end' });
+    if (!r.ok)
+      avisos.show({ type: 'err', title: 'Não deu para encerrar a rodada', text: r.motivo });
+  }
+
   if (situacao.estado === 'excluido') {
     return (
       <TelaFechada icone="folder" titulo="Caso excluído">
@@ -336,7 +451,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const aberta = FERRAMENTAS.find(
     (f) => f.id === painel && (!f.soMestre || mestre) && (!f.comMapa || comMapa),
   );
-  const ferramentasVisiveis = FERRAMENTAS.filter((f) => !f.soMestre || mestre);
+  const ferramentasComuns = FERRAMENTAS.filter((f) => !f.soMestre);
+  const ferramentasDoMestre = mestre ? FERRAMENTAS.filter((f) => f.soMestre) : [];
   const mostrarBarra = Boolean(visao && (mestre || comMapa));
   const resultadoVisivel =
     mesa.ultimoTeste && mesa.ultimoTeste.seq > seqResultadoFechado
@@ -349,9 +465,46 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
         <Link className="btn ghost sm" to="/" aria-label="Voltar para a Central">
           <Icon name="back" size="sm" />
         </Link>
-        <h1 className="mesa-titulo">{nomeDoCaso ?? 'Mesa'}</h1>
-        {visao && <span className="small muted">Rodada {visao.rodada.numero}</span>}
+        <div className="col mesa-titulo-bloco">
+          <h1 className="mesa-titulo">{nomeDoCaso ?? 'Mesa'}</h1>
+          {visao && (
+            <div className="row mesa-subtitulo">
+              {mestre && <Tag tone="gold">Mestre</Tag>}
+              <span className="small muted">Rodada {visao.rodada.numero}</span>
+              {!mestre && rodadasAtivo && (
+                <span className="small muted">· {jaAgiuNaRodada ? 'ação usada' : 'sua vez'}</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {mestre && (
+          <Button
+            size="sm"
+            icon={<Icon name="flag" size="sm" />}
+            onClick={() => void encerrarRodada()}
+          >
+            Encerrar rodada
+          </Button>
+        )}
+
         <span className="grow" />
+
+        {visao && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mesa-botao-esquerda"
+            icon={<Icon name="user" size="sm" />}
+            aria-pressed={esquerdaMovel}
+            onClick={() => {
+              setEsquerdaMovel((abertaAgora) => !abertaAgora);
+              setConversaMovel(false);
+            }}
+          >
+            {mestre ? 'Grupo' : 'Você'}
+          </Button>
+        )}
         {visao && (
           <Button
             variant="ghost"
@@ -374,10 +527,23 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
             aria-pressed={conversaMovel}
             onClick={() => {
               setConversaMovel((abertaAgora) => !abertaAgora);
+              setEsquerdaMovel(false);
             }}
           >
             Chat
           </Button>
+        )}
+        {mestre && (
+          <Link className="btn sm mesa-link-topo" to={linkDaCampanha(campanhaId, 'escudo')}>
+            <Icon name="shield" size="sm" />
+            Escudo
+          </Link>
+        )}
+        {!mestre && detalhe?.meuPersonagem && (
+          <Link className="btn sm mesa-link-topo" to={linkDaFicha(detalhe.meuPersonagem.id)}>
+            <Icon name="user" size="sm" />
+            Ficha de {primeiroNome(detalhe.meuPersonagem.nome) || detalhe.meuPersonagem.nome}
+          </Link>
         )}
         {mesa.online.length > 0 && (
           <span
@@ -395,6 +561,98 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       )}
 
       <div className="mesa-corpo">
+        {visao &&
+          (paineis.esquerdo ? (
+            <aside
+              className={cx('pnl mesa-esquerda', esquerdaMovel && 'aberta')}
+              aria-label={mestre ? 'Grupo e ordem' : 'Você e o grupo'}
+            >
+              <div className="pnl-h">
+                <span className="lab">{mestre ? 'Grupo' : 'Você'}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon name="back" size="sm" />}
+                  aria-label="Recolher painel esquerdo"
+                  onClick={() => {
+                    alternarPainel('esquerdo');
+                    setEsquerdaMovel(false);
+                  }}
+                />
+              </div>
+              <div className="pnl-b">
+                <Jogador
+                  papel={visao.papel}
+                  meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
+                  versaoPersonagens={mesa.versaoPersonagens}
+                  dtPadrao={detalhe?.dtPadrao}
+                  rodadas={rodadasAtivo}
+                  rodada={visao.rodada}
+                  membros={detalhe?.membros ?? []}
+                  personagens={personagens}
+                  online={mesa.online}
+                  enviar={enviar}
+                  aoAbrirDadosAvulsos={() => {
+                    setPainel('dados');
+                    setEsquerdaMovel(false);
+                  }}
+                />
+              </div>
+            </aside>
+          ) : (
+            <>
+              <div className="pnl-tg">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon name="next" size="sm" />}
+                  aria-label="Expandir painel esquerdo"
+                  title="Expandir painel esquerdo"
+                  onClick={() => {
+                    alternarPainel('esquerdo');
+                  }}
+                />
+              </div>
+              {esquerdaMovel && (
+                <aside
+                  className="pnl mesa-esquerda aberta"
+                  aria-label={mestre ? 'Grupo e ordem' : 'Você e o grupo'}
+                >
+                  <div className="pnl-h">
+                    <span className="lab">{mestre ? 'Grupo' : 'Você'}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Icon name="close" size="sm" />}
+                      aria-label="Fechar painel esquerdo"
+                      onClick={() => {
+                        setEsquerdaMovel(false);
+                      }}
+                    />
+                  </div>
+                  <div className="pnl-b">
+                    <Jogador
+                      papel={visao.papel}
+                      meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
+                      versaoPersonagens={mesa.versaoPersonagens}
+                      dtPadrao={detalhe?.dtPadrao}
+                      rodadas={rodadasAtivo}
+                      rodada={visao.rodada}
+                      membros={detalhe?.membros ?? []}
+                      personagens={personagens}
+                      online={mesa.online}
+                      enviar={enviar}
+                      aoAbrirDadosAvulsos={() => {
+                        setPainel('dados');
+                        setEsquerdaMovel(false);
+                      }}
+                    />
+                  </div>
+                </aside>
+              )}
+            </>
+          ))}
+
         <section
           className="mesa-palco"
           aria-label={mestre ? 'Mapa na visão do mestre' : 'Mapa'}
@@ -491,11 +749,28 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               role="toolbar"
               aria-label={mestre ? 'Ferramentas' : 'Ferramentas do jogador'}
             >
-              {ferramentasVisiveis.map((f) => (
+              {ferramentasComuns.map((f) => (
                 <button
                   key={f.id}
                   type="button"
-                  className={cx('tbtn', f.soMestre && 'gm', painel === f.id && 'on')}
+                  className={cx('tbtn', painel === f.id && 'on')}
+                  aria-pressed={painel === f.id}
+                  aria-label={f.rotulo}
+                  title={`${f.titulo} (${f.tecla.toUpperCase()})`}
+                  disabled={f.comMapa && !comMapa}
+                  onClick={() => {
+                    setPainel((agora) => (agora === f.id ? null : f.id));
+                  }}
+                >
+                  <Icon name={f.icone} />
+                </button>
+              ))}
+              {ferramentasDoMestre.length > 0 && <span className="sep" aria-hidden="true" />}
+              {ferramentasDoMestre.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className={cx('tbtn gm', painel === f.id && 'on')}
                   aria-pressed={painel === f.id}
                   aria-label={f.rotulo}
                   title={`${f.titulo} (${f.tecla.toUpperCase()})`}
@@ -573,52 +848,216 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           )}
         </section>
 
-        {visao && (
-          <aside
-            className={cx('mesa-lateral', conversaMovel && 'aberta')}
-            aria-label="Chat e registros"
-          >
-            <Tabs
-              idBase={idAbas}
-              label="Conversa e registro da sessão"
-              dense
-              value={aba}
-              onChange={trocarAba}
-              items={[
-                {
-                  id: 'chat',
-                  label: 'Chat',
-                  ...(novosNoChat > 0 && { count: novosNoChat, isNew: true }),
-                },
-                {
-                  id: 'registro',
-                  label: 'Registro',
-                  ...(novosNoRegistro > 0 && { count: novosNoRegistro, isNew: true }),
-                },
-              ]}
-            />
-            <TabPanel idBase={idAbas} id={aba} className="mesa-aba-corpo">
-              {aba === 'chat' ? (
-                <Chat
-                  eventos={eventosRegistrados}
-                  meuId={meuId}
-                  papel={visao.papel}
-                  membros={detalhe?.membros ?? []}
-                  personagens={personagens}
-                  meuPersonagemNome={detalhe?.meuPersonagem?.nome ?? null}
-                  enviar={enviar}
+        {visao &&
+          (paineis.direito ? (
+            <aside
+              className={cx('pnl r mesa-lateral', conversaMovel && 'aberta')}
+              aria-label="Chat e registros"
+            >
+              <div className="mesa-lateral-topo">
+                <Tabs
+                  idBase={idAbas}
+                  label="Conversa e registro da sessão"
+                  dense
+                  value={aba}
+                  onChange={trocarAba}
+                  items={[
+                    {
+                      id: 'chat',
+                      label: 'Chat',
+                      ...(novosNoChat > 0 && { count: novosNoChat, isNew: true }),
+                    },
+                    {
+                      id: 'registro',
+                      label: 'Registro',
+                      ...(novosNoRegistro > 0 && { count: novosNoRegistro, isNew: true }),
+                    },
+                    {
+                      id: 'pistas',
+                      label: 'Pistas',
+                      ...(visao.inventario.length > 0 && { count: visao.inventario.length }),
+                    },
+                    { id: 'itens', label: 'Itens' },
+                  ]}
                 />
-              ) : (
-                <Registro
-                  eventos={eventosRegistrados}
-                  papel={visao.papel}
-                  membros={detalhe?.membros ?? []}
-                  personagens={personagens}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon name="next" size="sm" />}
+                  aria-label="Recolher painel direito"
+                  onClick={() => {
+                    alternarPainel('direito');
+                    setConversaMovel(false);
+                  }}
                 />
+              </div>
+              <TabPanel idBase={idAbas} id={aba} className="mesa-aba-corpo">
+                {aba === 'chat' && (
+                  <Chat
+                    eventos={eventosRegistrados}
+                    meuId={meuId}
+                    papel={visao.papel}
+                    membros={detalhe?.membros ?? []}
+                    personagens={personagens}
+                    meuPersonagemNome={detalhe?.meuPersonagem?.nome ?? null}
+                    enviar={enviar}
+                  />
+                )}
+                {aba === 'registro' && (
+                  <Registro
+                    eventos={eventosRegistrados}
+                    papel={visao.papel}
+                    membros={detalhe?.membros ?? []}
+                    personagens={personagens}
+                  />
+                )}
+                {aba === 'pistas' && (
+                  <div className="mesa-aba-lista">
+                    {visao.inventario.length === 0 ? (
+                      <div className="registro-vazio">
+                        <EmptyState
+                          icon={<Icon name="clue" size="xl" />}
+                          title="Nenhuma pista ainda"
+                        >
+                          Pistas recebidas ou apresentadas aparecem aqui.
+                        </EmptyState>
+                      </div>
+                    ) : (
+                      <div className="col" style={{ gap: 10 }}>
+                        {visao.inventario.map((item) => (
+                          <Note key={`${item.pistaId}-${item.personagemId}`}>
+                            <b>{item.titulo}</b>
+                            <br />
+                            {item.texto}
+                          </Note>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {aba === 'itens' && (
+                  <AbaItens
+                    personagemId={detalhe?.meuPersonagem?.id ?? null}
+                    versao={
+                      detalhe?.meuPersonagem
+                        ? (mesa.versaoPersonagens[detalhe.meuPersonagem.id] ?? 0)
+                        : 0
+                    }
+                  />
+                )}
+              </TabPanel>
+            </aside>
+          ) : (
+            <>
+              <div className="pnl-tg r">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={<Icon name="back" size="sm" />}
+                  aria-label="Expandir painel direito"
+                  title="Expandir painel direito"
+                  onClick={() => {
+                    alternarPainel('direito');
+                  }}
+                />
+              </div>
+              {conversaMovel && (
+                <aside className="pnl r mesa-lateral aberta" aria-label="Chat e registros">
+                  <div className="mesa-lateral-topo">
+                    <Tabs
+                      idBase={idAbas}
+                      label="Conversa e registro da sessão"
+                      dense
+                      value={aba}
+                      onChange={trocarAba}
+                      items={[
+                        {
+                          id: 'chat',
+                          label: 'Chat',
+                          ...(novosNoChat > 0 && { count: novosNoChat, isNew: true }),
+                        },
+                        {
+                          id: 'registro',
+                          label: 'Registro',
+                          ...(novosNoRegistro > 0 && { count: novosNoRegistro, isNew: true }),
+                        },
+                        {
+                          id: 'pistas',
+                          label: 'Pistas',
+                          ...(visao.inventario.length > 0 && { count: visao.inventario.length }),
+                        },
+                        { id: 'itens', label: 'Itens' },
+                      ]}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={<Icon name="close" size="sm" />}
+                      aria-label="Fechar painel direito"
+                      onClick={() => {
+                        setConversaMovel(false);
+                      }}
+                    />
+                  </div>
+                  <TabPanel idBase={idAbas} id={aba} className="mesa-aba-corpo">
+                    {aba === 'chat' && (
+                      <Chat
+                        eventos={eventosRegistrados}
+                        meuId={meuId}
+                        papel={visao.papel}
+                        membros={detalhe?.membros ?? []}
+                        personagens={personagens}
+                        meuPersonagemNome={detalhe?.meuPersonagem?.nome ?? null}
+                        enviar={enviar}
+                      />
+                    )}
+                    {aba === 'registro' && (
+                      <Registro
+                        eventos={eventosRegistrados}
+                        papel={visao.papel}
+                        membros={detalhe?.membros ?? []}
+                        personagens={personagens}
+                      />
+                    )}
+                    {aba === 'pistas' && (
+                      <div className="mesa-aba-lista">
+                        {visao.inventario.length === 0 ? (
+                          <div className="registro-vazio">
+                            <EmptyState
+                              icon={<Icon name="clue" size="xl" />}
+                              title="Nenhuma pista ainda"
+                            >
+                              Pistas recebidas ou apresentadas aparecem aqui.
+                            </EmptyState>
+                          </div>
+                        ) : (
+                          <div className="col" style={{ gap: 10 }}>
+                            {visao.inventario.map((item) => (
+                              <Note key={`${item.pistaId}-${item.personagemId}`}>
+                                <b>{item.titulo}</b>
+                                <br />
+                                {item.texto}
+                              </Note>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {aba === 'itens' && (
+                      <AbaItens
+                        personagemId={detalhe?.meuPersonagem?.id ?? null}
+                        versao={
+                          detalhe?.meuPersonagem
+                            ? (mesa.versaoPersonagens[detalhe.meuPersonagem.id] ?? 0)
+                            : 0
+                        }
+                      />
+                    )}
+                  </TabPanel>
+                </aside>
               )}
-            </TabPanel>
-          </aside>
-        )}
+            </>
+          ))}
       </div>
     </div>
   );

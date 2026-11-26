@@ -17,8 +17,13 @@
   background: var(--panel);
 }
 
-.mesa-titulo {
+.mesa-titulo-bloco {
   flex: 0 1 auto;
+  gap: 0;
+  min-width: 0;
+}
+
+.mesa-titulo {
   min-width: 0;
   margin: 0;
   overflow: hidden;
@@ -27,8 +32,14 @@
   white-space: nowrap;
 }
 
+.mesa-subtitulo {
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+
 /* Rodada, quantos estão na mesa e a conexão: sempre numa linha; o título é que encolhe. */
-.mesa-topo > :not(.mesa-titulo, .grow) {
+.mesa-topo > :not(.mesa-titulo-bloco, .grow) {
   flex: none;
   white-space: nowrap;
 }
@@ -46,6 +57,7 @@
   min-height: 0;
 }
 
+.mesa-botao-esquerda,
 .mesa-botao-chat {
   display: none;
 }
@@ -96,6 +108,14 @@
   border: 1px solid var(--line-2);
   background: var(--panel-glass);
   box-shadow: var(--shadow-md);
+}
+
+/* Separador entre grupos da barra de ferramentas. */
+.mesa .tool .sep {
+  width: 1px;
+  height: 24px;
+  margin: 0 2px;
+  background: var(--line-2);
 }
 
 .mesa .zoom {
@@ -417,19 +437,79 @@
   align-items: center;
 }
 
-/* Painel lateral direito: Chat e Registro (artboard 10). */
-.mesa-lateral {
+/* Painéis esquerdo e direito recolhíveis (artboards 10 e 11). */
+.pnl {
   display: flex;
   flex: none;
   flex-direction: column;
-  width: 360px;
+  width: 300px;
   min-height: 0;
-  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
   background: var(--panel);
 }
 
-.mesa-lateral .tabs {
-  padding: 0 6px;
+.pnl.r {
+  width: 360px;
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}
+
+.pnl-h {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pnl-b {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+
+.pnl-tg {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  padding-top: 8px;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.pnl-tg.r {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}
+
+.mesa-lateral-topo {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding-right: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.mesa-lateral-topo .tabs {
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+  border-bottom: 0;
+  overflow: hidden;
+}
+
+.mesa-lateral-topo .tabs button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 6px;
 }
 
 .mesa-aba-corpo {
@@ -440,13 +520,37 @@
   outline: none;
 }
 
+.mesa-aba-lista {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 14px;
+  overflow-y: auto;
+}
+
 @media (width <= 860px) {
+  .mesa-botao-esquerda,
   .mesa-botao-chat {
     display: inline-flex;
   }
 
+  .mesa-link-topo,
+  .pnl-tg,
+  .mesa-esquerda,
   .mesa-lateral {
     display: none;
+  }
+
+  .mesa-esquerda.aberta {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 8;
+    display: flex;
+    width: min(320px, 100%);
+    box-shadow: var(--shadow-lg);
   }
 
   .mesa-lateral.aberta {
@@ -459,6 +563,37 @@
     width: min(360px, 100%);
     box-shadow: var(--shadow-lg);
   }
+}
+
+/* Painel esquerdo do jogador e Ordem da rodada (#75 e #73). */
+.jogador-painel,
+.jogador-ficha,
+.jogador-secao,
+.jogador-rapidos {
+  gap: 10px;
+}
+
+.jogador-cabeca {
+  gap: 12px;
+}
+
+.jogador-nome {
+  gap: 2px;
+  min-width: 0;
+}
+
+.jogador-ordem-item {
+  min-height: 40px;
+  padding: 6px 10px;
+}
+
+.jogador-ordem-item.ausente {
+  opacity: 0.55;
+}
+
+.jogador-agiu {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* Chat da sessão: conversa, narração em Special Elite, sussurro e resultados. */

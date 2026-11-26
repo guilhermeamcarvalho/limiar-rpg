@@ -35,7 +35,7 @@ const visao = (campos: Partial<VisaoDaMesa> = {}): VisaoDaMesa => ({
   nevoa: 0,
   pistas: [],
   inventario: [],
-  rodada: { numero: 1 },
+  rodada: { numero: 1, agiram: [] },
   trilha: null,
   ...campos,
 });
@@ -136,9 +136,16 @@ describe('aplicarEvento', () => {
     );
     expect(mesa.visao?.breu).toEqual([area]);
     expect(mesa.visao?.mapa?.grade).toEqual(grade);
-    expect(mesa.visao?.rodada).toEqual({ numero: 2 });
+    expect(mesa.visao?.rodada).toEqual({ numero: 2, agiram: [] });
     expect(mesa.online).toEqual(online);
     expect(mesa.seq).toBe(9);
+  });
+
+  it('round.acted marca quem agiu e round.started zera a lista', () => {
+    let mesa = aplicar(comEstado(), { type: 'round.acted', userId: 'usr_bia', seq: 6 });
+    expect(mesa.visao?.rodada).toEqual({ numero: 1, agiram: ['usr_bia'] });
+    mesa = aplicar(mesa, { type: 'round.started', numero: 2, seq: 7 });
+    expect(mesa.visao?.rodada).toEqual({ numero: 2, agiram: [] });
   });
 
   it('névoa da Membrana: o nível novo substitui o anterior', () => {

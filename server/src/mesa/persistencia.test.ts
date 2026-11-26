@@ -266,7 +266,7 @@ describe('o mapa ativo nas tabelas dele', () => {
       .run();
     const recuperada = new Mesas(m.db).obter(m.caso);
     expect(recuperada.estado.tokens).toEqual([]);
-    expect(recuperada.estado.rodada).toEqual({ numero: 4 });
+    expect(recuperada.estado.rodada).toEqual({ numero: 4, agiram: [] });
     expect(recuperada.estado.mapa?.id).toBe(m.mapa.id);
     m.sqlite.close();
   });
