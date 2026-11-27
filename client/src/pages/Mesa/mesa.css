@@ -892,9 +892,43 @@
   min-height: 0;
 }
 
-.registro-filtros {
+.registro-topo {
+  gap: 8px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--line);
+}
+
+.registro-filtros {
+  padding: 0;
+  border-bottom: 0;
+}
+
+.chat-barra {
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.chat-carregar-mais,
+.registro-carregar-mais {
+  align-self: center;
+  padding: 5px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.chat-carregar-mais:hover,
+.registro-carregar-mais:hover {
+  color: var(--text);
+}
+
+.registro-mais {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
 }
 
 .registro-vazio {

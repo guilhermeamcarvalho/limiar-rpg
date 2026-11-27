@@ -9,7 +9,6 @@ import {
   type CampanhaDetalhe,
   type FormaDoBreu,
   type MapaNaMesa,
-  type Personagem,
   type PoiNaMesa,
   type RespostaDoRegistro,
   type VisaoDaMesa,
@@ -24,6 +23,7 @@ import { enviarImagemDaMesa, nomeDoArquivoSemExtensao } from '../../mesa/imagens
 import { dentroDoMapa } from '../../mesa/interacao.ts';
 import { AbaPistasNaMesa, CartaoPista } from '../../mesa/CartaoPista.tsx';
 import { CartaoPoi } from '../../mesa/CartaoPoi.tsx';
+import { AbaItens } from '../../mesa/Inventario.tsx';
 import { MapaUpload } from '../../mesa/MapaUpload.tsx';
 import type { ModoDoPalco } from '../../mesa/medicao.ts';
 import { descreverNevoa, NevoaDaMembrana } from '../../mesa/NevoaDaMembrana.tsx';
@@ -44,13 +44,11 @@ import { useMesaAoVivo, type SituacaoDaConexao } from '../../mesa/useMesaAoVivo.
 import { EditorPoi } from '../../mestre/EditorPoi.tsx';
 import { linkDaFicha, primeiroNome } from '../../personagens/formatos.ts';
 import {
-  Async,
   Button,
   Chip,
   cx,
   EmptyState,
   Icon,
-  Skeleton,
   TabPanel,
   Tabs,
   RevelacaoDoDado,
@@ -211,66 +209,6 @@ function TextoDaSituacao({ situacao }: { situacao: SituacaoDaConexao }) {
   if (situacao.estado === 'conectada') return <Chip status="online">Ao vivo</Chip>;
   if (situacao.estado === 'conectando') return <Chip status="away">Conectando…</Chip>;
   return <Chip status="off">Sem conexão</Chip>;
-}
-
-function AbaItens({ personagemId, versao }: { personagemId: string | null; versao: number }) {
-  const url = personagemId
-    ? `/api/personagens/${encodeURIComponent(personagemId)}#${String(versao)}`
-    : null;
-  const uso = useCarga(url, (signal) =>
-    pedir<{ personagem: Personagem }>(
-      `/api/personagens/${encodeURIComponent(personagemId ?? '')}`,
-      {
-        signal,
-      },
-    ).then((r) => r.personagem),
-  );
-
-  if (!personagemId) {
-    return (
-      <div className="registro-vazio">
-        <EmptyState icon={<Icon name="key" size="xl" />} title="Sem personagem em uso">
-          Escolha um personagem neste caso para ver os itens dele aqui.
-        </EmptyState>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mesa-aba-lista">
-      <Async
-        uso={uso}
-        falha="Os itens não carregaram."
-        esqueleto={
-          <div className="col">
-            <Skeleton />
-            <Skeleton width="70%" />
-          </div>
-        }
-        vazio={{
-          se: (p) => p.ficha.itens.length === 0,
-          mostrar: (
-            <EmptyState icon={<Icon name="key" size="xl" />} title="Nenhum item ainda">
-              Os itens adicionados na ficha aparecem aqui.
-            </EmptyState>
-          ),
-        }}
-      >
-        {(p) => (
-          <ul className="list">
-            {p.ficha.itens.map((item) => (
-              <li key={item.id} className="li">
-                <div className="col" style={{ gap: 2 }}>
-                  <b className="small">{item.nome}</b>
-                  {item.descricao && <span className="small muted">{item.descricao}</span>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Async>
-    </div>
-  );
 }
 
 function TelaFechada({

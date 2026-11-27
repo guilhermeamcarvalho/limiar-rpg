@@ -1355,3 +1355,80 @@ describe('pistas na mesa (#87, #88, #89)', () => {
     expect(await screen.findByText(/compartilhou uma pista/)).toBeDefined();
   });
 });
+
+describe('inventário na mesa (#90)', () => {
+  it('aba Itens mostra espaços ocupados e aviso quando passa do limite', async () => {
+    const davi = personagem(
+      { id: 'chr_davi' },
+      {
+        nome: 'Davi Marins',
+        atributos: { fisico: 'd4', mente: 'd8', emocao: 'd8' },
+        itens: [
+          { id: 'itm_1', nome: 'Lanterna tática', descricao: 'Ilumina até 15 m.' },
+          { id: 'itm_2', nome: 'Caderno', descricao: '' },
+          { id: 'itm_3', nome: 'Câmera', descricao: '' },
+          { id: 'itm_4', nome: 'Gravador', descricao: '' },
+          { id: 'itm_5', nome: 'Canivete', descricao: '' },
+        ],
+      },
+    );
+    await naMesa(visao(), {
+      'GET /api/campanhas/cmp_1': json(200, {
+        campanha: detalhe({ meuPersonagem: { id: 'chr_davi', nome: 'Davi Marins' } }),
+      }),
+      'GET /api/personagens/chr_davi': json(200, { personagem: davi }),
+    });
+
+    fireEvent.click(await screen.findByRole('tab', { name: 'Itens' }));
+    expect(await screen.findByText('Lanterna tática')).toBeDefined();
+    expect(screen.getByText('5 / 4 espaços')).toBeDefined();
+    expect(screen.getByRole('meter', { name: 'Espaços de itens ocupados' })).toBeDefined();
+    expect(screen.getByText(/Inventário acima do limite \(5 de 4 espaços\)/)).toBeDefined();
+  });
+
+  it('aba Pistas mostra filtros Todas, Minhas e Do grupo e filtra corretamente', async () => {
+    await naMesa(
+      visao({
+        inventario: [
+          {
+            pistaId: 'pst_1',
+            personagemId: 'chr_davi',
+            apresentada: false,
+            em: '2026-11-27T10:00:00.000Z',
+            titulo: 'Chave enferrujada',
+            texto: 'Abre o porão.',
+          },
+          {
+            pistaId: 'pst_2',
+            personagemId: 'chr_bia',
+            apresentada: true,
+            em: '2026-11-27T10:01:00.000Z',
+            titulo: 'Recorte de jornal',
+            texto: 'Fala do incêndio.',
+          },
+        ],
+      }),
+      {
+        'GET /api/campanhas/cmp_1': json(200, {
+          campanha: detalhe({ meuPersonagem: { id: 'chr_davi', nome: 'Davi Marins' } }),
+        }),
+      },
+    );
+
+    fireEvent.click(await screen.findByRole('tab', { name: /Pistas/ }));
+    expect(await screen.findByText('Chave enferrujada')).toBeDefined();
+    expect(screen.getByText('Recorte de jornal')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Minhas' }));
+    expect(screen.getByText('Chave enferrujada')).toBeDefined();
+    expect(screen.queryByText('Recorte de jornal')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Do grupo' }));
+    expect(screen.queryByText('Chave enferrujada')).toBeNull();
+    expect(screen.getByText('Recorte de jornal')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Todas' }));
+    expect(screen.getByText('Chave enferrujada')).toBeDefined();
+    expect(screen.getByText('Recorte de jornal')).toBeDefined();
+  });
+});

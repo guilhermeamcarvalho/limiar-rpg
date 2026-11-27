@@ -250,7 +250,7 @@ export function AbaPistasNaMesa({
   const termo = busca.trim().toLowerCase();
   const visiveis = inventario.filter((item) => {
     if (filtro === 'apresentadas' && !item.apresentada) return false;
-    if (filtro === 'minhas' && (item.apresentada || item.personagemId !== meuPersonagemId)) {
+    if (filtro === 'minhas' && item.personagemId !== meuPersonagemId) {
       return false;
     }
     if (!termo) return true;
@@ -260,22 +260,24 @@ export function AbaPistasNaMesa({
   return (
     <div className="mesa-aba-lista">
       <div className="col" style={{ gap: 10 }}>
-        {inventario.length > 2 && (
+        {inventario.length > 0 && (
           <div className="col" style={{ gap: 6 }}>
-            <Input
-              aria-label="Buscar pista no inventário"
-              placeholder="Buscar pista…"
-              value={busca}
-              onChange={(e) => {
-                setBusca(e.target.value);
-              }}
-            />
-            <div className="prontos-categorias">
+            {inventario.length > 2 && (
+              <Input
+                aria-label="Buscar pista no inventário"
+                placeholder="Buscar pista…"
+                value={busca}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                }}
+              />
+            )}
+            <div className="prontos-categorias" role="group" aria-label="Filtrar pistas">
               {(
                 [
                   { id: 'todas', rotulo: 'Todas' },
-                  { id: 'minhas', rotulo: 'Só comigo' },
-                  { id: 'apresentadas', rotulo: 'Apresentadas' },
+                  { id: 'minhas', rotulo: 'Minhas' },
+                  { id: 'apresentadas', rotulo: 'Do grupo' },
                 ] as const
               ).map((f) => (
                 <button

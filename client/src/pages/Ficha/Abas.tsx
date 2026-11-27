@@ -59,7 +59,7 @@ export function novoIdDeItem(existentes: readonly ItemDaFicha[], semente: number
 }
 
 /** O máximo de itens que a ficha guarda (o schema recusa mais). */
-const MAX_ITENS = 100;
+export const MAX_ITENS = 100;
 
 function Itens({
   ficha,

@@ -292,3 +292,13 @@
     font-size: 26px;
   }
 }
+
+.arq-levar-bloco {
+  margin-top: var(--s4);
+  padding-top: var(--s4);
+  border-top: 1px dashed var(--line-2);
+}
+
+.arq-levar {
+  gap: var(--s2);
+}

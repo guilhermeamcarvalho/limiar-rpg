@@ -9,8 +9,19 @@ import {
   type Papel,
   type PersonagemNaMesa,
 } from '@membrana/shared';
-import { cx, EmptyState, Icon, Note, textoDoVeredito, type NomeDoIcone } from '../ui/index.ts';
+import {
+  cx,
+  EmptyState,
+  Icon,
+  Input,
+  Note,
+  textoDoVeredito,
+  type NomeDoIcone,
+} from '../ui/index.ts';
 import { ImagemDaPista } from './ImagemDaPista.tsx';
+
+/** Quantos acontecimentos são exibidos inicialmente no registro; o restante carrega sob demanda. */
+export const LOTE_DO_REGISTRO = 40;
 
 export type FiltroDoRegistro = 'todos' | 'testes' | 'pistas' | 'cenas' | 'trilha';
 
@@ -108,42 +119,108 @@ export interface RegistroProps {
 
 export function Registro({ eventos, papel, membros, personagens }: RegistroProps) {
   const [filtro, setFiltro] = useState<FiltroDoRegistro>('todos');
-  const itens = filtrarAcontecimentos(eventos, filtro);
+  const [busca, setBusca] = useState('');
+  const [limite, setLimite] = useState(LOTE_DO_REGISTRO);
+
+  const todos = filtrarAcontecimentos(eventos, 'todos');
+  const porTipo = filtrarAcontecimentos(eventos, filtro);
 
   const nomesDeUsuarios = Object.fromEntries(membros.map((m) => [m.id, m.nome]));
   const nomesDePersonagens = Object.fromEntries(personagens.map((p) => [p.id, p.nome]));
 
+  const termo = busca.trim().toLowerCase();
+  const filtrados = termo
+    ? porTipo.filter((item) => {
+        switch (item.type) {
+          case 'test.resolved': {
+            const quem =
+              item.registro.personagemNome ??
+              nomesDePersonagens[item.registro.personagemId] ??
+              item.registro.autor?.nome ??
+              '';
+            return (
+              quem.toLowerCase().includes(termo) ||
+              nomeDaPericia(item.registro.periciaId).toLowerCase().includes(termo) ||
+              item.registro.efeitos.join(' ').toLowerCase().includes(termo)
+            );
+          }
+          case 'dice.rolled':
+            return (
+              (nomesDeUsuarios[item.autorId] ?? '').toLowerCase().includes(termo) ||
+              item.expressao.toLowerCase().includes(termo) ||
+              String(item.total).includes(termo)
+            );
+          case 'poi.infoRevealed':
+            return item.texto.toLowerCase().includes(termo);
+          case 'clue.presented':
+            return (
+              item.item.titulo.toLowerCase().includes(termo) ||
+              item.item.texto.toLowerCase().includes(termo) ||
+              (nomesDePersonagens[item.item.personagemId] ?? '').toLowerCase().includes(termo)
+            );
+          case 'map.activated':
+            return (item.mapa?.nome ?? 'mapa recolhido').toLowerCase().includes(termo);
+          case 'round.started':
+            return `rodada ${String(item.numero)}`.includes(termo);
+          case 'audio.changed':
+            return (item.trilha?.faixaId ?? 'trilha parada').toLowerCase().includes(termo);
+        }
+      })
+    : porTipo;
+
+  const ordenados = [...filtrados].reverse();
+  const visiveis = termo ? ordenados : ordenados.slice(0, limite);
+  const ocultos = termo ? 0 : ordenados.length - visiveis.length;
+
   return (
     <div className="registro-coluna">
-      <div
-        className="prontos-categorias registro-filtros"
-        role="group"
-        aria-label="Filtrar registro"
-      >
-        {FILTROS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            className={cx('chip', filtro === f.id && 'on')}
-            aria-pressed={filtro === f.id}
-            onClick={() => {
-              setFiltro(f.id);
+      <div className="col registro-topo">
+        {(todos.length > 0 || termo !== '') && (
+          <Input
+            type="search"
+            aria-label="Buscar no registro"
+            placeholder="Buscar no registro…"
+            value={busca}
+            onChange={(e) => {
+              setBusca(e.target.value);
             }}
-          >
-            {f.rotulo}
-          </button>
-        ))}
+          />
+        )}
+        <div
+          className="prontos-categorias registro-filtros"
+          role="group"
+          aria-label="Filtrar registro"
+        >
+          {FILTROS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className={cx('chip', filtro === f.id && 'on')}
+              aria-pressed={filtro === f.id}
+              onClick={() => {
+                setFiltro(f.id);
+              }}
+            >
+              {f.rotulo}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {itens.length === 0 ? (
+      {visiveis.length === 0 ? (
         <div className="registro-vazio">
-          <EmptyState icon={<Icon name="log" size="xl" />} title="Nada registrado ainda">
-            Testes, pistas apresentadas, cenas, rodadas e trilhas aparecem aqui.
+          <EmptyState
+            icon={<Icon name="log" size="xl" />}
+            title={todos.length === 0 ? 'Nada registrado ainda' : 'Nada encontrado'}
+          >
+            {todos.length === 0
+              ? 'Testes, pistas apresentadas, cenas, rodadas e trilhas aparecem aqui.'
+              : 'Nenhum acontecimento combina com o filtro atual.'}
           </EmptyState>
         </div>
       ) : (
         <ol className="registro-lista" aria-label="Acontecimentos da sessão">
-          {itens.map((item) => (
+          {visiveis.map((item) => (
             <li key={item.seq} className="registro-item">
               <span className="registro-icone" aria-hidden="true">
                 <Icon name={iconeDo(item.type)} size="sm" />
@@ -250,6 +327,19 @@ export function Registro({ eventos, papel, membros, personagens }: RegistroProps
               </div>
             </li>
           ))}
+          {ocultos > 0 && (
+            <li className="registro-mais">
+              <button
+                type="button"
+                className="registro-carregar-mais small"
+                onClick={() => {
+                  setLimite((n) => n + LOTE_DO_REGISTRO);
+                }}
+              >
+                Mostrar mais antigos ({ocultos})
+              </button>
+            </li>
+          )}
         </ol>
       )}
     </div>
