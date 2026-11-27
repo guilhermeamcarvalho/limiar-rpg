@@ -23,6 +23,7 @@ import {
   type Formato,
   type GradeDoMapa,
   type InformacaoDoPoi,
+  type NotasDoEscudo,
   type PericiaDoPoi,
   type Ponto,
   type Tom,
@@ -491,3 +492,14 @@ export const sessionLog = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.campaignId, t.seq] })],
 );
+
+/** Notas, ameaças, relógios e segredos do Escudo do mestre (#92, #93). Só o mestre lê e edita. */
+export const gmNotes = sqliteTable('gm_notes', {
+  campaignId: text('campaign_id')
+    .primaryKey()
+    .references(() => campaigns.id, { onDelete: 'cascade' }),
+  notas: text('notas', { mode: 'json' }).$type<NotasDoEscudo>().notNull(),
+  atualizadoEm: integer('atualizado_em', { mode: 'timestamp_ms' })
+    .notNull()
+    .default(sql`(unixepoch('subsec') * 1000)`),
+});

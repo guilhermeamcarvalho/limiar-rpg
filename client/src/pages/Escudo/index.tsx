@@ -4,12 +4,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { io, type Socket } from 'socket.io-client';
 import {
+  modeloPadraoDoEscudo,
   tituloDaPagina,
   type ComandoDaMesa,
   type EventosDoCliente,
   type EventosDoServidor,
   type ItemDoInventario,
   type MapaNaMesa,
+  type NotasDoEscudo,
   type PersonagemNaMesa,
   type PistaNaMesa,
   type PoiNaMesa,
@@ -35,6 +37,8 @@ import {
   useCarga,
   useToast,
 } from '../../ui/index.ts';
+import { BlocosEditaveis } from './BlocosEditaveis.tsx';
+import { PainelRelogiosESegredos } from './Relogio.tsx';
 import './escudo.css';
 
 interface DadosDoEscudo {
@@ -45,6 +49,7 @@ interface DadosDoEscudo {
   pistas?: PistaNaMesa[];
   inventario?: ItemDoInventario[];
   personagens?: PersonagemNaMesa[];
+  notas?: NotasDoEscudo;
 }
 
 function SalaNoEscudo({
@@ -405,7 +410,11 @@ function SecaoEscudo({
 
 export function Escudo() {
   const { id = '' } = useParams();
+  const avisos = useToast();
   const [atual, setAtual] = useState<DadosDoEscudo | null>(null);
+  const [virado, setVirado] = useState(false);
+  const [situacaoNotas, setSituacaoNotas] = useState<'ocioso' | 'salvando' | 'salvo'>('ocioso');
+  const [confirmarRestaurar, setConfirmarRestaurar] = useState(false);
 
   const uso = useCarga(`/api/campanhas/${id}/escudo`, (signal) =>
     pedir<DadosDoEscudo>(`/api/campanhas/${encodeURIComponent(id)}/escudo`, { signal }),
@@ -530,17 +539,54 @@ export function Escudo() {
     }
   }
 
+  async function salvarNotas(proximas: NotasDoEscudo) {
+    setAtual((prev) => {
+      const base = prev ?? (uso.carga.estado === 'pronto' ? uso.carga.dados : null);
+      return base ? { ...base, notas: proximas } : null;
+    });
+    setSituacaoNotas('salvando');
+    try {
+      await pedir<{ notas: NotasDoEscudo }>(
+        `/api/campanhas/${encodeURIComponent(id)}/escudo/notas`,
+        {
+          method: 'PUT',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(proximas),
+        },
+      );
+      setSituacaoNotas('salvo');
+    } catch (erro) {
+      setSituacaoNotas('ocioso');
+      avisos.show({
+        type: 'err',
+        title: 'Não deu para salvar as notas do escudo',
+        text: erro instanceof ErroDaApi ? erro.message : 'Tente novamente.',
+      });
+    }
+  }
+
   return (
     <div className="wrap col escudo">
       <Async uso={uso} falha="O escudo não abriu." esqueleto={<Skeleton />}>
         {(carregado) => {
           const escudo = atual ?? carregado;
+          const notas = escudo.notas ?? modeloPadraoDoEscudo();
           return (
             <div className="col" style={{ gap: 24 }}>
               <div className="row between wrapx" style={{ alignItems: 'flex-end', gap: 12 }}>
                 <div className="col" style={{ gap: 6 }}>
-                  <div className="row" style={{ gap: 8 }}>
+                  <div className="row wrapx" style={{ gap: 8 }}>
                     <Tag tone="gold">Só você vê esta página</Tag>
+                    {situacaoNotas === 'salvando' && (
+                      <span className="small muted" role="status">
+                        Salvando…
+                      </span>
+                    )}
+                    {situacaoNotas === 'salvo' && (
+                      <span className="small muted" role="status">
+                        Salvo
+                      </span>
+                    )}
                   </div>
                   <h1 className="h1">Escudo do mestre</h1>
                   <p className="muted">
@@ -548,7 +594,52 @@ export function Escudo() {
                     na hora; notas e contexto nunca vão para os jogadores.
                   </p>
                 </div>
-                <div className="row">
+                <div className="row wrapx" style={{ gap: 8 }}>
+                  <Button
+                    size="sm"
+                    variant={virado ? 'primary' : 'ghost'}
+                    aria-pressed={virado}
+                    icon={<Icon name={virado ? 'eye' : 'eyeoff'} size="sm" />}
+                    onClick={() => {
+                      setVirado((v) => !v);
+                    }}
+                  >
+                    {virado ? 'Desvirar escudo' : 'Virar o escudo'}
+                  </Button>
+                  {!virado &&
+                    (confirmarRestaurar ? (
+                      <div className="row" style={{ gap: 4 }}>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => {
+                            setConfirmarRestaurar(false);
+                            void salvarNotas(modeloPadraoDoEscudo());
+                          }}
+                        >
+                          Confirmar restauração
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setConfirmarRestaurar(false);
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setConfirmarRestaurar(true);
+                        }}
+                      >
+                        Restaurar modelo
+                      </Button>
+                    ))}
                   <Link className="btn red" to={linkDaCampanha(id, 'mesa')}>
                     <Icon name="map" size="sm" />
                     Abrir mesa
@@ -556,8 +647,38 @@ export function Escudo() {
                 </div>
               </div>
 
-              <div className="escudo-grade">
-                <div className="col" style={{ gap: 24 }}>
+              {virado ? (
+                <div className="col" style={{ gap: 16 }}>
+                  <div className="banner">
+                    <Icon name="eyeoff" size="sm" />
+                    <span>
+                      Escudo virado: salas, pistas, ameaças, relógios e segredos estão ocultos.
+                    </span>
+                  </div>
+                  <SecaoEscudo id="escudo-regras" titulo="Regras na mão">
+                    <div className="card col escudo-bloco">
+                      <span className="lab">Dificuldade (DT)</span>
+                      <div className="kv">
+                        <span>Fácil</span>
+                        <b>5</b>
+                      </div>
+                      <div className="kv">
+                        <span>Padrão</span>
+                        <b>7</b>
+                      </div>
+                      <div className="kv">
+                        <span>Difícil</span>
+                        <b>10</b>
+                      </div>
+                      <div className="kv">
+                        <span>Muito difícil</span>
+                        <b>13</b>
+                      </div>
+                    </div>
+                  </SecaoEscudo>
+                </div>
+              ) : (
+                <div className="escudo-grade">
                   <SecaoEscudo id="escudo-salas" titulo={`Salas (${String(escudo.salas.length)})`}>
                     <div className="card col" style={{ padding: 16, gap: 12 }}>
                       <PainelDeSalas
@@ -591,65 +712,102 @@ export function Escudo() {
                       />
                     </div>
                   </SecaoEscudo>
+
+                  <SecaoEscudo
+                    id="escudo-pois"
+                    titulo={`Pontos de interesse (${String(escudo.pois.length)})`}
+                  >
+                    <p className="small muted">
+                      Lugares clicáveis no mapa. Cada ponto pode pedir perícias e liberar
+                      informações conforme a DT alcançada.
+                    </p>
+                    <div className="card col" style={{ padding: 16, gap: 12 }}>
+                      <EditorPoi
+                        salas={escudo.salas}
+                        pois={escudo.pois}
+                        temMapa={Boolean(escudo.mapa)}
+                        mapa={escudo.mapa}
+                        aoExecutar={executar}
+                        criarEmModal
+                        centroPadrao={
+                          escudo.mapa
+                            ? { x: escudo.mapa.largura / 2, y: escudo.mapa.altura / 2 }
+                            : { x: 200, y: 200 }
+                        }
+                      />
+                    </div>
+                  </SecaoEscudo>
+
+                  <SecaoEscudo
+                    id="escudo-ameacas"
+                    titulo={`Ameaças e NPCs (${String(notas.ameacas.length)})`}
+                  >
+                    <div className="card col" style={{ padding: 16, gap: 12 }}>
+                      <BlocosEditaveis
+                        blocos={notas.ameacas}
+                        rotuloAdicionar="Adicionar ameaça ou NPC"
+                        tituloModal="Nova ameaça ou NPC"
+                        placeholderTitulo="Ex.: Vulto na estática, Delegado…"
+                        placeholderTexto="Comportamento, gatilhos e notas rápidas…"
+                        vazio="Nenhuma ameaça ou NPC anotado ainda."
+                        aoMudar={(ameacas) => {
+                          void salvarNotas({ ...notas, ameacas });
+                        }}
+                      />
+                    </div>
+                  </SecaoEscudo>
+
+                  <SecaoEscudo id="escudo-segredos" titulo="Segredos e relógios">
+                    <div className="card col" style={{ padding: 16, gap: 12 }}>
+                      <PainelRelogiosESegredos
+                        relogios={notas.relogios}
+                        segredos={notas.segredos}
+                        aoMudarRelogios={(relogios) => {
+                          void salvarNotas({ ...notas, relogios });
+                        }}
+                        aoMudarSegredos={(segredos) => {
+                          void salvarNotas({ ...notas, segredos });
+                        }}
+                      />
+                    </div>
+                  </SecaoEscudo>
+
+                  <SecaoEscudo id="escudo-regras" titulo="Regras na mão">
+                    <div className="card col escudo-bloco">
+                      <span className="lab">Dificuldade (DT)</span>
+                      <div className="kv">
+                        <span>Fácil</span>
+                        <b>5</b>
+                      </div>
+                      <div className="kv">
+                        <span>Padrão</span>
+                        <b>7</b>
+                      </div>
+                      <div className="kv">
+                        <span>Difícil</span>
+                        <b>10</b>
+                      </div>
+                      <div className="kv">
+                        <span>Muito difícil</span>
+                        <b>13</b>
+                      </div>
+                    </div>
+                    <div className="card col" style={{ padding: 16, gap: 12 }}>
+                      <BlocosEditaveis
+                        blocos={notas.regras}
+                        rotuloAdicionar="Adicionar regra"
+                        tituloModal="Nova regra na mão"
+                        placeholderTitulo="Ex.: Dano por queda, Furtividade…"
+                        placeholderTexto="Resumo rápido para consulta durante a sessão…"
+                        vazio="Nenhum bloco de regra extra."
+                        aoMudar={(regras) => {
+                          void salvarNotas({ ...notas, regras });
+                        }}
+                      />
+                    </div>
+                  </SecaoEscudo>
                 </div>
-
-                <SecaoEscudo
-                  id="escudo-pois"
-                  titulo={`Pontos de interesse (${String(escudo.pois.length)})`}
-                >
-                  <p className="small muted">
-                    Lugares clicáveis no mapa. Cada ponto pode pedir perícias e liberar informações
-                    conforme a DT alcançada.
-                  </p>
-                  <div className="card col" style={{ padding: 16, gap: 12 }}>
-                    <EditorPoi
-                      salas={escudo.salas}
-                      pois={escudo.pois}
-                      temMapa={Boolean(escudo.mapa)}
-                      mapa={escudo.mapa}
-                      aoExecutar={executar}
-                      criarEmModal
-                      centroPadrao={
-                        escudo.mapa
-                          ? { x: escudo.mapa.largura / 2, y: escudo.mapa.altura / 2 }
-                          : { x: 200, y: 200 }
-                      }
-                    />
-                  </div>
-                </SecaoEscudo>
-
-                <SecaoEscudo id="escudo-regras" titulo="Regras na mão">
-                  <div className="card col escudo-bloco">
-                    <span className="lab">Dificuldade (DT)</span>
-                    <div className="kv">
-                      <span>Fácil</span>
-                      <b>5</b>
-                    </div>
-                    <div className="kv">
-                      <span>Padrão</span>
-                      <b>7</b>
-                    </div>
-                    <div className="kv">
-                      <span>Difícil</span>
-                      <b>10</b>
-                    </div>
-                    <div className="kv">
-                      <span>Muito difícil</span>
-                      <b>13</b>
-                    </div>
-                  </div>
-                  <div className="card col escudo-bloco">
-                    <span className="lab">Como funciona um ponto</span>
-                    <p className="doc small">
-                      <b>1.</b> Escolha as perícias e DTs que podem investigar o ponto.
-                    </p>
-                    <p className="doc small">
-                      <b>2.</b> Cadastre as informações por DT mínima: os jogadores veem tarjas
-                      pretas até passarem no teste.
-                    </p>
-                  </div>
-                </SecaoEscudo>
-              </div>
+              )}
             </div>
           );
         }}

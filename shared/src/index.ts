@@ -13,6 +13,7 @@ export * from './conta.ts';
 export * from './permissoes.ts';
 export * from './schemas/campanha.ts';
 export * from './schemas/convite.ts';
+export * from './schemas/escudo.ts';
 export * from './codigo.ts';
 export * from './agenda.ts';
 export * from './privacidade.ts';
