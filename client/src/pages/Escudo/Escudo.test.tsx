@@ -74,13 +74,13 @@ describe('Escudo do mestre', () => {
   it('recolhe e expande seções como dropdown e cria pista via modal com mini-mapa', async () => {
     abrirEscudo();
     const toggleSalas = await screen.findByRole('button', { name: /Salas \(1\)/i });
-    expect(screen.getByDisplayValue('Cabine')).toBeDefined();
+    expect(screen.getByText('Cabine')).toBeDefined();
 
     // Recolhe e expande o dropdown de Salas.
     fireEvent.click(toggleSalas);
-    expect(screen.queryByDisplayValue('Cabine')).toBeNull();
+    expect(screen.queryByText('Cabine')).toBeNull();
     fireEvent.click(toggleSalas);
-    expect(screen.getByDisplayValue('Cabine')).toBeDefined();
+    expect(screen.getByText('Cabine')).toBeDefined();
 
     // Abre o modal de Nova pista e cria uma pista escolhendo posição no mini-mapa.
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar pista' }));
@@ -168,5 +168,57 @@ describe('Escudo do mestre', () => {
 
     expect(await screen.findByText('Chave ao vivo')).toBeDefined();
     expect(screen.getByRole('button', { name: /Pistas \(1\)/i })).toBeDefined();
+  });
+
+  it('card de sala mostra contagem de POIs, cria sala via modal, edita e confirma remoção', async () => {
+    const comPoi = {
+      ...dadosIniciais(),
+      pois: [
+        {
+          id: 'poi_1',
+          salaId: 'rom_1',
+          nome: 'Mesa de som',
+          x: 50,
+          y: 50,
+          descricao: '',
+          contextoMestre: '',
+          informacoes: [],
+        },
+      ],
+    };
+    pedirMock.mockResolvedValue(comPoi);
+    abrirEscudo();
+
+    expect(await screen.findByText('1 POI')).toBeDefined();
+
+    // Abre a edição da sala, edita notas e salva.
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Cabine' }));
+    const notas = screen.getByLabelText('Notas secretas');
+    fireEvent.change(notas, { target: { value: 'Chave atrás do painel.' } });
+    pedirMock.mockResolvedValueOnce({
+      ...comPoi,
+      salas: [{ id: 'rom_1', nome: 'Cabine', area: [], notasMestre: 'Chave atrás do painel.' }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('Salvo')).toBeDefined();
+
+    // Abre o modal de Nova sala e cria uma sala.
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar sala' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Nova sala' });
+    fireEvent.change(within(dialog).getByLabelText('Nome da nova sala'), {
+      target: { value: 'Porão' },
+    });
+    pedirMock.mockResolvedValueOnce({
+      ...comPoi,
+      salas: [...comPoi.salas, { id: 'rom_2', nome: 'Porão', area: [], notasMestre: '' }],
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Adicionar sala no mapa' }));
+    expect(await screen.findByText('Porão')).toBeDefined();
+
+    // Remover exige confirmação em dois passos (Cancelar volta sem apagar).
+    fireEvent.click(screen.getByRole('button', { name: 'Remover sala Cabine' }));
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).toBeNull();
   });
 });

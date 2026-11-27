@@ -66,11 +66,6 @@
   border-color: var(--line-2);
 }
 
-.escudo-sala {
-  padding: var(--s4);
-  gap: var(--s2);
-}
-
 .escudo-poi-bloco {
   display: flex;
   flex-direction: column;

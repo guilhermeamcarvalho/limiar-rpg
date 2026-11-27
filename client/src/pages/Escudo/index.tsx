@@ -20,6 +20,7 @@ import { ErroDaApi, pedir } from '../../auth/api.ts';
 import { linkDaCampanha } from '../../casos/formatos.ts';
 import { FerramentaDePistas } from '../../mesa/painel/Pistas.tsx';
 import { EditorPoi } from '../../mestre/EditorPoi.tsx';
+import { MiniMapaSeletor } from '../../mestre/MiniMapaSeletor.tsx';
 import {
   Async,
   Button,
@@ -27,6 +28,7 @@ import {
   Field,
   Icon,
   Input,
+  Modal,
   Skeleton,
   Tag,
   Textarea,
@@ -47,73 +49,325 @@ interface DadosDoEscudo {
 
 function SalaNoEscudo({
   sala,
+  qtdPois,
   aoExecutar,
 }: {
   sala: SalaNaMesa;
+  qtdPois: number;
   aoExecutar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
 }) {
   const avisos = useToast();
+  const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState(sala.nome);
   const [notas, setNotas] = useState(sala.notasMestre);
+  const [salvando, setSalvando] = useState(false);
+  const [salvoAgora, setSalvoAgora] = useState(false);
+  const [confirmandoRemocao, setConfirmandoRemocao] = useState(false);
 
   const [anterior, setAnterior] = useState(sala);
   if (anterior !== sala) {
     setAnterior(sala);
     setNome(sala.nome);
     setNotas(sala.notasMestre);
+    setConfirmandoRemocao(false);
   }
 
+  const limpo = nome.trim();
+  const sujo = limpo !== '' && (limpo !== sala.nome || notas !== sala.notasMestre);
+
   async function salvar() {
-    const limpo = nome.trim();
-    if (!limpo) return;
+    if (!limpo || salvando) return;
     if (limpo === sala.nome && notas === sala.notasMestre) return;
-    const r = await aoExecutar({
-      type: 'room.update',
-      salaId: sala.id,
-      nome: limpo,
-      notasMestre: notas,
-    });
-    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para salvar a sala', text: r.motivo });
+    setSalvando(true);
+    try {
+      const r = await aoExecutar({
+        type: 'room.update',
+        salaId: sala.id,
+        nome: limpo,
+        notasMestre: notas,
+      });
+      if (!r.ok) {
+        avisos.show({ type: 'err', title: 'Não deu para salvar a sala', text: r.motivo });
+        return;
+      }
+      setSalvoAgora(true);
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
-    <div className="paper col escudo-sala">
-      <div className="row" style={{ gap: 6 }}>
-        <Input
-          paper
-          aria-label={`Nome da sala ${sala.nome}`}
-          value={nome}
-          onChange={(e) => {
-            setNome(e.target.value);
-          }}
-          onBlur={() => {
-            void salvar();
-          }}
-        />
+    <div className="mesa-bloco card" style={{ padding: '10px 12px' }}>
+      <div className="row between" style={{ gap: 8 }}>
+        <div className="row" style={{ gap: 8, minWidth: 0 }}>
+          <Icon name="door" size="sm" />
+          <b className="small" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {sala.nome}
+          </b>
+        </div>
+        <div className="row" style={{ gap: 4 }}>
+          {qtdPois > 0 && (
+            <span className="small muted">
+              {qtdPois === 1 ? '1 POI' : `${String(qtdPois)} POIs`}
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label={`Editar ${sala.nome}`}
+            aria-expanded={aberto}
+            onClick={() => {
+              setAberto((v) => !v);
+            }}
+          >
+            {aberto ? 'Fechar' : 'Editar'}
+          </Button>
+          {confirmandoRemocao ? (
+            <>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => {
+                  void aoExecutar({ type: 'room.delete', salaId: sala.id });
+                }}
+              >
+                Remover
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setConfirmandoRemocao(false);
+                }}
+              >
+                Cancelar
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<Icon name="trash" size="sm" />}
+              aria-label={`Remover sala ${sala.nome}`}
+              onClick={() => {
+                setConfirmandoRemocao(true);
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+      {aberto && (
+        <div className="col" style={{ gap: 8, marginTop: 8 }}>
+          <Field label="Nome da sala">
+            <Input
+              aria-label={`Nome da sala ${sala.nome}`}
+              value={nome}
+              onChange={(e) => {
+                setNome(e.target.value);
+                setSalvoAgora(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void salvar();
+                }
+              }}
+              onBlur={() => {
+                void salvar();
+              }}
+            />
+          </Field>
+          <Field label="Notas secretas">
+            <Textarea
+              placeholder="O que só você precisa lembrar sobre esta área…"
+              rows={3}
+              value={notas}
+              onChange={(e) => {
+                setNotas(e.target.value);
+                setSalvoAgora(false);
+              }}
+              onBlur={() => {
+                void salvar();
+              }}
+            />
+          </Field>
+          <div className="row between" style={{ gap: 8 }}>
+            {sujo ? (
+              <Button
+                size="sm"
+                variant="primary"
+                loading={salvando}
+                onClick={() => {
+                  void salvar();
+                }}
+              >
+                Salvar
+              </Button>
+            ) : salvoAgora ? (
+              <span className="small muted" role="status">
+                Salvo
+              </span>
+            ) : (
+              <span />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function areaRetangular(
+  centro: { x: number; y: number },
+  mapa: MapaNaMesa | null,
+): { x: number; y: number }[] {
+  const largura = mapa?.largura ?? 800;
+  const altura = mapa?.altura ?? 600;
+  const meiaLargura = Math.max(40, Math.round(largura * 0.12));
+  const meiaAltura = Math.max(40, Math.round(altura * 0.12));
+  const x1 = Math.max(0, Math.round(centro.x - meiaLargura));
+  const y1 = Math.max(0, Math.round(centro.y - meiaAltura));
+  const x2 = Math.min(largura, Math.round(centro.x + meiaLargura));
+  const y2 = Math.min(altura, Math.round(centro.y + meiaAltura));
+  return [
+    { x: x1, y: y1 },
+    { x: x2, y: y1 },
+    { x: x2, y: y2 },
+    { x: x1, y: y2 },
+  ];
+}
+
+function PainelDeSalas({
+  salas,
+  pois,
+  mapa,
+  aoExecutar,
+}: {
+  salas: readonly SalaNaMesa[];
+  pois: readonly PoiNaMesa[];
+  mapa: MapaNaMesa | null;
+  aoExecutar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
+}) {
+  const avisos = useToast();
+  const [modalAberto, setModalAberto] = useState(false);
+  const [nomeNovo, setNomeNovo] = useState('');
+  const [notasNovas, setNotasNovas] = useState('');
+  const [criando, setCriando] = useState(false);
+  const [pontoModal, setPontoModal] = useState<{ x: number; y: number }>({
+    x: mapa ? mapa.largura / 2 : 200,
+    y: mapa ? mapa.altura / 2 : 200,
+  });
+
+  async function criar() {
+    if (criando) return;
+    const nome = nomeNovo.trim() || `Sala ${String(salas.length + 1)}`;
+    setCriando(true);
+    try {
+      const r = await aoExecutar({
+        type: 'room.create',
+        nome,
+        area: areaRetangular(pontoModal, mapa),
+        ...(notasNovas.trim() && { notasMestre: notasNovas.trim() }),
+      });
+      if (!r.ok) {
+        avisos.show({ type: 'err', title: 'Não deu para criar a sala', text: r.motivo });
+        return;
+      }
+      setNomeNovo('');
+      setNotasNovas('');
+      setModalAberto(false);
+    } finally {
+      setCriando(false);
+    }
+  }
+
+  return (
+    <div className="col" style={{ gap: 12 }}>
+      <p className="small muted">
+        Áreas demarcadas no mapa. Só você vê os contornos e as notas de cada sala.
+      </p>
+
+      <div>
         <Button
           size="sm"
-          variant="ghost"
-          icon={<Icon name="trash" size="sm" />}
-          aria-label={`Remover sala ${sala.nome}`}
+          variant="primary"
+          icon={<Icon name="door" size="sm" />}
           onClick={() => {
-            void aoExecutar({ type: 'room.delete', salaId: sala.id });
+            setModalAberto(true);
           }}
-        />
+        >
+          Adicionar sala
+        </Button>
       </div>
-      <Field label={`Notas secretas · ${sala.nome}`}>
-        <Textarea
-          className="paper"
-          placeholder="O que só você precisa lembrar sobre esta área…"
-          rows={2}
-          value={notas}
-          onChange={(e) => {
-            setNotas(e.target.value);
-          }}
-          onBlur={() => {
-            void salvar();
-          }}
-        />
-      </Field>
+
+      <Modal
+        open={modalAberto}
+        title="Nova sala"
+        onClose={() => {
+          setModalAberto(false);
+        }}
+      >
+        <div className="col" style={{ gap: 10 }}>
+          <Field label="Nome da nova sala">
+            <Input
+              placeholder="Ex.: Cabine de som, Porão…"
+              value={nomeNovo}
+              onChange={(e) => {
+                setNomeNovo(e.target.value);
+              }}
+            />
+          </Field>
+          {mapa && (
+            <MiniMapaSeletor
+              mapa={mapa}
+              ponto={pontoModal}
+              aoMudar={setPontoModal}
+              rotulo="Posição da sala no mapa"
+            />
+          )}
+          <Field label="Notas secretas">
+            <Textarea
+              rows={3}
+              placeholder="O que só você precisa lembrar sobre esta área…"
+              value={notasNovas}
+              onChange={(e) => {
+                setNotasNovas(e.target.value);
+              }}
+            />
+          </Field>
+          <div className="row" style={{ gap: 8 }}>
+            <Button
+              size="sm"
+              variant="primary"
+              icon={<Icon name="door" size="sm" />}
+              loading={criando}
+              onClick={() => {
+                void criar();
+              }}
+            >
+              Adicionar sala no mapa
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {salas.length === 0 ? (
+        <EmptyState icon={<Icon name="door" size="xl" />} title="Nenhuma sala ainda">
+          Adicione uma sala aqui ou use a ferramenta Salas (S) na mesa para demarcar no mapa.
+        </EmptyState>
+      ) : (
+        <div className="col" style={{ gap: 8 }}>
+          {salas.map((sala) => (
+            <SalaNoEscudo
+              key={sala.id}
+              sala={sala}
+              qtdPois={pois.filter((p) => p.salaId === sala.id).length}
+              aoExecutar={aoExecutar}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -305,25 +559,14 @@ export function Escudo() {
               <div className="escudo-grade">
                 <div className="col" style={{ gap: 24 }}>
                   <SecaoEscudo id="escudo-salas" titulo={`Salas (${String(escudo.salas.length)})`}>
-                    <p className="small muted">
-                      Áreas demarcadas no mapa. Só você vê os contornos e as notas de cada sala.
-                    </p>
-                    {escudo.salas.length === 0 ? (
-                      <div className="card">
-                        <EmptyState
-                          icon={<Icon name="door" size="xl" />}
-                          title="Nenhuma sala ainda"
-                        >
-                          Abra a ferramenta Salas (S) na mesa para demarcar áreas no mapa.
-                        </EmptyState>
-                      </div>
-                    ) : (
-                      <div className="col" style={{ gap: 10 }}>
-                        {escudo.salas.map((sala) => (
-                          <SalaNoEscudo key={sala.id} sala={sala} aoExecutar={executar} />
-                        ))}
-                      </div>
-                    )}
+                    <div className="card col" style={{ padding: 16, gap: 12 }}>
+                      <PainelDeSalas
+                        salas={escudo.salas}
+                        pois={escudo.pois}
+                        mapa={escudo.mapa}
+                        aoExecutar={executar}
+                      />
+                    </div>
                   </SecaoEscudo>
 
                   <SecaoEscudo

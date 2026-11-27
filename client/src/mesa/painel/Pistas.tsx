@@ -243,7 +243,7 @@ function CartaoDaPistaNoPainel({
   }
 
   return (
-    <div className="mesa-bloco card col" style={{ gap: 8, padding: 10 }}>
+    <div className="mesa-bloco card col" style={{ gap: 8, padding: '10px 12px' }}>
       <div className="row between" style={{ gap: 8 }}>
         <div className="row" style={{ gap: 6, minWidth: 0 }}>
           <Tag {...(pista.visivel && { tone: 'gold' as const })}>

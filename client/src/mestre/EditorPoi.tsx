@@ -309,7 +309,7 @@ function CartaoDoPoi({
   }
 
   return (
-    <div className="mesa-bloco card">
+    <div className="mesa-bloco card" style={{ padding: '10px 12px' }}>
       <div className="row between" style={{ gap: 8 }}>
         <div className="row" style={{ gap: 8, minWidth: 0 }}>
           <Tag tone={tudoDescoberto ? 'green' : 'red'}>{poi.numero}</Tag>
