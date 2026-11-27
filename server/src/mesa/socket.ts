@@ -18,6 +18,7 @@ import type {
 } from '@membrana/shared';
 import { campaigns, memberships } from '../db/schema.ts';
 import { buscarSessao, COOKIE_DA_SESSAO, type Usuario } from '../http/auth/sessao.ts';
+import { limparImagensDePistasOrfas } from '../http/uploads/imagens.ts';
 import { registrarErro } from '../observabilidade.ts';
 import { type Mesa } from './Mesa.ts';
 import { projetarEstado, projetarEventos, type Espectador } from './projecao.ts';
@@ -172,6 +173,13 @@ export function ligarMesaAoVivo(app: FastifyInstance): ServidorDaMesa {
       }
       responda({ ok: true });
       transmitir(campanhaId, resultado.eventos, resultado.antes, resultado.depois, conexao.id);
+      void limparImagensDePistasOrfas(
+        app.db,
+        app.config.UPLOADS_DIR,
+        resultado.antes,
+        resultado.depois,
+        (n) => app.mesas.usaArquivo(n),
+      );
     });
 
     conexao.on('disconnect', () => {

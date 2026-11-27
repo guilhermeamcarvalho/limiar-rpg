@@ -146,6 +146,7 @@ export function lerMapa(db: Banco, campanhaId: string, mapaId: string): Conteudo
       x: clues.x,
       y: clues.y,
       visivel: clues.visivel,
+      manterVisivel: clues.manterVisivel,
       descoberta: clues.descoberta,
     })
     .from(clues)
@@ -388,6 +389,7 @@ function escreverMapa(tx: Transacao, estado: EstadoDaMesa) {
           x: p.x,
           y: p.y,
           visivel: p.visivel,
+          manterVisivel: p.manterVisivel ?? false,
           descoberta: p.descoberta,
         })
         .onConflictDoUpdate({
@@ -402,6 +404,7 @@ function escreverMapa(tx: Transacao, estado: EstadoDaMesa) {
             x: p.x,
             y: p.y,
             visivel: p.visivel,
+            manterVisivel: p.manterVisivel ?? false,
             descoberta: p.descoberta,
           },
         })

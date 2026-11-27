@@ -6,6 +6,7 @@ import { personagensNaMesa } from '../../mesa/dados.ts';
 import { projetarEstado } from '../../mesa/projecao.ts';
 import { usuarioLogado } from '../auth/sessao.ts';
 import { ErroDaApi } from '../erros.ts';
+import { limparImagensDePistasOrfas } from '../uploads/imagens.ts';
 import { campanhaVisivel } from './dados.ts';
 
 function exigirMestreDoCaso(app: FastifyInstance, campanhaId: string, usuario: { id: string }) {
@@ -36,7 +37,7 @@ export function rotaEscudo(app: FastifyInstance) {
     };
   });
 
-  app.post<{ Params: { id: string } }>('/:id/escudo/comandos', (request) => {
+  app.post<{ Params: { id: string } }>('/:id/escudo/comandos', async (request) => {
     const usuario = usuarioLogado(request);
     const { id } = request.params;
     exigirMestreDoCaso(app, id, usuario);
@@ -50,6 +51,9 @@ export function rotaEscudo(app: FastifyInstance) {
       antes: r.antes,
       depois: r.depois,
     });
+    await limparImagensDePistasOrfas(app.db, app.config.UPLOADS_DIR, r.antes, r.depois, (n) =>
+      app.mesas.usaArquivo(n),
+    );
     const visao = projetarEstado(
       { id: usuario.id, papel: 'mestre', personagemId: null },
       mesa.estado,

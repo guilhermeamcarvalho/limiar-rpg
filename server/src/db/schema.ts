@@ -427,6 +427,7 @@ export const clues = sqliteTable(
     x: real('x').notNull(),
     y: real('y').notNull(),
     visivel: integer('visivel', { mode: 'boolean' }).notNull().default(false),
+    manterVisivel: integer('manter_visivel', { mode: 'boolean' }).notNull().default(false),
     descoberta: integer('descoberta', { mode: 'boolean' }).notNull().default(false),
   },
   (t) => [index('clues_map').on(t.mapId)],

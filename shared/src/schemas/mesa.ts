@@ -261,6 +261,7 @@ const clueCreate = comando('clue.create', {
   x: coordenada,
   y: coordenada,
   visivel: z.boolean().optional(),
+  manterVisivel: z.boolean().optional(),
   descoberta: z.boolean().optional(),
 });
 const clueUpdate = comando('clue.update', {
@@ -273,6 +274,7 @@ const clueUpdate = comando('clue.update', {
   x: coordenada.optional(),
   y: coordenada.optional(),
   visivel: z.boolean().optional(),
+  manterVisivel: z.boolean().optional(),
   descoberta: z.boolean().optional(),
 }).refine(algumCampo('pistaId'), NADA_PARA_MUDAR);
 const clueDelete = comando('clue.delete', { pistaId: id });
@@ -547,6 +549,8 @@ export interface PistaNaMesa {
   y: number;
   /** Marcada como visível no mapa; oculta, o jogador nem sabe que existe. */
   visivel: boolean;
+  /** Continua visível no mapa mesmo depois que alguém a examina/pega (`clue.take`). */
+  manterVisivel?: boolean;
   /** Ainda não descoberta: o jogador vê só a tarja. */
   descoberta: boolean;
 }

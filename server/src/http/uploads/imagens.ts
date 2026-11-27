@@ -9,6 +9,7 @@ import sharp, { type Metadata } from 'sharp';
 import {
   LADO_DO_TOKEN,
   LADO_MAXIMO_DO_MAPA,
+  type EstadoDaMesa,
   type Recorte,
   type TipoDeImagem,
 } from '@membrana/shared';
@@ -199,4 +200,24 @@ export async function apagarSeLivre(
   ];
   if (usos.every((uso) => uso === undefined))
     await rm(join(pasta, basename(nome)), { force: true });
+}
+
+/**
+ * Remove do disco imagens de pistas que deixaram de ser usadas após `clue.update` ou `clue.delete`,
+ * caso nenhum mapa, ficha ou outra pista ainda referencie o mesmo arquivo.
+ */
+export async function limparImagensDePistasOrfas(
+  db: Banco,
+  pasta: string,
+  antes: Pick<EstadoDaMesa, 'pistas'>,
+  depois: Pick<EstadoDaMesa, 'pistas'>,
+  naMesa: (nome: string) => boolean,
+) {
+  const usadasDepois = new Set(depois.pistas.flatMap((p) => (p.imagem ? [p.imagem] : [])));
+  const removidas = new Set(
+    antes.pistas.flatMap((p) => (p.imagem && !usadasDepois.has(p.imagem) ? [p.imagem] : [])),
+  );
+  for (const nome of removidas) {
+    await apagarSeLivre(db, pasta, nome, naMesa);
+  }
 }

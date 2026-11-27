@@ -332,6 +332,16 @@ describe('imagem de pista', () => {
     // Quando a pista é descoberta no mapa, o jogador passa a poder ler o anexo.
     expect(mesa.aplicar(ana, { type: 'clue.update', pistaId, descoberta: true }).ok).toBe(true);
     expect((await ver(bia)).statusCode).toBe(200);
+
+    // Remover a pista pelo Escudo apaga o arquivo órfão do disco imediatamente.
+    const apagou = await a.inject({
+      method: 'POST',
+      url: `/api/campanhas/${caso}/escudo/comandos`,
+      cookies: ana.cookies,
+      payload: { type: 'clue.delete', pistaId },
+    });
+    expect(apagou.statusCode).toBe(200);
+    expect(existsSync(join(pasta, nome))).toBe(false);
   });
 });
 

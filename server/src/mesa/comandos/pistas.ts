@@ -45,7 +45,10 @@ function itemDe(
 }
 
 export const tratadoresDePistas: Tratadores = {
-  'clue.create'(ctx, { titulo, texto, imagem, tamanho, notaMestre, x, y, visivel, descoberta }) {
+  'clue.create'(
+    ctx,
+    { titulo, texto, imagem, tamanho, notaMestre, x, y, visivel, manterVisivel, descoberta },
+  ) {
     exigirMestre(ctx);
     const mapa = exigirMapa(ctx);
     const pos = dentroDoMapa(x, y, mapa.largura, mapa.altura);
@@ -59,6 +62,7 @@ export const tratadoresDePistas: Tratadores = {
       x: pos.x,
       y: pos.y,
       visivel: visivel ?? false,
+      manterVisivel: manterVisivel ?? false,
       descoberta: descoberta ?? false,
     };
     ctx.estado.pistas.push(pista);
@@ -67,7 +71,19 @@ export const tratadoresDePistas: Tratadores = {
 
   'clue.update'(
     ctx,
-    { pistaId, titulo, texto, imagem, tamanho, notaMestre, x, y, visivel, descoberta },
+    {
+      pistaId,
+      titulo,
+      texto,
+      imagem,
+      tamanho,
+      notaMestre,
+      x,
+      y,
+      visivel,
+      manterVisivel,
+      descoberta,
+    },
   ) {
     exigirMestre(ctx);
     const mapa = exigirMapa(ctx);
@@ -89,6 +105,7 @@ export const tratadoresDePistas: Tratadores = {
       pista.y = pos.y;
     }
     if (visivel !== undefined) pista.visivel = visivel;
+    if (manterVisivel !== undefined) pista.manterVisivel = manterVisivel;
     if (descoberta !== undefined) pista.descoberta = descoberta;
 
     const eventos: EventoDaMesaSemSeq[] = [{ type: 'clue.changed', pistaId: pista.id, pista }];
@@ -189,7 +206,7 @@ export const tratadoresDePistas: Tratadores = {
       );
     }
 
-    pista.visivel = false;
+    if (!pista.manterVisivel) pista.visivel = false;
     pista.descoberta = true;
 
     const img = pista.imagem ?? null;

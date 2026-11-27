@@ -1,12 +1,14 @@
 // Painel da ferramenta Pistas do mestre (#87; RF-40, RF-41, RF-42):
 // cria pistas no mapa (com título, texto para o jogador, foto enviada ou ilustração genérica,
-// nota secreta do mestre e visibilidade), edita ou apaga, e envia ou recolhe do inventário de cada personagem.
+// tamanho no mapa, nota secreta do mestre e visibilidade), edita ou apaga, e envia ou recolhe
+// do inventário de cada personagem.
 import { useRef, useState, type RefObject } from 'react';
 import {
   CATEGORIAS_DE_PISTAS,
   PISTAS_PRONTAS,
   type ComandoDaMesa,
   type ItemDoInventario,
+  type MapaNaMesa,
   type PersonagemNaMesa,
   type PistaNaMesa,
   type RespostaDoComando,
@@ -15,6 +17,7 @@ import type { Ponto } from '../camera.ts';
 import { enviarImagemDaMesa } from '../imagens.ts';
 import { ImagemDaPista } from '../ImagemDaPista.tsx';
 import { urlDaImagem } from '../prontos.ts';
+import { MiniMapaSeletor } from '../../mestre/MiniMapaSeletor.tsx';
 import {
   Button,
   Checkbox,
@@ -43,44 +46,25 @@ const TAMANHOS_DE_PISTA = [
 const nomeDaPistaPronta = (id: string | null | undefined) =>
   PISTAS_PRONTAS.find((p) => p.id === id)?.nome ?? '';
 
-function CartaoDaPistaNoPainel({
+type FiltroDePistaNoPainel = 'todas' | 'visiveis' | 'ocultas';
+
+function EdicaoDaPista({
   campanhaId,
   pista,
-  inventario,
-  personagens,
-  enviar,
+  atualizar,
 }: {
   campanhaId: string;
   pista: PistaNaMesa;
-  inventario: readonly ItemDoInventario[];
-  personagens: readonly PersonagemNaMesa[];
-  enviar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
+  atualizar: (
+    campos: Omit<Extract<ComandoDaMesa, { type: 'clue.update' }>, 'type' | 'pistaId'>,
+  ) => Promise<void>;
 }) {
   const avisos = useToast();
   const arquivo = useRef<HTMLInputElement>(null);
-  const [aberto, setAberto] = useState(false);
   const [escolhendoGenerica, setEscolhendoGenerica] = useState(false);
   const [titulo, setTitulo] = useState(pista.titulo);
   const [texto, setTexto] = useState(pista.texto);
   const [notaMestre, setNotaMestre] = useState(pista.notaMestre);
-
-  const [anterior, setAnterior] = useState(pista);
-  if (anterior !== pista) {
-    setAnterior(pista);
-    setTitulo(pista.titulo);
-    setTexto(pista.texto);
-    setNotaMestre(pista.notaMestre);
-  }
-
-  const possesDesta = inventario.filter((i) => i.pistaId === pista.id);
-
-  async function atualizar(
-    campos: Omit<Extract<ComandoDaMesa, { type: 'clue.update' }>, 'type' | 'pistaId'>,
-  ) {
-    const r = await enviar({ type: 'clue.update', pistaId: pista.id, ...campos });
-    if (!r.ok)
-      avisos.show({ type: 'err', title: 'Não deu para atualizar a pista', text: r.motivo });
-  }
 
   const envioFoto = useEnvio(async (escolhido: File) => {
     const r = await enviarImagemDaMesa(campanhaId, escolhido, 'pista');
@@ -97,6 +81,156 @@ function CartaoDaPistaNoPainel({
     if (!limpo) return;
     if (limpo === pista.titulo && texto === pista.texto && notaMestre === pista.notaMestre) return;
     void atualizar({ titulo: limpo, texto, notaMestre });
+  }
+
+  return (
+    <div className="col" style={{ gap: 8 }}>
+      <Field label="Título">
+        <Input
+          value={titulo}
+          onChange={(e) => {
+            setTitulo(e.target.value);
+          }}
+          onBlur={salvarTexto}
+        />
+      </Field>
+      <Field label="Texto para o jogador">
+        <Textarea
+          rows={2}
+          value={texto}
+          onChange={(e) => {
+            setTexto(e.target.value);
+          }}
+          onBlur={salvarTexto}
+        />
+      </Field>
+
+      <div className="col" style={{ gap: 6 }}>
+        <span className="lab">Imagem da pista (opcional)</span>
+        <input
+          ref={arquivo}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif"
+          hidden
+          aria-label={`Enviar foto para ${pista.titulo}`}
+          onChange={(e) => {
+            const escolhido = e.target.files?.[0];
+            e.target.value = '';
+            if (escolhido) void envioFoto.enviar(escolhido);
+          }}
+        />
+        <div className="row wrapx" style={{ gap: 6 }}>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Icon name="image" size="sm" />}
+            aria-expanded={escolhendoGenerica}
+            onClick={() => {
+              setEscolhendoGenerica((v) => !v);
+            }}
+          >
+            {nomeDaPistaPronta(pista.imagem)
+              ? `Genérica: ${nomeDaPistaPronta(pista.imagem)}`
+              : 'Escolher genérica'}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<Icon name="upload" size="sm" />}
+            loading={envioFoto.enviando}
+            onClick={() => arquivo.current?.click()}
+          >
+            Enviar foto
+          </Button>
+          {pista.imagem && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setEscolhendoGenerica(false);
+                void atualizar({ imagem: null });
+              }}
+            >
+              Sem imagem
+            </Button>
+          )}
+        </div>
+        {escolhendoGenerica && (
+          <SeletorDePronto
+            itens={PISTAS_PRONTAS}
+            categorias={CATEGORIAS_DE_PISTAS}
+            rotulo="Ilustrações genéricas de pista"
+            escolhido={pista.imagem ?? null}
+            aoEscolher={(id) => {
+              setEscolhendoGenerica(false);
+              void atualizar({ imagem: id });
+            }}
+          />
+        )}
+      </div>
+
+      <Field label="Tamanho no mapa">
+        <Select
+          value={String(pista.tamanho ?? 1)}
+          onChange={(e) => {
+            void atualizar({ tamanho: Number(e.target.value) });
+          }}
+        >
+          {TAMANHOS_DE_PISTA.map((t) => (
+            <option key={t.valor} value={t.valor}>
+              {t.rotulo}
+            </option>
+          ))}
+        </Select>
+      </Field>
+
+      <Checkbox
+        label="Manter visível no mapa após examinada"
+        checked={Boolean(pista.manterVisivel)}
+        onChange={() => {
+          void atualizar({ manterVisivel: !pista.manterVisivel });
+        }}
+      />
+
+      <Field label="Nota do mestre (secreta)">
+        <Textarea
+          rows={2}
+          placeholder="Só você lê este campo…"
+          value={notaMestre}
+          onChange={(e) => {
+            setNotaMestre(e.target.value);
+          }}
+          onBlur={salvarTexto}
+        />
+      </Field>
+    </div>
+  );
+}
+
+function CartaoDaPistaNoPainel({
+  campanhaId,
+  pista,
+  inventario,
+  personagens,
+  enviar,
+}: {
+  campanhaId: string;
+  pista: PistaNaMesa;
+  inventario: readonly ItemDoInventario[];
+  personagens: readonly PersonagemNaMesa[];
+  enviar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
+}) {
+  const avisos = useToast();
+  const [aberto, setAberto] = useState(false);
+
+  const possesDesta = inventario.filter((i) => i.pistaId === pista.id);
+
+  async function atualizar(
+    campos: Omit<Extract<ComandoDaMesa, { type: 'clue.update' }>, 'type' | 'pistaId'>,
+  ) {
+    const r = await enviar({ type: 'clue.update', pistaId: pista.id, ...campos });
+    if (!r.ok)
+      avisos.show({ type: 'err', title: 'Não deu para atualizar a pista', text: r.motivo });
   }
 
   async function alternarPosse(personagemId: string, temAgora: boolean) {
@@ -188,118 +322,12 @@ function CartaoDaPistaNoPainel({
       )}
 
       {aberto && (
-        <div className="col" style={{ gap: 8 }}>
-          <Field label="Título">
-            <Input
-              value={titulo}
-              onChange={(e) => {
-                setTitulo(e.target.value);
-              }}
-              onBlur={salvarTexto}
-            />
-          </Field>
-          <Field label="Texto para o jogador">
-            <Textarea
-              rows={2}
-              value={texto}
-              onChange={(e) => {
-                setTexto(e.target.value);
-              }}
-              onBlur={salvarTexto}
-            />
-          </Field>
-
-          <div className="col" style={{ gap: 6 }}>
-            <span className="lab">Imagem da pista (opcional)</span>
-            <input
-              ref={arquivo}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/avif"
-              hidden
-              aria-label={`Enviar foto para ${pista.titulo}`}
-              onChange={(e) => {
-                const escolhido = e.target.files?.[0];
-                e.target.value = '';
-                if (escolhido) void envioFoto.enviar(escolhido);
-              }}
-            />
-            <div className="row wrapx" style={{ gap: 6 }}>
-              <Button
-                size="sm"
-                variant="ghost"
-                icon={<Icon name="image" size="sm" />}
-                aria-expanded={escolhendoGenerica}
-                onClick={() => {
-                  setEscolhendoGenerica((v) => !v);
-                }}
-              >
-                {nomeDaPistaPronta(pista.imagem)
-                  ? `Genérica: ${nomeDaPistaPronta(pista.imagem)}`
-                  : 'Escolher genérica'}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                icon={<Icon name="upload" size="sm" />}
-                loading={envioFoto.enviando}
-                onClick={() => arquivo.current?.click()}
-              >
-                Enviar foto
-              </Button>
-              {pista.imagem && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setEscolhendoGenerica(false);
-                    void atualizar({ imagem: null });
-                  }}
-                >
-                  Sem imagem
-                </Button>
-              )}
-            </div>
-            {escolhendoGenerica && (
-              <SeletorDePronto
-                itens={PISTAS_PRONTAS}
-                categorias={CATEGORIAS_DE_PISTAS}
-                rotulo="Ilustrações genéricas de pista"
-                escolhido={pista.imagem ?? null}
-                aoEscolher={(id) => {
-                  setEscolhendoGenerica(false);
-                  void atualizar({ imagem: id });
-                }}
-              />
-            )}
-          </div>
-
-          <Field label="Tamanho no mapa">
-            <Select
-              value={String(pista.tamanho ?? 1)}
-              onChange={(e) => {
-                void atualizar({ tamanho: Number(e.target.value) });
-              }}
-            >
-              {TAMANHOS_DE_PISTA.map((t) => (
-                <option key={t.valor} value={t.valor}>
-                  {t.rotulo}
-                </option>
-              ))}
-            </Select>
-          </Field>
-
-          <Field label="Nota do mestre (secreta)">
-            <Textarea
-              rows={2}
-              placeholder="Só você lê este campo…"
-              value={notaMestre}
-              onChange={(e) => {
-                setNotaMestre(e.target.value);
-              }}
-              onBlur={salvarTexto}
-            />
-          </Field>
-        </div>
+        <EdicaoDaPista
+          key={`${pista.id}-${pista.titulo}-${pista.texto}-${pista.notaMestre}`}
+          campanhaId={campanhaId}
+          pista={pista}
+          atualizar={atualizar}
+        />
       )}
     </div>
   );
@@ -311,6 +339,7 @@ export function FerramentaDePistas({
   inventario,
   personagens,
   temMapa,
+  mapa = null,
   enviar,
   aoEscolherNoMapa,
   centroRef,
@@ -322,6 +351,7 @@ export function FerramentaDePistas({
   inventario: readonly ItemDoInventario[];
   personagens: readonly PersonagemNaMesa[];
   temMapa: boolean;
+  mapa?: MapaNaMesa | null;
   enviar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
   aoEscolherNoMapa?: (aoClicar: (ponto: Ponto) => void) => void;
   centroRef?: RefObject<Ponto | null>;
@@ -336,10 +366,16 @@ export function FerramentaDePistas({
   const [notaMestre, setNotaMestre] = useState('');
   const [tamanho, setTamanho] = useState('1');
   const [visivel, setVisivel] = useState(false);
+  const [manterVisivel, setManterVisivel] = useState(false);
   const [modelo, setModelo] = useState<string | null>(null);
   const [arquivoFoto, setArquivoFoto] = useState<File | null>(null);
   const [escolhendoModelo, setEscolhendoModelo] = useState(false);
   const [criando, setCriando] = useState(false);
+  const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState<FiltroDePistaNoPainel>('todas');
+  const [pontoModal, setPontoModal] = useState<Ponto>(
+    centroPadrao ?? { x: mapa ? mapa.largura / 2 : 200, y: mapa ? mapa.altura / 2 : 200 },
+  );
 
   function escolherModelo(id: string) {
     const anterior = nomeDaPistaPronta(modelo);
@@ -369,6 +405,7 @@ export function FerramentaDePistas({
         texto: texto.trim(),
         ...(imagem && { imagem }),
         ...(Number(tamanho) !== 1 && { tamanho: Number(tamanho) }),
+        ...(manterVisivel && { manterVisivel: true }),
         notaMestre: notaMestre.trim(),
         x: ponto.x,
         y: ponto.y,
@@ -379,6 +416,7 @@ export function FerramentaDePistas({
         setTexto('');
         setNotaMestre('');
         setTamanho('1');
+        setManterVisivel(false);
         setModelo(null);
         setArquivoFoto(null);
         setEscolhendoModelo(false);
@@ -390,6 +428,14 @@ export function FerramentaDePistas({
       setCriando(false);
     }
   }
+
+  const termo = busca.trim().toLowerCase();
+  const filtradas = pistas.filter((p) => {
+    if (filtro === 'visiveis' && !p.visivel) return false;
+    if (filtro === 'ocultas' && p.visivel) return false;
+    if (!termo) return true;
+    return p.titulo.toLowerCase().includes(termo) || p.texto.toLowerCase().includes(termo);
+  });
 
   const formularioNovaPista = (
     <div className="col" style={{ gap: 8 }}>
@@ -494,6 +540,15 @@ export function FerramentaDePistas({
         </Select>
       </Field>
 
+      {criarEmModal && mapa && (
+        <MiniMapaSeletor
+          mapa={mapa}
+          ponto={pontoModal}
+          aoMudar={setPontoModal}
+          rotulo="Posição da pista no mapa"
+        />
+      )}
+
       <Field label="Nota do mestre (secreta)">
         <Textarea
           rows={2}
@@ -509,6 +564,13 @@ export function FerramentaDePistas({
         checked={visivel}
         onChange={() => {
           setVisivel((v) => !v);
+        }}
+      />
+      <Checkbox
+        label="Manter visível no mapa após examinada"
+        checked={manterVisivel}
+        onChange={() => {
+          setManterVisivel((v) => !v);
         }}
       />
       <div className="row wrapx" style={{ gap: 6 }}>
@@ -533,7 +595,11 @@ export function FerramentaDePistas({
           icon={aoEscolherNoMapa ? undefined : <Icon name="clue" size="sm" />}
           loading={criando}
           onClick={() => {
-            void criarEm(centroRef?.current ?? centroPadrao ?? { x: 200, y: 200 });
+            void criarEm(
+              criarEmModal && mapa
+                ? pontoModal
+                : (centroRef?.current ?? centroPadrao ?? { x: 200, y: 200 }),
+            );
           }}
         >
           {aoEscolherNoMapa ? 'Pôr no centro' : 'Adicionar pista no mapa'}
@@ -558,6 +624,7 @@ export function FerramentaDePistas({
                 variant="primary"
                 icon={<Icon name="plus" size="sm" />}
                 onClick={() => {
+                  if (mapa) setPontoModal({ x: mapa.largura / 2, y: mapa.altura / 2 });
                   setModalAberto(true);
                 }}
               >
@@ -582,10 +649,45 @@ export function FerramentaDePistas({
 
       <div className="col" style={{ gap: 8 }}>
         <span className="lab">Pistas neste mapa ({pistas.length})</span>
+        {pistas.length > 2 && (
+          <div className="col" style={{ gap: 6 }}>
+            <Input
+              aria-label="Buscar pista neste mapa"
+              placeholder="Buscar pista…"
+              value={busca}
+              onChange={(e) => {
+                setBusca(e.target.value);
+              }}
+            />
+            <div className="prontos-categorias">
+              {(
+                [
+                  { id: 'todas', rotulo: 'Todas' },
+                  { id: 'visiveis', rotulo: 'Visíveis' },
+                  { id: 'ocultas', rotulo: 'Ocultas' },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className={cx('chip', filtro === f.id && 'on')}
+                  aria-pressed={filtro === f.id}
+                  onClick={() => {
+                    setFiltro(f.id);
+                  }}
+                >
+                  {f.rotulo}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {pistas.length === 0 ? (
           <p className="small muted">Nenhuma pista neste mapa ainda.</p>
+        ) : filtradas.length === 0 ? (
+          <p className="small muted">Nenhuma pista encontrada com esse filtro.</p>
         ) : (
-          pistas.map((pista) => (
+          filtradas.map((pista) => (
             <CartaoDaPistaNoPainel
               key={pista.id}
               campanhaId={campanhaId}

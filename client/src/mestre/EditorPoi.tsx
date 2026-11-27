@@ -5,6 +5,7 @@ import {
   PERICIAS_OP2,
   type ComandoDaMesa,
   type InformacaoDoPoi,
+  type MapaNaMesa,
   type PericiaDoPoi,
   type PoiNaMesa,
   type RespostaDoComando,
@@ -23,19 +24,20 @@ import {
   Textarea,
   useToast,
 } from '../ui/index.ts';
+import { MiniMapaSeletor } from './MiniMapaSeletor.tsx';
 import '../pages/Escudo/escudo.css';
 
-function CartaoDoPoi({
+function EdicaoDoPoi({
   poi,
   salas,
-  aoExecutar,
+  atualizar,
 }: {
   poi: PoiNaMesa;
   salas: readonly SalaNaMesa[];
-  aoExecutar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
+  atualizar: (
+    campos: Omit<Extract<ComandoDaMesa, { type: 'poi.update' }>, 'type' | 'poiId'>,
+  ) => Promise<void>;
 }) {
-  const avisos = useToast();
-  const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState(poi.nome);
   const [salaId, setSalaId] = useState(poi.salaId ?? '');
   const [descricao, setDescricao] = useState(poi.descricao);
@@ -44,26 +46,6 @@ function CartaoDoPoi({
   const [novaDt, setNovaDt] = useState('7');
   const [novoNivel, setNovoNivel] = useState('7');
   const [novoTextoInfo, setNovoTextoInfo] = useState('');
-
-  const [anterior, setAnterior] = useState(poi);
-  if (anterior !== poi) {
-    setAnterior(poi);
-    setNome(poi.nome);
-    setSalaId(poi.salaId ?? '');
-    setDescricao(poi.descricao);
-    setContextoMestre(poi.contextoMestre);
-  }
-
-  const descobertas = poi.informacoes.filter((i) => i.descoberta).length;
-  const tudoDescoberto = poi.informacoes.length > 0 && descobertas === poi.informacoes.length;
-
-  async function atualizar(
-    campos: Omit<Extract<ComandoDaMesa, { type: 'poi.update' }>, 'type' | 'poiId'>,
-  ) {
-    const r = await aoExecutar({ type: 'poi.update', poiId: poi.id, ...campos });
-    if (!r.ok)
-      avisos.show({ type: 'err', title: 'Não deu para atualizar o ponto', text: r.motivo });
-  }
 
   function salvarTexto() {
     const limpo = nome.trim();
@@ -112,6 +94,221 @@ function CartaoDoPoi({
   }
 
   return (
+    <div className="col" style={{ gap: 10 }}>
+      <Field label="Nome do ponto">
+        <Input
+          value={nome}
+          onChange={(e) => {
+            setNome(e.target.value);
+          }}
+          onBlur={salvarTexto}
+        />
+      </Field>
+      <Field label="Sala">
+        <Select
+          value={salaId}
+          onChange={(e) => {
+            const v = e.target.value;
+            setSalaId(v);
+            void atualizar({ salaId: v || null });
+          }}
+        >
+          <option value="">Sem sala definida</option>
+          {salas.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.nome}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label="Descrição para cena">
+        <Textarea
+          rows={2}
+          value={descricao}
+          onChange={(e) => {
+            setDescricao(e.target.value);
+          }}
+          onBlur={salvarTexto}
+        />
+      </Field>
+      <Field label="Contexto do mestre (secreto)">
+        <Textarea
+          placeholder="Só você vê este campo; nunca vai para os jogadores…"
+          rows={2}
+          value={contextoMestre}
+          onChange={(e) => {
+            setContextoMestre(e.target.value);
+          }}
+          onBlur={salvarTexto}
+        />
+      </Field>
+
+      <div className="escudo-poi-bloco">
+        <span className="lab">Perícias para investigar ({poi.pericias.length})</span>
+        <span className="small muted">
+          Quais testes os jogadores podem rolar neste ponto (ex.: Percepção DT 7).
+        </span>
+        {poi.pericias.length > 0 && (
+          <div className="escudo-poi-lista">
+            {poi.pericias.map((p, idx) => (
+              <div key={`${p.periciaId}-${String(idx)}`} className="escudo-poi-info row between">
+                <span className="small">
+                  <b>{PERICIAS_OP2.find((x) => x.id === p.periciaId)?.nome ?? p.periciaId}</b>{' '}
+                  <span className="muted">· DT {p.dt}</span>
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Icon name="close" size="sm" />}
+                  aria-label="Remover perícia"
+                  onClick={() => {
+                    void atualizar({ pericias: poi.pericias.filter((_, i) => i !== idx) });
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <form
+          className="escudo-poi-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            adicionarPericia();
+          }}
+        >
+          <Field label="Perícia" className="escudo-poi-texto">
+            <Select
+              value={novaPericia}
+              onChange={(e) => {
+                setNovaPericia(e.target.value);
+              }}
+            >
+              {PERICIAS_OP2.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="DT" className="escudo-poi-dt">
+            <Input
+              type="number"
+              min={1}
+              max={30}
+              value={novaDt}
+              onChange={(e) => {
+                setNovaDt(e.target.value);
+              }}
+            />
+          </Field>
+          <Button type="submit" size="sm">
+            + Perícia
+          </Button>
+        </form>
+      </div>
+
+      <div className="escudo-poi-bloco">
+        <span className="lab">Informações reveladas por DT ({poi.informacoes.length})</span>
+        <span className="small muted">
+          Os jogadores veem tarjas pretas até atingirem a DT mínima no teste. Marque a caixa para
+          revelar ou ocultar na mão.
+        </span>
+        {poi.informacoes.length > 0 && (
+          <div className="escudo-poi-lista">
+            {poi.informacoes.map((info) => (
+              <div key={info.id} className="escudo-poi-info row between">
+                <div className="row grow" style={{ gap: 8, minWidth: 0 }}>
+                  <Tag {...(info.descoberta && { tone: 'green' as const })}>DT {info.nivel}</Tag>
+                  <Checkbox
+                    label={
+                      <span>
+                        {info.texto}{' '}
+                        <span className="small muted">
+                          ({info.descoberta ? 'revelada' : 'oculta'})
+                        </span>
+                      </span>
+                    }
+                    checked={Boolean(info.descoberta)}
+                    onChange={() => {
+                      alternarDescoberta(info.id);
+                    }}
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Icon name="close" size="sm" />}
+                  aria-label="Remover informação"
+                  onClick={() => {
+                    void atualizar({
+                      informacoes: poi.informacoes.filter((i) => i.id !== info.id),
+                    });
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <form
+          className="escudo-poi-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            adicionarInfo();
+          }}
+        >
+          <Field label="DT mínima" className="escudo-poi-dt">
+            <Input
+              type="number"
+              min={1}
+              max={30}
+              value={novoNivel}
+              onChange={(e) => {
+                setNovoNivel(e.target.value);
+              }}
+            />
+          </Field>
+          <Field label="O que descobrem" className="escudo-poi-texto">
+            <Input
+              placeholder="Ex.: O gravador tem fita de 1998…"
+              value={novoTextoInfo}
+              onChange={(e) => {
+                setNovoTextoInfo(e.target.value);
+              }}
+            />
+          </Field>
+          <Button type="submit" size="sm">
+            + Info
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function CartaoDoPoi({
+  poi,
+  salas,
+  aoExecutar,
+}: {
+  poi: PoiNaMesa;
+  salas: readonly SalaNaMesa[];
+  aoExecutar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
+}) {
+  const avisos = useToast();
+  const [aberto, setAberto] = useState(false);
+
+  const descobertas = poi.informacoes.filter((i) => i.descoberta).length;
+  const tudoDescoberto = poi.informacoes.length > 0 && descobertas === poi.informacoes.length;
+
+  async function atualizar(
+    campos: Omit<Extract<ComandoDaMesa, { type: 'poi.update' }>, 'type' | 'poiId'>,
+  ) {
+    const r = await aoExecutar({ type: 'poi.update', poiId: poi.id, ...campos });
+    if (!r.ok)
+      avisos.show({ type: 'err', title: 'Não deu para atualizar o ponto', text: r.motivo });
+  }
+
+  return (
     <div className="mesa-bloco card">
       <div className="row between" style={{ gap: 8 }}>
         <div className="row" style={{ gap: 8, minWidth: 0 }}>
@@ -153,199 +350,12 @@ function CartaoDoPoi({
       </div>
 
       {aberto && (
-        <div className="col" style={{ gap: 10 }}>
-          <Field label="Nome do ponto">
-            <Input
-              value={nome}
-              onChange={(e) => {
-                setNome(e.target.value);
-              }}
-              onBlur={salvarTexto}
-            />
-          </Field>
-          <Field label="Sala">
-            <Select
-              value={salaId}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSalaId(v);
-                void atualizar({ salaId: v || null });
-              }}
-            >
-              <option value="">Sem sala definida</option>
-              {salas.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nome}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Descrição para cena">
-            <Textarea
-              rows={2}
-              value={descricao}
-              onChange={(e) => {
-                setDescricao(e.target.value);
-              }}
-              onBlur={salvarTexto}
-            />
-          </Field>
-          <Field label="Contexto do mestre (secreto)">
-            <Textarea
-              placeholder="Só você vê este campo; nunca vai para os jogadores…"
-              rows={2}
-              value={contextoMestre}
-              onChange={(e) => {
-                setContextoMestre(e.target.value);
-              }}
-              onBlur={salvarTexto}
-            />
-          </Field>
-
-          <div className="escudo-poi-bloco">
-            <span className="lab">Perícias para investigar ({poi.pericias.length})</span>
-            <span className="small muted">
-              Quais testes os jogadores podem rolar neste ponto (ex.: Percepção DT 7).
-            </span>
-            {poi.pericias.length > 0 && (
-              <div className="escudo-poi-lista">
-                {poi.pericias.map((p, idx) => (
-                  <div
-                    key={`${p.periciaId}-${String(idx)}`}
-                    className="escudo-poi-info row between"
-                  >
-                    <span className="small">
-                      <b>{PERICIAS_OP2.find((x) => x.id === p.periciaId)?.nome ?? p.periciaId}</b>{' '}
-                      <span className="muted">· DT {p.dt}</span>
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      icon={<Icon name="close" size="sm" />}
-                      aria-label="Remover perícia"
-                      onClick={() => {
-                        void atualizar({ pericias: poi.pericias.filter((_, i) => i !== idx) });
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            <form
-              className="escudo-poi-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                adicionarPericia();
-              }}
-            >
-              <Field label="Perícia" className="escudo-poi-texto">
-                <Select
-                  value={novaPericia}
-                  onChange={(e) => {
-                    setNovaPericia(e.target.value);
-                  }}
-                >
-                  {PERICIAS_OP2.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="DT" className="escudo-poi-dt">
-                <Input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={novaDt}
-                  onChange={(e) => {
-                    setNovaDt(e.target.value);
-                  }}
-                />
-              </Field>
-              <Button type="submit" size="sm">
-                + Perícia
-              </Button>
-            </form>
-          </div>
-
-          <div className="escudo-poi-bloco">
-            <span className="lab">Informações reveladas por DT ({poi.informacoes.length})</span>
-            <span className="small muted">
-              Os jogadores veem tarjas pretas até atingirem a DT mínima no teste. Marque a caixa
-              para revelar ou ocultar na mão.
-            </span>
-            {poi.informacoes.length > 0 && (
-              <div className="escudo-poi-lista">
-                {poi.informacoes.map((info) => (
-                  <div key={info.id} className="escudo-poi-info row between">
-                    <div className="row grow" style={{ gap: 8, minWidth: 0 }}>
-                      <Tag {...(info.descoberta && { tone: 'green' as const })}>
-                        DT {info.nivel}
-                      </Tag>
-                      <Checkbox
-                        label={
-                          <span>
-                            {info.texto}{' '}
-                            <span className="small muted">
-                              ({info.descoberta ? 'revelada' : 'oculta'})
-                            </span>
-                          </span>
-                        }
-                        checked={Boolean(info.descoberta)}
-                        onChange={() => {
-                          alternarDescoberta(info.id);
-                        }}
-                      />
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      icon={<Icon name="close" size="sm" />}
-                      aria-label="Remover informação"
-                      onClick={() => {
-                        void atualizar({
-                          informacoes: poi.informacoes.filter((i) => i.id !== info.id),
-                        });
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            <form
-              className="escudo-poi-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                adicionarInfo();
-              }}
-            >
-              <Field label="DT mínima" className="escudo-poi-dt">
-                <Input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={novoNivel}
-                  onChange={(e) => {
-                    setNovoNivel(e.target.value);
-                  }}
-                />
-              </Field>
-              <Field label="O que descobrem" className="escudo-poi-texto">
-                <Input
-                  placeholder="Ex.: O gravador tem fita de 1998…"
-                  value={novoTextoInfo}
-                  onChange={(e) => {
-                    setNovoTextoInfo(e.target.value);
-                  }}
-                />
-              </Field>
-              <Button type="submit" size="sm">
-                + Info
-              </Button>
-            </form>
-          </div>
-        </div>
+        <EdicaoDoPoi
+          key={`${poi.id}-${poi.nome}-${poi.salaId ?? ''}-${poi.descricao}-${poi.contextoMestre}`}
+          poi={poi}
+          salas={salas}
+          atualizar={atualizar}
+        />
       )}
     </div>
   );
@@ -355,6 +365,7 @@ export function EditorPoi({
   salas,
   pois,
   temMapa,
+  mapa = null,
   aoExecutar,
   aoEscolherNoMapa,
   centroPadrao,
@@ -363,6 +374,7 @@ export function EditorPoi({
   salas: readonly SalaNaMesa[];
   pois: readonly PoiNaMesa[];
   temMapa: boolean;
+  mapa?: MapaNaMesa | null;
   aoExecutar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
   aoEscolherNoMapa?: (aoClicar: (ponto: Ponto) => void) => void;
   centroPadrao?: Ponto;
@@ -374,6 +386,10 @@ export function EditorPoi({
   const [salaNova, setSalaNova] = useState('');
   const [descricaoNova, setDescricaoNova] = useState('');
   const [contextoNovo, setContextoNovo] = useState('');
+  const [busca, setBusca] = useState('');
+  const [pontoModal, setPontoModal] = useState<Ponto>(
+    centroPadrao ?? { x: mapa ? mapa.largura / 2 : 200, y: mapa ? mapa.altura / 2 : 200 },
+  );
 
   async function criarEm(ponto: Ponto) {
     const nome = nomeNovo.trim() || `Ponto ${String(pois.length + 1)}`;
@@ -397,7 +413,18 @@ export function EditorPoi({
     }
   }
 
-  const ordenados = [...pois].sort((a, b) => a.numero - b.numero);
+  const termo = busca.trim().toLowerCase();
+  const ordenados = [...pois]
+    .sort((a, b) => a.numero - b.numero)
+    .filter((poi) => {
+      if (!termo) return true;
+      const nomeSala = salas.find((s) => s.id === poi.salaId)?.nome ?? '';
+      return (
+        poi.nome.toLowerCase().includes(termo) ||
+        poi.descricao.toLowerCase().includes(termo) ||
+        nomeSala.toLowerCase().includes(termo)
+      );
+    });
 
   const formularioNovoPoi = (
     <div className="col" style={{ gap: 8 }}>
@@ -437,6 +464,14 @@ export function EditorPoi({
               }}
             />
           </Field>
+          {mapa && (
+            <MiniMapaSeletor
+              mapa={mapa}
+              ponto={pontoModal}
+              aoMudar={setPontoModal}
+              rotulo="Posição do ponto no mapa"
+            />
+          )}
           <Field label="Contexto do mestre (secreto)">
             <Textarea
               rows={2}
@@ -459,7 +494,7 @@ export function EditorPoi({
               void criarEm(ponto);
             });
           } else {
-            void criarEm(centroPadrao ?? { x: 200, y: 200 });
+            void criarEm(criarEmModal && mapa ? pontoModal : (centroPadrao ?? { x: 200, y: 200 }));
           }
         }}
       >
@@ -480,6 +515,7 @@ export function EditorPoi({
               variant="primary"
               icon={<Icon name="plus" size="sm" />}
               onClick={() => {
+                if (mapa) setPontoModal({ x: mapa.largura / 2, y: mapa.altura / 2 });
                 setModalAberto(true);
               }}
             >
@@ -500,8 +536,21 @@ export function EditorPoi({
         formularioNovoPoi
       )}
 
-      {ordenados.length === 0 ? (
+      {pois.length > 2 && (
+        <Input
+          aria-label="Buscar ponto de interesse"
+          placeholder="Buscar ponto…"
+          value={busca}
+          onChange={(e) => {
+            setBusca(e.target.value);
+          }}
+        />
+      )}
+
+      {pois.length === 0 ? (
         <p className="small muted">Nenhum ponto de interesse ainda.</p>
+      ) : ordenados.length === 0 ? (
+        <p className="small muted">Nenhum ponto encontrado para essa busca.</p>
       ) : (
         <div className="col" style={{ gap: 8 }}>
           {ordenados.map((poi) => (
