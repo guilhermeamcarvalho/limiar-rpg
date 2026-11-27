@@ -6,6 +6,7 @@ import { tituloDaPagina } from '@membrana/shared';
 import { SECOES, TEXTO_DE_BUSCA, type Bloco, type Entrada } from '../../conteudo/index.ts';
 import { combina, tomDoSelo } from '../../conteudo/markdown.ts';
 import { cx, EmptyState, Icon, Input, Tag } from '../../ui/index.ts';
+import { LevarItem } from './LevarItem.tsx';
 import { TesteAvulso } from './TesteAvulso.tsx';
 import './arquivo.css';
 
@@ -66,7 +67,15 @@ function Blocos({ blocos }: { blocos: Bloco[] }) {
   );
 }
 
-function Detalhe({ entrada, secao }: { entrada: Entrada; secao: string }) {
+function Detalhe({
+  entrada,
+  secao,
+  secaoId,
+}: {
+  entrada: Entrada;
+  secao: string;
+  secaoId: string;
+}) {
   return (
     <article className="paper arq-detalhe" aria-labelledby="arq-detalhe-titulo">
       <span className="lab">
@@ -88,6 +97,7 @@ function Detalhe({ entrada, secao }: { entrada: Entrada; secao: string }) {
           ))}
         </div>
       )}
+      {secaoId === 'itens' && <LevarItem key={entrada.id} entrada={entrada} />}
     </article>
   );
 }
@@ -197,7 +207,7 @@ export function Arquivo() {
             ))}
           </ul>
           <div ref={detalhe} className="arq-detalhe-lado">
-            {aberta && <Detalhe entrada={aberta} secao={secao.titulo} />}
+            {aberta && <Detalhe entrada={aberta} secao={secao.titulo} secaoId={secao.id} />}
           </div>
         </div>
       </>

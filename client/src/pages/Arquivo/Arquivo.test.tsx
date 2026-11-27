@@ -147,3 +147,58 @@ describe('teste avulso', () => {
     ]);
   });
 });
+
+describe('levar item para a ficha (#91)', () => {
+  it('adiciona o item do Arquivo ao personagem selecionado e permite desfazer', async () => {
+    const puts: Array<{ itens: Array<{ nome: string }> }> = [];
+    servidor({
+      'GET /api/me/personagens': json(200, { personagens: [DAVI, RUI] }),
+      'GET /api/campanhas': json(200, { campanhas: [] }),
+      'PUT /api/personagens/chr_davi': (c) => {
+        const corpo = c.corpo as { ficha: typeof DAVI.ficha };
+        puts.push({ itens: corpo.ficha.itens });
+        return json(200, { personagem: { ...DAVI, ficha: corpo.ficha } });
+      },
+    });
+    abrir('/arquivo');
+
+    const nav = await screen.findByRole('navigation', { name: 'Seções do Arquivo' });
+    fireEvent.click(within(nav).getByRole('button', { name: /Itens/ }));
+    const btnLevar = await screen.findByRole('button', { name: 'Levar para o inventário' });
+    fireEvent.click(btnLevar);
+
+    expect(await screen.findByText(/adicionado ao inventário/)).toBeDefined();
+    expect(puts).toHaveLength(1);
+    expect(puts[0]?.itens.some((i) => i.nome === 'Lanterna tática')).toBe(true);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Desfazer' }));
+    expect(await screen.findByText(/removido do inventário/)).toBeDefined();
+    expect(puts).toHaveLength(2);
+    expect(puts[1]?.itens).toHaveLength(DAVI.ficha.itens.length);
+  });
+
+  it('bloqueia quando o personagem não tem espaço livre no inventário', async () => {
+    const lotado = personagem(
+      { id: 'chr_lotado', emUso: true },
+      {
+        nome: 'Caio Lotado',
+        atributos: { fisico: 'd4', mente: 'd6', emocao: 'd6' },
+        itens: [
+          { id: 'itm_1', nome: 'Item 1', descricao: '' },
+          { id: 'itm_2', nome: 'Item 2', descricao: '' },
+          { id: 'itm_3', nome: 'Item 3', descricao: '' },
+          { id: 'itm_4', nome: 'Item 4', descricao: '' },
+        ],
+      },
+    );
+    montar([lotado]);
+
+    const nav = await screen.findByRole('navigation', { name: 'Seções do Arquivo' });
+    fireEvent.click(within(nav).getByRole('button', { name: /Itens/ }));
+    const btnLevar = await screen.findByRole<HTMLButtonElement>('button', {
+      name: 'Levar para o inventário',
+    });
+    expect(btnLevar.disabled).toBe(true);
+    expect(screen.getByText(/Sem espaço livre no inventário de Caio/)).toBeDefined();
+  });
+});

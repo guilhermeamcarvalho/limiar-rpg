@@ -8,8 +8,8 @@ import type {
   RegistroDeTeste,
   RespostaDoComando,
 } from '@membrana/shared';
-import { Chat, interpretarEntradaDoChat } from './Chat.tsx';
-import { filtrarAcontecimentos, Registro } from './Registro.tsx';
+import { Chat, interpretarEntradaDoChat, LOTE_DO_CHAT } from './Chat.tsx';
+import { filtrarAcontecimentos, LOTE_DO_REGISTRO, Registro } from './Registro.tsx';
 
 afterEach(() => {
   cleanup();
@@ -364,5 +364,80 @@ describe('Registro (Acontecimentos)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cenas' }));
     expect(screen.getByText('Estúdio B')).toBeDefined();
     expect(screen.getByText(/Rodada 2/)).toBeDefined();
+  });
+
+  it('mostra o mais recente primeiro, busca por texto e pagina lotes antigos no Registro', () => {
+    const muitos: EventoDaMesa[] = Array.from({ length: LOTE_DO_REGISTRO + 5 }, (_, i) => ({
+      type: 'round.started',
+      numero: i + 1,
+      seq: i + 1,
+    }));
+
+    render(
+      <Registro eventos={muitos} papel="mestre" membros={MEMBROS} personagens={PERSONAGENS} />,
+    );
+
+    expect(screen.getByText(`Rodada ${String(LOTE_DO_REGISTRO + 5)}`)).toBeDefined();
+    expect(screen.queryByText('Rodada 1')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar mais antigos (5)' }));
+    expect(screen.getByText('Rodada 1')).toBeDefined();
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar no registro' }), {
+      target: { value: 'rodada 3' },
+    });
+    expect(screen.getByText('Rodada 3')).toBeDefined();
+    expect(screen.queryByText('Rodada 1')).toBeNull();
+  });
+});
+
+describe('Chat com muitas mensagens', () => {
+  it('pagina mensagens antigas e filtra por tipo e busca', () => {
+    const muitas: EventoDaMesa[] = Array.from({ length: LOTE_DO_CHAT + 4 }, (_, i) => ({
+      type: 'chat.message',
+      id: `msg_${String(i + 1)}`,
+      autorId: 'usr_caio',
+      texto: `Mensagem ${String(i + 1)}`,
+      para: null,
+      narracao: false,
+      em: '2026-11-26T21:40:00.000Z',
+      seq: i + 1,
+    }));
+    muitas.push({
+      type: 'dice.rolled',
+      autorId: 'usr_bia',
+      expressao: '2d6',
+      dados: [3, 4],
+      total: 7,
+      secreta: false,
+      seq: LOTE_DO_CHAT + 5,
+    });
+
+    render(
+      <Chat
+        eventos={muitas}
+        meuId="usr_bia"
+        papel="jogador"
+        membros={MEMBROS}
+        personagens={PERSONAGENS}
+        meuPersonagemNome="Davi Rocha"
+        enviar={() => Promise.resolve({ ok: true })}
+      />,
+    );
+
+    expect(screen.queryByText('Mensagem 1')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Carregar mais antigas (5)' }));
+    expect(screen.getByText('Mensagem 1')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dados' }));
+    expect(screen.getByText('Davi · 2d6')).toBeDefined();
+    expect(screen.queryByText('Mensagem 1')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tudo' }));
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar no chat' }), {
+      target: { value: 'Mensagem 2' },
+    });
+    expect(screen.getByText('Mensagem 2')).toBeDefined();
+    expect(screen.queryByText('Mensagem 1')).toBeNull();
   });
 });

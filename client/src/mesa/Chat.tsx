@@ -32,6 +32,17 @@ import {
 
 /** Distância máxima do rodapé (em px) em que a lista ainda acompanha novas mensagens sozinha. */
 export const FOLGA_DO_FIM_PX = 48;
+/** Quantas mensagens/rolagens são exibidas inicialmente no chat; o restante carrega sob demanda. */
+export const LOTE_DO_CHAT = 50;
+
+export type FiltroDoChat = 'tudo' | 'falas' | 'dados' | 'sussurros';
+
+const FILTROS_CHAT: { id: FiltroDoChat; rotulo: string }[] = [
+  { id: 'tudo', rotulo: 'Tudo' },
+  { id: 'falas', rotulo: 'Falas' },
+  { id: 'dados', rotulo: 'Dados' },
+  { id: 'sussurros', rotulo: 'Sussurros' },
+];
 
 export type EntradaInterpretada =
   { ok: true; comando: ComandoDaMesa } | { ok: false; motivo: string };
@@ -219,6 +230,9 @@ export function Chat({
   const [narracao, setNarracao] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState<FiltroDoChat>('tudo');
+  const [limite, setLimite] = useState(LOTE_DO_CHAT);
 
   const listaRef = useRef<HTMLDivElement | null>(null);
   const pertoDoFimRef = useRef(true);
@@ -233,6 +247,45 @@ export function Chat({
   const papeisDeUsuarios = Object.fromEntries(membros.map((m) => [m.id, m.papel]));
   const personagemDoUsuario = Object.fromEntries(personagens.map((p) => [p.donoId, p]));
   const nomesDePersonagens = Object.fromEntries(personagens.map((p) => [p.id, p.nome]));
+
+  const termo = busca.trim().toLowerCase();
+  const filtrados = itens.filter((item) => {
+    if (filtro === 'falas' && (item.type !== 'chat.message' || item.para !== null)) return false;
+    if (filtro === 'dados' && item.type !== 'dice.rolled' && item.type !== 'test.resolved') {
+      return false;
+    }
+    if (filtro === 'sussurros' && (item.type !== 'chat.message' || item.para === null)) {
+      return false;
+    }
+    if (!termo) return true;
+    if (item.type === 'chat.message') {
+      const autorNome = autorDe(item.autorId).nome.toLowerCase();
+      return item.texto.toLowerCase().includes(termo) || autorNome.includes(termo);
+    }
+    if (item.type === 'dice.rolled') {
+      const autorNome = autorDe(item.autorId).nome.toLowerCase();
+      return (
+        item.expressao.toLowerCase().includes(termo) ||
+        String(item.total).includes(termo) ||
+        autorNome.includes(termo)
+      );
+    }
+    const quem = (
+      item.registro.personagemNome ??
+      nomesDePersonagens[item.registro.personagemId] ??
+      item.registro.autor?.nome ??
+      ''
+    ).toLowerCase();
+    return (
+      quem.includes(termo) ||
+      nomeDaPericia(item.registro.periciaId).toLowerCase().includes(termo) ||
+      item.registro.efeitos.join(' ').toLowerCase().includes(termo)
+    );
+  });
+
+  const filtrando = termo !== '' || filtro !== 'tudo';
+  const visiveis = filtrando ? filtrados : filtrados.slice(-limite);
+  const ocultos = filtrando ? 0 : filtrados.length - visiveis.length;
 
   function autorDe(userId: string): {
     nome: string;
@@ -321,6 +374,35 @@ export function Chat({
 
   return (
     <div className="chat-coluna">
+      {(itens.length > 4 || filtrando) && (
+        <div className="col chat-barra">
+          <Input
+            type="search"
+            aria-label="Buscar no chat"
+            placeholder="Buscar no chat…"
+            value={busca}
+            onChange={(e) => {
+              setBusca(e.target.value);
+            }}
+          />
+          <div className="prontos-categorias" role="group" aria-label="Filtrar chat">
+            {FILTROS_CHAT.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={cx('chip', filtro === f.id && 'on')}
+                aria-pressed={filtro === f.id}
+                onClick={() => {
+                  setFiltro(f.id);
+                }}
+              >
+                {f.rotulo}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div
         ref={listaRef}
         className="chat-lista"
@@ -329,12 +411,26 @@ export function Chat({
         aria-label="Mensagens do chat"
         onScroll={aoRolarLista}
       >
+        {ocultos > 0 && (
+          <button
+            type="button"
+            className="chat-carregar-mais small"
+            onClick={() => {
+              setLimite((n) => n + LOTE_DO_CHAT);
+            }}
+          >
+            Carregar mais antigas ({ocultos})
+          </button>
+        )}
+
         {itens.length === 0 ? (
           <p className="small muted chat-vazio">
             Nenhuma mensagem ainda. Escreva abaixo ou use <code>/r 2d6</code> para rolar dados.
           </p>
+        ) : visiveis.length === 0 ? (
+          <p className="small muted chat-vazio">Nenhuma mensagem encontrada com esse filtro.</p>
         ) : (
-          itens.map((item) => {
+          visiveis.map((item) => {
             if (item.type === 'test.resolved') {
               return (
                 <CartaoDeTesteNoChat
