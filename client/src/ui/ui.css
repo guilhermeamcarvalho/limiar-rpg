@@ -1308,3 +1308,115 @@ textarea.fld {
   outline: 2px solid var(--red-hi);
   outline-offset: 1px;
 }
+
+/* Pop-up do resultado (RevelacaoDoDado.tsx): no centro da tela, logo depois de rolar. O véu não
+   escurece a cena inteira, só o bastante para o número se destacar. */
+.revelacao-veu {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  padding: var(--s4);
+  background: radial-gradient(ellipse at center, var(--scrim) 0, transparent 70%);
+  cursor: pointer;
+  animation: revelacao-veu 0.2s ease-out;
+}
+.revelacao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  min-width: min(320px, 100%);
+  max-width: 440px;
+  padding: var(--s5) var(--s6) var(--s4);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow-xl);
+  text-align: center;
+  cursor: default;
+  animation: revelacao-surge 0.25s ease-out;
+}
+.revelacao.pronta.green {
+  border-color: var(--green-dark);
+  box-shadow:
+    var(--shadow-xl),
+    0 0 48px -12px var(--green-a50);
+}
+.revelacao.pronta.red {
+  border-color: var(--red-dark);
+  box-shadow:
+    var(--shadow-xl),
+    0 0 48px -10px var(--red-a40);
+}
+.revelacao.pronta.gold {
+  border-color: var(--gold-dark);
+  box-shadow:
+    var(--shadow-xl),
+    0 0 48px -10px var(--gold);
+}
+.revelacao-titulo {
+  color: var(--muted);
+  font: 700 var(--t-md) var(--f-ui);
+}
+.revelacao-total {
+  font: 400 96px/1 var(--f-disp);
+  font-variant-numeric: tabular-nums;
+}
+.revelacao.pronta .revelacao-total {
+  animation: revelacao-pousa 0.3s ease-out;
+}
+.revelacao-veredito {
+  min-height: 1.2em;
+  font: 800 26px/1.2 var(--f-ui);
+}
+.revelacao.pronta .revelacao-veredito {
+  animation: revelacao-surge 0.3s ease-out;
+}
+.revelacao-dt {
+  color: var(--muted);
+  font: 700 var(--t-sm) var(--f-ui);
+}
+.revelacao-dados {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s3);
+  margin-top: var(--s2);
+  transition: filter 0.2s;
+}
+.revelacao-dados.girando {
+  filter: blur(4px);
+  opacity: 0.6;
+}
+.revelacao-numero {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--panel-3);
+  font: 800 var(--t-md) var(--f-ui);
+}
+.revelacao-dica {
+  margin-top: var(--s2);
+  color: var(--muted-2);
+  font-size: var(--t-xs);
+}
+@keyframes revelacao-veu {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes revelacao-surge {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+@keyframes revelacao-pousa {
+  from {
+    transform: scale(1.25);
+  }
+}

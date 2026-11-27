@@ -52,6 +52,9 @@ import {
   Skeleton,
   TabPanel,
   Tabs,
+  RevelacaoDoDado,
+  revelacaoDaRolagem,
+  revelacaoDoTeste,
   Tag,
   useCarga,
   useToast,
@@ -305,6 +308,8 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const [seqVistoChat, setSeqVistoChat] = useState<number | null>(null);
   const [seqVistoRegistro, setSeqVistoRegistro] = useState<number | null>(null);
   const [seqResultadoFechado, setSeqResultadoFechado] = useState(0);
+  // O pop-up do resultado: só para quem rolou, e some depois de visto.
+  const [seqRevelacaoFechada, setSeqRevelacaoFechada] = useState(0);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
   const [escolhendoPoi, setEscolhendoPoi] = useState<((ponto: Ponto) => void) | null>(null);
   const [poiAbertoId, setPoiAbertoId] = useState<string | null>(null);
@@ -535,6 +540,17 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const ferramentasComuns = FERRAMENTAS.filter((f) => !f.soMestre);
   const ferramentasDoMestre = mestre ? FERRAMENTAS.filter((f) => f.soMestre) : [];
   const mostrarBarra = Boolean(visao && (mestre || comMapa));
+  const minhaRevelacao = (() => {
+    const teste = mesa.ultimoTeste?.registro.autor?.id === meuId ? mesa.ultimoTeste : null;
+    const rolagem = mesa.ultimaRolagem?.autorId === meuId ? mesa.ultimaRolagem : null;
+    const ultima =
+      teste && (!rolagem || teste.seq > rolagem.seq)
+        ? { seq: teste.seq, revelacao: revelacaoDoTeste(teste.registro) }
+        : rolagem
+          ? { seq: rolagem.seq, revelacao: revelacaoDaRolagem({ chave: rolagem.seq, ...rolagem }) }
+          : null;
+    return ultima && ultima.seq > seqRevelacaoFechada ? ultima : null;
+  })();
   const resultadoVisivel =
     mesa.ultimoTeste && mesa.ultimoTeste.seq > seqResultadoFechado
       ? mesa.ultimoTeste.registro
@@ -862,6 +878,16 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 />
               );
             })()}
+
+          {minhaRevelacao && (
+            <RevelacaoDoDado
+              key={minhaRevelacao.seq}
+              revelacao={minhaRevelacao.revelacao}
+              aoFechar={() => {
+                setSeqRevelacaoFechada(minhaRevelacao.seq);
+              }}
+            />
+          )}
 
           {visao && resultadoVisivel && (
             <Resultado

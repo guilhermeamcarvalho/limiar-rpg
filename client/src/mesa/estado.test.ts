@@ -259,4 +259,25 @@ describe('registro, testes e deduplicação por seq', () => {
     expect(mesa.versaoPersonagens).toEqual({ chr_1: 1 });
     expect(mesa.eventos.map((e) => e.type)).toEqual(['test.resolved']);
   });
+
+  it('guarda a última rolagem livre, para o pop-up de quem rolou', () => {
+    const mesa = aplicar(comEstado(2), {
+      type: 'dice.rolled',
+      autorId: 'usr_1',
+      expressao: '2d6+1',
+      dados: [3, 5],
+      total: 9,
+      secreta: false,
+      seq: 3,
+    });
+    expect(mesa.ultimaRolagem).toEqual({
+      seq: 3,
+      autorId: 'usr_1',
+      expressao: '2d6+1',
+      dados: [3, 5],
+      total: 9,
+    });
+    expect(mesa.seq).toBe(3);
+    expect(mesa.eventos.map((e) => e.type)).toEqual(['dice.rolled']);
+  });
 });

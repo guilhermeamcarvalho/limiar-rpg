@@ -38,6 +38,13 @@ export {
   type DadoDoResultado,
   type ResultadoTesteProps,
 } from './ResultadoTeste.tsx';
+export {
+  RevelacaoDoDado,
+  revelacaoDaRolagem,
+  revelacaoDoTeste,
+  type DadoRevelado,
+  type Revelacao,
+} from './RevelacaoDoDado.tsx';
 export { ModoDados, ROTULO_DO_MODO, type ModoDadosProps, type ModoDeDados } from './ModoDados.tsx';
 export {
   CHAVE_DO_JEITO,
