@@ -20,7 +20,6 @@
 }
 .ficha-nome {
   font: 400 24px var(--f-disp);
-  text-transform: uppercase;
 }
 .ficha-grade {
   display: grid;
@@ -366,4 +365,10 @@
   .ficha-dica-caixas {
     display: none;
   }
+}
+
+/* Como nos dados da mesa: atributo é vermelho, perícia é branco. */
+.ficha-pericias .dado-opcao.on {
+  background: var(--text);
+  color: var(--bg-2);
 }

@@ -245,3 +245,56 @@ describe('excluir caso', () => {
     expect(endereco()).toBe('/casos/c2');
   });
 });
+
+describe('editar caso', () => {
+  async function abrirEdicao() {
+    const dossie = await screen.findByRole('region', { name: 'Dossiê do caso' });
+    fireEvent.click(await within(dossie).findByRole('button', { name: 'Editar caso' }));
+    return screen.findByRole('dialog', { name: 'Editar caso' });
+  }
+
+  it('o jogador não vê a opção', async () => {
+    servidorDeCasos();
+    abrir('/casos/c1');
+    const dossie = await screen.findByRole('region', { name: 'Dossiê do caso' });
+    await within(dossie).findByRole('heading', { name: 'O Sinal de Santa Ermida' });
+    expect(within(dossie).queryByRole('button', { name: 'Editar caso' })).toBeNull();
+  });
+
+  it('o mestre muda nome e DT; o dossiê mostra o caso novo e a agenda não vai junto', async () => {
+    const chamadas = servidorDeCasos({
+      'PATCH /api/campanhas/c2': (c) =>
+        json(200, {
+          campanha: detalhe({ ...LISTA[1], ...(c.corpo as object), id: 'c2', agenda: null }),
+        }),
+    });
+    abrir('/casos/c2');
+    const janela = await abrirEdicao();
+
+    const nome = within(janela).getByLabelText<HTMLInputElement>('Nome do caso');
+    expect(nome.value).toBe('Maré de Concreto');
+    fireEvent.change(nome, { target: { value: 'Maré Alta' } });
+    fireEvent.change(within(janela).getByLabelText('DT padrão'), { target: { value: '9' } });
+    fireEvent.click(within(janela).getByRole('button', { name: 'Salvar' }));
+
+    const dossie = screen.getByRole('region', { name: 'Dossiê do caso' });
+    expect(await within(dossie).findByRole('heading', { name: 'Maré Alta' })).toBeDefined();
+    expect(await screen.findByText('Caso atualizado')).toBeDefined();
+    const corpo = chamadas.find((c) => c.metodo === 'PATCH')?.corpo as Record<string, unknown>;
+    expect(corpo).toMatchObject({ nome: 'Maré Alta', dtPadrao: 9 });
+    expect(corpo).not.toHaveProperty('agenda');
+    expect(screen.queryByRole('dialog', { name: 'Editar caso' })).toBeNull();
+  });
+
+  it('sem nome, avisa no campo e não envia nada', async () => {
+    const chamadas = servidorDeCasos();
+    abrir('/casos/c2');
+    const janela = await abrirEdicao();
+
+    fireEvent.change(within(janela).getByLabelText('Nome do caso'), { target: { value: ' ' } });
+    fireEvent.click(within(janela).getByRole('button', { name: 'Salvar' }));
+
+    expect(await within(janela).findByText('Dê um nome ao caso.')).toBeDefined();
+    expect(chamadas.some((c) => c.metodo === 'PATCH')).toBe(false);
+  });
+});

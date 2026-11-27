@@ -61,6 +61,22 @@ function saudacao(agora: Date): string {
   return 'Boa noite';
 }
 
+/** Uma frase inquietante por dia, sob a saudação. Só ambientação: muda à meia-noite. */
+const SUSSURROS = [
+  'A Membrana está fina esta noite.',
+  'O rádio voltou a chiar às 3h17.',
+  'Alguém mexeu nos arquivos enquanto você dormia.',
+  'Conte as portas da sua casa. Agora conte de novo.',
+  'Não olhe para o corredor por muito tempo.',
+  'A foto do grupo tem uma pessoa a mais.',
+  'O telefone tocou. Ninguém estava do outro lado.',
+];
+
+function sussurro(agora: Date): string {
+  const dia = Math.floor(agora.getTime() / 86_400_000);
+  return SUSSURROS[dia % SUSSURROS.length] ?? '';
+}
+
 /** "Quinta, 19 nov". */
 function hoje(agora: Date): string {
   const dia = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(agora).split('-')[0];
@@ -606,6 +622,7 @@ export function Central() {
           <h1 className="h1">
             {saudacao(agora)}, <span className="red">{sessao.usuario.nome}</span>.
           </h1>
+          <p className="sussurro">{sussurro(agora)}</p>
         </div>
         <div className="row wrapx">
           <Link className="btn" to={linkDeCriar()}>

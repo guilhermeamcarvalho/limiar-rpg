@@ -7,6 +7,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/controles.css';
 import './styles/utilities.css';
+import './styles/atmosfera.css';
 import { Dicas, ToastProvider } from './ui/index.ts';
 
 iniciarObservabilidade();

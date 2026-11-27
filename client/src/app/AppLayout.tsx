@@ -25,18 +25,25 @@ interface ItemDoMenu {
   para: string;
   rotulo: string;
   icone: NomeDoIcone;
+  /** Para que serve a tela, em poucas palavras: aparece como dica no menu. */
+  dica: string;
 }
 
 const MENU: ItemDoMenu[] = [
-  { para: '/', rotulo: 'Central', icone: 'home' },
-  { para: '/casos', rotulo: 'Casos', icone: 'folder' },
-  { para: '/personagens', rotulo: 'Personagens', icone: 'users' },
-  { para: '/arquivo', rotulo: 'Arquivo', icone: 'book' },
+  { para: '/', rotulo: 'Central', icone: 'home', dica: 'Seu resumo: casos, convites e agenda' },
+  { para: '/casos', rotulo: 'Casos', icone: 'folder', dica: 'Suas campanhas e as mesas de jogo' },
+  {
+    para: '/personagens',
+    rotulo: 'Personagens',
+    icone: 'users',
+    dica: 'Criar e abrir fichas de personagem',
+  },
+  { para: '/arquivo', rotulo: 'Arquivo', icone: 'book', dica: 'Regras, perícias, itens e ameaças' },
 ];
 
 const BARRA_DO_CELULAR: ItemDoMenu[] = [
   ...MENU,
-  { para: '/perfil', rotulo: 'Perfil', icone: 'user' },
+  { para: '/perfil', rotulo: 'Perfil', icone: 'user', dica: 'Sua conta e preferências' },
 ];
 
 /** Nome da página no cabeçalho do celular. */
@@ -58,13 +65,17 @@ function useCasoDaUrl() {
   );
 }
 
+/** Faixa acima da página quando ela é de um caso: onde a pessoa está e como voltar ao caso. */
 function ContextoDoCaso({ caso }: { caso: CampanhaDetalhe }) {
   const papel = PAPEL[caso.papel];
   return (
-    <span className="ctx">
-      Caso <b>{caso.nome}</b>
+    <div className="ctx">
+      <Link className="ctx-voltar" to={`/casos/${caso.id}`}>
+        <Icon name="back" size="sm" />
+        Caso <b>{caso.nome}</b>
+      </Link>
       <Tag tone={papel.tom}>{papel.voce}</Tag>
-    </span>
+    </div>
   );
 }
 
@@ -151,31 +162,41 @@ export function AppLayout() {
         Pular para o conteúdo
       </a>
 
+      {/* Computador: barra lateral fixa, sempre com o nome de cada tela. */}
       <header className="top">
         <Marca />
-        {casoAberto && <ContextoDoCaso caso={casoAberto} />}
         <nav className="nav" aria-label="Principal">
           {MENU.map((item) => (
             <NavLink
               key={item.para}
               to={item.para}
               end={item.para === '/'}
+              title={item.dica}
               className={({ isActive }) => (isActive ? 'on' : '')}
             >
               <Icon name={item.icone} />
-              {item.rotulo}
+              <span className="nav-rotulo">{item.rotulo}</span>
             </NavLink>
           ))}
         </nav>
+        <Link
+          className="btn top-codigo"
+          to="/convite"
+          title="Recebeu um código ou link do mestre? Entre no caso por aqui"
+        >
+          <Icon name="key" size="sm" />
+          <span className="nav-rotulo">Entrar com código</span>
+        </Link>
         <div className="end">
-          <Link className="btn sm top-codigo" to="/convite" title="Entrar com código">
-            <Icon name="key" size="sm" />
-            <span className="top-rotulo">Entrar com código</span>
+          <Link className="top-perfil" to="/perfil" aria-label={`Perfil de ${nome}`} title={nome}>
+            <span className="av sm" aria-hidden="true">
+              {iniciais(nome)}
+            </span>
+            <span className="nav-rotulo top-nome" aria-hidden="true">
+              {nome}
+            </span>
           </Link>
           <Notificacoes />
-          <Link className="av sm" to="/perfil" aria-label={`Perfil de ${nome}`} title={nome}>
-            {iniciais(nome)}
-          </Link>
         </div>
       </header>
 
@@ -190,6 +211,7 @@ export function AppLayout() {
       )}
 
       <main id="conteudo" className="app-conteudo" tabIndex={-1}>
+        {casoAberto && <ContextoDoCaso caso={casoAberto} />}
         <Suspense fallback={<CarregandoPagina />}>
           <ContextoDoCelular value={setProprio}>
             <Outlet />

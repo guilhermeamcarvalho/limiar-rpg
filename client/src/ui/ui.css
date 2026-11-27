@@ -1,5 +1,6 @@
 /*
- * MEMBRANA · componentes base. Vêm de design/fonte/lm.css, com os mesmos nomes de classe.
+ * MEMBRANA · componentes base.
+ * Texto sempre em caixa normal: botão, aba, etiqueta e rótulo se leem como frase.
  * Só tokens: nenhuma cor escrita à mão aqui.
  * Alvo mínimo de clique: 44 px; 36 px só no tamanho pequeno, para barras densas.
  */
@@ -35,20 +36,26 @@
   min-height: 44px;
   padding: 0 18px;
   border-radius: var(--r);
-  border: 1px solid var(--line-3);
-  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  background: var(--panel-3);
   color: var(--text);
-  font: 800 11.5px var(--f-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 700 var(--t-md) / 1 var(--f-ui);
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s;
 }
 .btn:hover,
 .btn.is-hover {
-  border-color: var(--red-hi);
+  background: var(--panel-4);
+  border-color: var(--line-3);
   color: var(--white);
+}
+.btn:active:not(:disabled) {
+  translate: 0 1px;
 }
 .btn:focus-visible,
 .btn.is-focus {
@@ -63,6 +70,7 @@
 .btn.red:hover,
 .btn.red.is-hover {
   background: var(--red-hover);
+  border-color: var(--red-hover);
 }
 .btn.ghost {
   background: transparent;
@@ -72,7 +80,7 @@
 /* Sem borda em repouso; no hover, ganha o fundo e a borda de um botão para dizer que é clicável. */
 .btn.ghost:hover {
   color: var(--white);
-  border-color: var(--line-3);
+  border-color: transparent;
   background: var(--panel-3);
 }
 .btn.ghost:disabled:hover {
@@ -86,12 +94,12 @@
 .btn.danger {
   border-color: var(--red-dark);
   color: var(--red-soft);
-  background: var(--red-a08);
+  background: transparent;
 }
 .btn.sm {
   min-height: 36px;
   padding: 0 12px;
-  font-size: 11px;
+  font-size: var(--t-sm);
 }
 .btn.icon {
   width: 44px;
@@ -148,10 +156,8 @@
 }
 .field > label,
 .flabel {
-  font: 800 11px var(--f-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font: 600 var(--t-sm) / 1.3 var(--f-ui);
+  color: var(--text);
 }
 .fld {
   width: 100%;
@@ -161,8 +167,12 @@
   border: 1px solid var(--line-2);
   background: var(--field);
   color: var(--text);
-  font: 600 15px var(--f-ui);
+  font: 500 var(--t-md) / 1.4 var(--f-ui);
   color-scheme: dark;
+  transition: border-color 0.12s;
+}
+.fld:hover:not(:disabled, :focus) {
+  border-color: var(--line-3);
 }
 .fld::placeholder {
   color: var(--placeholder);
@@ -193,7 +203,7 @@ textarea.fld {
   font-family: var(--f-doc);
 }
 .help {
-  font-size: 12.5px;
+  font-size: var(--t-sm);
   color: var(--muted);
 }
 /* .ferr e .fwarn: no lm.css eram .err e .warn, que colidiam com .toast.err e .banner.warn. */
@@ -202,7 +212,7 @@ textarea.fld {
   display: flex;
   align-items: center;
   gap: 6px;
-  font: 700 12.5px var(--f-ui);
+  font: 600 var(--t-sm) var(--f-ui);
 }
 .ferr {
   color: var(--red-soft);
@@ -270,8 +280,11 @@ textarea.fld {
 /* Seletor segmentado */
 .seg {
   display: flex;
-  border: 1px solid var(--line-3);
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line-2);
   border-radius: var(--r);
+  background: var(--field);
 }
 .seg button {
   flex: 1;
@@ -280,22 +293,23 @@ textarea.fld {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 44px;
+  min-height: 38px;
   padding: 0 14px;
   border: 0;
+  border-radius: var(--r-sm);
   background: none;
   color: var(--muted);
-  font: 800 11px var(--f-ui);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 700 var(--t-sm) var(--f-ui);
   cursor: pointer;
 }
 .seg button:hover {
   color: var(--white);
+  background: var(--panel-3);
 }
 .seg button.on {
-  background: var(--red);
+  background: var(--panel-4);
   color: var(--white);
+  box-shadow: inset 0 -2px 0 var(--red-hi);
 }
 
 /* Abas */
@@ -313,19 +327,16 @@ textarea.fld {
   min-height: 44px;
   padding: 0 14px;
   border: 0;
-  border-bottom: 3px solid transparent;
+  border-bottom: 2px solid transparent;
   background: none;
   color: var(--muted);
-  font: 800 11.5px var(--f-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 700 var(--t-md) var(--f-ui);
   cursor: pointer;
   white-space: nowrap;
 }
 .tabs.tight button {
-  padding: 0 9px;
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
+  padding: 0 10px;
+  font-size: var(--t-sm);
 }
 .tabs button:hover {
   color: var(--white);
@@ -347,8 +358,7 @@ textarea.fld {
   border-radius: 10px;
   background: var(--panel-4);
   color: var(--text);
-  font: 900 10.5px var(--f-ui);
-  letter-spacing: 0;
+  font: 800 var(--t-xs) var(--f-ui);
 }
 .cnt.new {
   background: var(--red);
@@ -359,7 +369,7 @@ textarea.fld {
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--r);
+  border-radius: var(--r-lg);
 }
 .card.pad {
   padding: var(--s5);
@@ -377,8 +387,11 @@ textarea.fld {
   align-items: center;
   justify-content: space-between;
   gap: var(--s3);
-  padding: 14px var(--s5);
-  border-bottom: 1px solid var(--line);
+  padding: var(--s4) var(--s5) 0;
+}
+.card-h .lab {
+  font: 700 var(--t-md) var(--f-ui);
+  color: var(--text);
 }
 .card-b {
   padding: var(--s5);
@@ -405,13 +418,12 @@ textarea.fld {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 11px 6px;
+  min-height: 22px;
+  padding: 2px 9px;
+  border-radius: var(--r-sm);
   background: var(--panel-4);
   color: var(--text);
-  font: 900 10.5px var(--f-ui);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  clip-path: polygon(0 8%, 4% 0, 97% 4%, 100% 92%, 95% 100%, 2% 96%);
+  font: 700 var(--t-xs) / 1.2 var(--f-ui);
   white-space: nowrap;
 }
 .tag.red {
@@ -441,8 +453,8 @@ textarea.fld {
   min-height: 28px;
   padding: 0 10px;
   border: 1px solid var(--line-2);
-  border-radius: 14px;
-  font: 800 11px var(--f-ui);
+  border-radius: var(--r-full);
+  font: 600 var(--t-sm) var(--f-ui);
   color: var(--muted);
 }
 .dot {
@@ -637,6 +649,8 @@ textarea.fld {
 
 /* Resultado de um teste: verde sucesso, vermelho falha, dourado crítico */
 .result {
+  overflow: hidden;
+  border-radius: var(--r);
   background: var(--panel);
   border: 1px solid var(--line-2);
   border-left: 4px solid var(--line-3);
@@ -660,9 +674,7 @@ textarea.fld {
   gap: 10px;
   padding: 9px 14px;
   border-bottom: 1px solid var(--line);
-  font: 800 11px var(--f-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 600 var(--t-sm) var(--f-ui);
   color: var(--muted);
 }
 .result-b {
@@ -687,17 +699,13 @@ textarea.fld {
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  font: 800 10px var(--f-ui);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 600 var(--t-xs) var(--f-ui);
   color: var(--muted);
 }
 .verdict {
   display: block;
   margin-top: 4px;
-  font: 900 13px var(--f-ui);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 800 var(--t-md) var(--f-ui);
 }
 
 /* Avisos */
@@ -721,8 +729,9 @@ textarea.fld {
   background: var(--panel-2);
   border: 1px solid var(--line-2);
   border-left: 4px solid var(--blue);
-  box-shadow: var(--shadow-md);
-  font-size: 13.5px;
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--t-sm);
 }
 .toast b {
   display: block;
@@ -762,8 +771,9 @@ textarea.fld {
   gap: 12px;
   padding: 12px 16px;
   border: 1px solid var(--line-2);
+  border-radius: var(--r);
   background: var(--panel-2);
-  font-size: 13.5px;
+  font-size: var(--t-sm);
 }
 .banner.err {
   border-color: var(--red-dark);
@@ -786,11 +796,19 @@ textarea.fld {
   justify-content: center;
   gap: var(--s3);
   padding: var(--s7) var(--s5);
-  border: 1px dashed var(--line-3);
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r-lg);
   text-align: center;
 }
 .empty > .ic {
-  color: var(--line-3);
+  color: var(--muted-2);
+}
+.empty > :is(h2, h3, .h3, .disp) {
+  font: 700 var(--t-lg) / 1.3 var(--f-ui);
+}
+.empty > p {
+  max-width: 48ch;
+  color: var(--muted);
 }
 .skel {
   background: linear-gradient(90deg, var(--panel-2) 0, var(--panel-3) 50%, var(--panel-2) 100%);
@@ -834,19 +852,20 @@ textarea.fld {
   max-height: 100%;
   overflow: auto;
   background: var(--panel);
-  border: 1px solid var(--red);
-  box-shadow:
-    0 0 0 1px var(--red-a35),
-    var(--shadow-xl);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xl);
 }
 .modal-h {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px 10px 18px;
-  background: var(--black);
+  padding: 12px 12px 12px 20px;
   border-bottom: 1px solid var(--line);
+}
+.modal-h :is(h2, h3, .h3, .disp) {
+  font: 700 var(--t-lg) / 1.3 var(--f-ui);
 }
 .modal-b {
   padding: 20px;
@@ -866,7 +885,8 @@ textarea.fld {
   max-height: 85vh;
   overflow: auto;
   background: var(--panel);
-  border-top: 2px solid var(--red);
+  border-top: 1px solid var(--line-2);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
   box-shadow: var(--shadow-up);
   display: flex;
   flex-direction: column;
@@ -885,6 +905,7 @@ textarea.fld {
 .grab i {
   width: 44px;
   height: 4px;
+  border-radius: 2px;
   background: var(--line-3);
 }
 
@@ -901,15 +922,14 @@ textarea.fld {
 }
 .brand b {
   display: block;
-  font: 400 26px/1 var(--f-disp);
-  letter-spacing: 0.24em;
+  font: 400 22px/1 var(--f-disp);
+  letter-spacing: 0.2em;
 }
 .brand small {
   display: block;
-  font: 800 8.5px var(--f-ui);
-  letter-spacing: 0.24em;
+  font: 600 var(--t-xs) var(--f-ui);
   color: var(--muted);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 .brand-aro {
   stroke: var(--text);
@@ -1008,6 +1028,7 @@ textarea.fld {
   gap: var(--s4);
   padding: var(--s4);
   border: 1px solid var(--line);
+  border-radius: var(--r);
   background: var(--panel-2);
 }
 .fisico-dado {
@@ -1073,9 +1094,10 @@ textarea.fld {
   min-height: 48px;
   padding: 8px 12px;
   border: 1px solid var(--line-2);
+  border-radius: var(--r);
   background: var(--panel);
   color: var(--text);
-  font: 600 13px var(--f-ui);
+  font: 600 var(--t-sm) var(--f-ui);
   text-align: left;
   cursor: pointer;
 }
@@ -1136,6 +1158,7 @@ textarea.fld {
   gap: var(--s3);
   padding: var(--s4);
   border: 1px solid var(--line);
+  border-radius: var(--r);
   background: var(--panel-2);
 }
 .envio-acoes {
@@ -1209,11 +1232,11 @@ textarea.fld {
   max-width: min(280px, calc(100vw - 16px));
   padding: 6px 10px;
   border: 1px solid var(--line-3);
-  border-radius: var(--r);
-  background: var(--panel-3);
+  border-radius: var(--r-sm);
+  background: var(--panel-4);
   box-shadow: var(--shadow-md);
   color: var(--text);
-  font: 700 12px/1.35 var(--f-ui);
+  font: 600 var(--t-sm) / 1.35 var(--f-ui);
   pointer-events: none;
   animation: dica-entra 0.12s ease-out;
 }
@@ -1224,7 +1247,7 @@ textarea.fld {
   width: 8px;
   height: 8px;
   border: solid var(--line-3);
-  background: var(--panel-3);
+  background: var(--panel-4);
   content: '';
   translate: -50% 0;
 }
@@ -1242,4 +1265,46 @@ textarea.fld {
   from {
     opacity: 0;
   }
+}
+
+/* Escolha de dado (d4 a d12) como fileira de botões: todas as opções à vista, um clique. */
+.dado-escolha {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  background: var(--field);
+}
+.dado-opcao {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font: 700 var(--t-sm) var(--f-ui);
+  cursor: pointer;
+}
+/* Mais específico que o rádio global de controles.css: o círculo some e o rótulo vira o botão. */
+.dado-opcao > input[type='radio'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+.dado-opcao:hover {
+  background: var(--panel-3);
+  color: var(--white);
+}
+.dado-opcao.on {
+  background: var(--red);
+  color: var(--white);
+}
+.dado-opcao:has(input:focus-visible) {
+  outline: 2px solid var(--red-hi);
+  outline-offset: 1px;
 }

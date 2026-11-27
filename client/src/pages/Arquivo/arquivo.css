@@ -37,15 +37,38 @@
   pointer-events: none;
 }
 
+/* Três colunas: seções (e o teste avulso) à esquerda, a lista no meio e o texto da entrada à
+   direita, fixo enquanto a lista rola. Assim o clique mostra o texto ali do lado. */
 .arq-split {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
   gap: var(--s5);
-  align-items: flex-start;
+  align-items: start;
 }
-
-/* Seções */
-.arq-secoes {
-  flex: 0 1 240px;
-  min-width: 220px;
+.arq-esquerda {
+  gap: var(--s4);
+}
+.arq-duplo {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--s4);
+  align-items: start;
+}
+.arq-detalhe-lado {
+  position: sticky;
+  top: var(--s4);
+  max-height: calc(100vh - var(--s6));
+  overflow-y: auto;
+  border-radius: var(--r-lg);
+}
+@media (max-width: 1180px) {
+  .arq-duplo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .arq-detalhe-lado {
+    position: static;
+    max-height: none;
+  }
 }
 .arq-secoes .li,
 .arq-item {
@@ -80,7 +103,6 @@
 
 /* Lista e detalhe */
 .arq-meio {
-  flex: 999 1 520px;
   min-width: 0;
   gap: var(--s4);
 }
@@ -139,7 +161,7 @@
   padding: var(--s5);
 }
 .arq-detalhe .lab {
-  color: var(--red);
+  color: var(--red-dark);
 }
 .arq-detalhe .h2 {
   color: var(--ink);
@@ -168,9 +190,7 @@
   vertical-align: top;
 }
 .arq-tabela th {
-  font: 800 11px var(--f-ui);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font: 600 var(--t-sm) var(--f-ui);
 }
 .arq-etiquetas {
   gap: var(--s2);
@@ -208,8 +228,7 @@
   /* Em coluna, o flex-basis das três partes viraria altura: cada uma ocupa só o que precisa e
      nenhuma passa da largura da tela. */
   .arq-split {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s3);
     min-width: 0;
   }
@@ -217,6 +236,13 @@
     flex: none;
     width: 100%;
     min-width: 0;
+  }
+  /* Seções em cima, depois a lista; o teste avulso vai para o fim. */
+  .arq-esquerda {
+    display: contents;
+  }
+  .arq-lado {
+    order: 3;
   }
   .arq-secoes {
     flex-direction: row;

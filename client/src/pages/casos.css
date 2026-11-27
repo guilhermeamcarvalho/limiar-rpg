@@ -47,7 +47,7 @@ button.chip:hover {
   color: var(--text);
 }
 button.chip[aria-pressed='true'] {
-  border-color: var(--red);
+  border-color: var(--red-hi);
   background: var(--red-a18);
   color: var(--white);
 }
@@ -59,15 +59,16 @@ button.chip:focus-visible {
   padding: var(--s3) 14px;
 }
 .casos-item .lab {
-  font-size: 10px;
+  font-size: var(--t-xs);
 }
 .casos-item .h3 {
   display: block;
-  font-size: 20px;
 }
 .casos-item.encerrado {
   opacity: 0.7;
 }
+
+/* Dossiê: painel escuro; papel só no gancho, que é texto do mundo do jogo. */
 .casos-dossie {
   flex: 999 1 640px;
   min-width: 0;
@@ -75,65 +76,70 @@ button.chip:focus-visible {
   display: flex;
   flex-direction: column;
   gap: var(--s5);
+  align-self: flex-start;
 }
-.dossie-lab {
-  color: var(--red);
+.casos-dossie-vazio {
+  padding: var(--s4);
+}
+.dossie-cabeca {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s4);
 }
 .dossie-titulo {
-  color: var(--ink);
-  font-size: 52px;
+  font-size: 48px;
 }
-.dossie-linha {
-  color: var(--ink-3);
-}
-.dossie-texto {
-  color: var(--ink-2);
-}
-.carimbo {
-  display: inline-block;
-  transform: rotate(4deg);
-}
-.carimbo .tag {
-  font-size: 13px;
-  padding: var(--s2) var(--s4);
-}
-.btn.tinta {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
-}
-.btn.no-papel {
-  background: transparent;
-  color: var(--ink-2);
-  border-color: var(--paper-line);
-}
-.btn.tinta:hover,
-.btn.no-papel:hover {
-  border-color: var(--red);
+.dossie-gancho {
+  border-radius: var(--r);
+  font-size: var(--t-md);
 }
 .dossie-secao {
-  border-top: 1px solid var(--paper-line);
-  padding-top: var(--s4);
-  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: var(--s5);
+  gap: var(--s3);
 }
-.dossie-secao .lab {
-  color: var(--ink-3);
+.dossie-ficha {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--s3) var(--s5);
+  margin: 0;
+}
+.dossie-ficha dt {
+  color: var(--muted);
+  font-size: var(--t-sm);
+}
+.dossie-ficha dd {
+  margin: 2px 0 0;
+  font-weight: 700;
+}
+.dossie-regras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .dossie-convite {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--s3);
-  padding: var(--s3) 0;
-  border-bottom: 1px dashed var(--paper-line);
+  padding: var(--s3) var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--panel-2);
 }
-.dossie-convite:last-child {
-  border-bottom: 0;
+.dossie-convite + .dossie-convite {
+  margin-top: var(--s2);
 }
 .dossie-codigo {
   font-size: 22px;
-  letter-spacing: 0.12em;
-  color: var(--ink);
+  letter-spacing: 0.04em;
+}
+.dossie-risco {
+  gap: var(--s2);
 }
 .casos-voltar {
   display: none;
@@ -167,4 +173,21 @@ button.chip:focus-visible {
   .casos-voltar {
     display: inline-flex;
   }
+}
+
+/* Janela "Editar caso": os grupos de opções sem a moldura padrão do fieldset. */
+.editar-caso {
+  gap: var(--s4);
+}
+.editar-caso-grupo {
+  margin: 0;
+  padding: var(--s4) 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  gap: var(--s1);
+}
+.editar-caso-grupo legend {
+  float: left;
+  width: 100%;
+  margin-bottom: var(--s2);
 }

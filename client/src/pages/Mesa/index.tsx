@@ -96,15 +96,20 @@ interface DefinicaoDeFerramenta {
   titulo: string;
   tecla: string;
   icone: NomeDoIcone;
+  /** Nome curto, escrito embaixo do ícone na barra: ninguém precisa adivinhar o desenho. */
+  curto: string;
   rotulo: string;
   soMestre: boolean;
   /** Precisa de um mapa na mesa. */
   comMapa: boolean;
 }
 
+// Na barra, as do mestre seguem a ordem de preparar uma sessão: mapa, breu, salas, peças,
+// pontos de interesse e, por fim, o clima (névoa).
 const FERRAMENTAS: DefinicaoDeFerramenta[] = [
   {
     id: 'dados',
+    curto: 'Dados',
     titulo: 'Dados e testes',
     tecla: 'd',
     icone: 'dice',
@@ -113,25 +118,18 @@ const FERRAMENTAS: DefinicaoDeFerramenta[] = [
     comMapa: false,
   },
   {
-    id: 'tokens',
-    titulo: 'Tokens e NPCs',
-    tecla: 't',
-    icone: 'token',
-    rotulo: 'Tokens e NPCs, ferramenta do mestre',
+    id: 'mapa',
+    curto: 'Mapa',
+    titulo: 'Mapa e grade',
+    tecla: 'g',
+    icone: 'grid',
+    rotulo: 'Mapa e grade, ferramenta do mestre',
     soMestre: true,
-    comMapa: true,
-  },
-  {
-    id: 'props',
-    titulo: 'Props',
-    tecla: 'o',
-    icone: 'image',
-    rotulo: 'Props, ferramenta do mestre',
-    soMestre: true,
-    comMapa: true,
+    comMapa: false,
   },
   {
     id: 'breu',
+    curto: 'Breu',
     titulo: 'Breu',
     tecla: 'b',
     icone: 'darkness',
@@ -141,6 +139,7 @@ const FERRAMENTAS: DefinicaoDeFerramenta[] = [
   },
   {
     id: 'salas',
+    curto: 'Salas',
     titulo: 'Salas',
     tecla: 's',
     icone: 'door',
@@ -149,7 +148,28 @@ const FERRAMENTAS: DefinicaoDeFerramenta[] = [
     comMapa: true,
   },
   {
+    id: 'tokens',
+    curto: 'Tokens',
+    titulo: 'Tokens e NPCs',
+    tecla: 't',
+    icone: 'token',
+    rotulo: 'Tokens e NPCs, ferramenta do mestre',
+    soMestre: true,
+    comMapa: true,
+  },
+  {
+    id: 'props',
+    curto: 'Props',
+    titulo: 'Props',
+    tecla: 'o',
+    icone: 'image',
+    rotulo: 'Props, ferramenta do mestre',
+    soMestre: true,
+    comMapa: true,
+  },
+  {
     id: 'guia',
+    curto: 'Pontos',
     titulo: 'Pontos de interesse',
     tecla: 'i',
     icone: 'pin',
@@ -159,21 +179,13 @@ const FERRAMENTAS: DefinicaoDeFerramenta[] = [
   },
   {
     id: 'nevoa',
+    curto: 'Névoa',
     titulo: 'Névoa',
     tecla: 'n',
     icone: 'mist',
     rotulo: 'Névoa, ferramenta do mestre',
     soMestre: true,
     // É clima da cena: vale antes mesmo de haver mapa.
-    comMapa: false,
-  },
-  {
-    id: 'mapa',
-    titulo: 'Mapa e grade',
-    tecla: 'g',
-    icone: 'grid',
-    rotulo: 'Mapa e grade, ferramenta do mestre',
-    soMestre: true,
     comMapa: false,
   },
 ];
@@ -578,6 +590,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           <Button
             variant="ghost"
             size="sm"
+            className="mesa-botao-dados"
             icon={<Icon name="dice" size="sm" />}
             aria-pressed={painel === 'dados'}
             onClick={() => {
@@ -878,13 +891,17 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               className="tool"
               role="toolbar"
               aria-label={mestre ? 'Ferramentas' : 'Ferramentas do jogador'}
+              aria-orientation="vertical"
             >
+              <span className="tool-grupo" aria-hidden="true">
+                Jogar
+              </span>
               <button
                 type="button"
                 className={cx('tbtn', modoEfetivo === 'mover' && 'on')}
                 aria-pressed={modoEfetivo === 'mover'}
                 aria-label={mestre ? 'Mover' : 'Mover meu token'}
-                title="Mover (V)"
+                title="Mover peças e o mapa (tecla V)"
                 disabled={!comMapa}
                 onClick={() => {
                   setPainel((agora) => (agora === 'breu' ? null : agora));
@@ -892,13 +909,14 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 }}
               >
                 <Icon name="hand" />
+                <span className="tbtn-rotulo">Mover</span>
               </button>
               <button
                 type="button"
                 className={cx('tbtn', modoEfetivo === 'medir' && 'on')}
                 aria-pressed={modoEfetivo === 'medir'}
                 aria-label="Medir distância"
-                title="Medir (M)"
+                title="Medir distância: 1 quadrado = 1,5 m (tecla M)"
                 disabled={!comMapa}
                 onClick={() => {
                   setPainel((agora) => (agora === 'breu' ? null : agora));
@@ -906,22 +924,23 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 }}
               >
                 <Icon name="ruler" />
+                <span className="tbtn-rotulo">Medir</span>
               </button>
               <button
                 type="button"
                 className={cx('tbtn', modoEfetivo === 'marcar' && 'on')}
                 aria-pressed={modoEfetivo === 'marcar'}
                 aria-label="Marcar um ponto para todos"
-                title="Marcar (P)"
+                title="Marcar um ponto: todos veem um pulso (tecla P)"
                 disabled={!comMapa}
                 onClick={() => {
                   setPainel((agora) => (agora === 'breu' ? null : agora));
                   setModo((agora) => (agora === 'marcar' ? 'mover' : 'marcar'));
                 }}
               >
-                <Icon name="pin" />
+                <Icon name="target" />
+                <span className="tbtn-rotulo">Marcar</span>
               </button>
-              <span className="sep" aria-hidden="true" />
               {ferramentasComuns.map((f) => (
                 <button
                   key={f.id}
@@ -929,16 +948,21 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   className={cx('tbtn', painel === f.id && 'on')}
                   aria-pressed={painel === f.id}
                   aria-label={f.rotulo}
-                  title={`${f.titulo} (${f.tecla.toUpperCase()})`}
+                  title={`${f.titulo} (tecla ${f.tecla.toUpperCase()})`}
                   disabled={f.comMapa && !comMapa}
                   onClick={() => {
                     setPainel((agora) => (agora === f.id ? null : f.id));
                   }}
                 >
                   <Icon name={f.icone} />
+                  <span className="tbtn-rotulo">{f.curto}</span>
                 </button>
               ))}
-              {ferramentasDoMestre.length > 0 && <span className="sep" aria-hidden="true" />}
+              {ferramentasDoMestre.length > 0 && (
+                <span className="tool-grupo" aria-hidden="true">
+                  Preparar
+                </span>
+              )}
               {ferramentasDoMestre.map((f) => (
                 <button
                   key={f.id}
@@ -946,13 +970,18 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   className={cx('tbtn gm', painel === f.id && 'on')}
                   aria-pressed={painel === f.id}
                   aria-label={f.rotulo}
-                  title={`${f.titulo} (${f.tecla.toUpperCase()})`}
+                  title={
+                    f.comMapa && !comMapa
+                      ? `${f.titulo}: ponha um mapa na mesa primeiro`
+                      : `${f.titulo} (tecla ${f.tecla.toUpperCase()})`
+                  }
                   disabled={f.comMapa && !comMapa}
                   onClick={() => {
                     setPainel((agora) => (agora === f.id ? null : f.id));
                   }}
                 >
                   <Icon name={f.icone} />
+                  <span className="tbtn-rotulo">{f.curto}</span>
                 </button>
               ))}
             </div>

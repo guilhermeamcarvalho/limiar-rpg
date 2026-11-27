@@ -1,6 +1,6 @@
 /*
  * MEMBRANA · tokens
- * Fonte única de cores, fontes, espaçamentos e camadas. Vem de design/fonte/lm.css.
+ * Fonte única de cores, fontes, espaçamentos, raios e camadas.
  * Este é o ÚNICO arquivo do client com cores escritas à mão: o resto usa var(--…).
  *
  * Como usar cada cor:
@@ -9,79 +9,85 @@
  * - Linhas (--line, --line-2, --line-3): bordas e divisórias, da mais discreta à mais forte.
  * - Texto: --text para o principal, --muted para legendas e rótulos, --muted-2 só para o que
  *   é decorativo (nunca para texto que a pessoa precisa ler).
- * - Vermelho: SÓ para ação principal, item ativo/selecionado e falha. Não é enfeite.
- *   --red é o fundo do botão principal, --red-hi a borda de foco e hover, --red-soft o texto
- *   vermelho sobre fundo escuro, --red-dark a borda de ações perigosas.
+ * - Vermelho: SÓ para a ação principal da tela, item ativo/selecionado e falha. Não é enfeite.
  * - Dourado: crítico, bônus e tudo o que é do mestre.
- * - Verde: sucesso e confirmação. Azul: informação e jogadores aliados.
- * - Papel e tinta (--paper…, --ink…): SÓ para coisas do mundo do jogo (fichas, pistas,
- *   documentos). A interface do app nunca usa papel.
+ * - Verde: sucesso e confirmação. Azul: informação e PD.
+ * - Papel e tinta (--paper…, --ink…): SÓ para coisas do mundo do jogo (pistas, documentos).
+ *   A interface do app nunca usa papel.
  */
 
 :root {
   color-scheme: dark;
 
-  /* Fundos */
-  --bg: #0a0909;
-  --bg-2: #070606;
-  --field: #0d0b0b;
-  --panel: #0f0d0d;
-  --panel-2: #141111;
-  --panel-3: #1c1917;
-  --panel-4: #241f1d;
-  --panel-glass: rgba(15, 13, 13, 0.94); /* controles flutuando sobre o mapa */
+  /* Fundos: quase preto, frio, como um porão à noite. Degraus visíveis entre página, cartão e
+     elevado, para a hierarquia continuar clara no escuro. */
+  --bg: #080607;
+  --bg-2: #050404;
+  --field: #0d0a0b;
+  --panel: #0f0b0c;
+  --panel-2: #161112;
+  --panel-3: #1f1819;
+  --panel-4: #2a2122;
+  --panel-glass: rgba(14, 10, 11, 0.94); /* controles flutuando sobre o mapa */
 
   /* Linhas */
-  --line: #2a2523;
-  --line-2: #3a322e;
-  --line-3: #4a403b;
+  --line: #231a1b;
+  --line-2: #33282a;
+  --line-3: #4a3b3d;
 
-  /* Texto */
-  --text: #ece6df;
-  --muted: #a59c93;
-  --muted-2: #8f8984;
-  --placeholder: #7c746d;
-  --white: #fff; /* texto sobre vermelho/verde e hover máximo */
+  /* Texto: cor de osso, papel velho */
+  --text: #ebe3d8;
+  --muted: #a69c91;
+  --muted-2: #7f766e;
+  --placeholder: #786f68;
+  --white: #fff;
   --black: #000;
 
-  /* Vermelho: ação, ativo, falha */
-  --red: #c2412b;
-  --red-hover: #d24a32;
-  --red-hi: #e0563c;
-  --red-dark: #7a2a1e;
-  --red-soft: #f07a62;
-  --red-pale: #fbe3dd; /* texto sobre opção vermelha */
-  --red-a08: rgba(194, 65, 43, 0.08); /* fundo de erro e de ação perigosa */
-  --red-a10: rgba(194, 65, 43, 0.1);
-  --red-a12: rgba(194, 65, 43, 0.12);
-  --red-a18: rgba(194, 65, 43, 0.18);
-  --red-a35: rgba(194, 65, 43, 0.35); /* brilho sob o cabeçalho */
-  --red-a40: rgba(194, 65, 43, 0.4);
-  --focus-ring: rgba(224, 86, 60, 0.35);
+  /* Vermelho: sangue seco. Ação principal, ativo, falha */
+  --red: #9f2a1d;
+  --red-hover: #b5321f;
+  --red-hi: #d4472f;
+  --red-dark: #5c1a12;
+  --red-soft: #e8785f;
+  --red-pale: #fbe3dd;
+  --red-a08: rgba(159, 42, 29, 0.1);
+  --red-a10: rgba(159, 42, 29, 0.12);
+  --red-a12: rgba(159, 42, 29, 0.18);
+  --red-a18: rgba(159, 42, 29, 0.25);
+  --red-a35: rgba(159, 42, 29, 0.35);
+  --red-a40: rgba(159, 42, 29, 0.45);
+  --focus-ring: rgba(212, 71, 47, 0.5);
+
+  /* Atmosfera: brilho de sangue, vinheta e névoa do fundo (atmosfera.css) */
+  --brilho-sangue: rgba(196, 44, 26, 0.38);
+  --brilho-sangue-fraco: rgba(196, 44, 26, 0.14);
+  --vinheta: rgba(0, 0, 0, 0.82);
+  --nevoa-fundo: rgba(150, 140, 150, 0.1);
+  --nevoa-fundo-2: rgba(130, 36, 28, 0.12);
 
   /* Dourado: crítico, bônus, mestre */
-  --gold: #e9b949;
+  --gold: #e3b552;
   --gold-dark: #6b5520;
-  --gold-a08: rgba(233, 185, 73, 0.08);
+  --gold-a08: rgba(227, 181, 82, 0.1);
 
   /* Verde: sucesso */
-  --green: #4e9a3c;
-  --green-hi: #7fbf6a;
-  --green-mid: #3c7a2e;
+  --green: #4a9139;
+  --green-hi: #86c571;
+  --green-mid: #3b752e;
   --green-dark: #2e5a24;
-  --green-a10: rgba(78, 154, 60, 0.1);
-  --green-a50: rgba(78, 154, 60, 0.5);
+  --green-a10: rgba(74, 145, 57, 0.14);
+  --green-a50: rgba(74, 145, 57, 0.5);
 
-  /* Azul: informação */
-  --blue: #2f79c4;
-  --blue-hi: #6aa8e6;
+  /* Azul: informação e PD */
+  --blue: #3a7fc4;
+  --blue-hi: #7bb3ea;
 
   /* Marca do Discord: só no botão "Entrar com Discord" */
   --discord: #5865f2;
   --discord-hover: #4752c4;
 
-  /* Fundo de ambientação das telas de acesso (o brilho avermelhado atrás do título) */
-  --ambiente: #2a120d;
+  /* Fundo de ambientação das telas de acesso */
+  --ambiente: #240d0b;
 
   /* Avatares: fundo escuro de cada cor de jogador */
   --av-red: #6b2a20;
@@ -149,7 +155,16 @@
   --s6: 32px;
   --s7: 48px;
   --s8: 64px;
-  --r: 2px;
+  --r: 8px; /* botões, campos, cartões */
+  --r-sm: 6px; /* etiquetas, itens pequenos */
+  --r-lg: 12px; /* janelas e painéis grandes */
+  --r-full: 999px; /* pílulas e avatares */
+
+  /* Tamanhos de texto */
+  --t-xs: 12px;
+  --t-sm: 13px;
+  --t-md: 15px;
+  --t-lg: 17px;
 
   /* Camadas, de baixo para cima */
   --z-panel: 10; /* cabeçalho fixo, painéis e controles sobre o mapa */

@@ -57,8 +57,10 @@
   min-height: 0;
 }
 
+/* No computador, Dados já está na barra de ferramentas; o botão do topo é só do celular. */
 .mesa-botao-esquerda,
 .mesa-botao-chat,
+.mesa-botao-dados,
 .mesa-link-painel {
   display: none;
 }
@@ -95,31 +97,44 @@
   padding: 16px;
 }
 
-/* Barra de ferramentas e zoom, flutuando sobre o mapa. */
+/* Barra de ferramentas: uma coluna na borda esquerda do mapa. Cada botão tem ícone e nome, e
+   os do mestre ficam num grupo próprio ("Preparar"). O painel da ferramenta abre logo ao lado. */
+.mesa {
+  --barra-l: 72px;
+}
 .mesa .tool {
   position: absolute;
-  top: 14px;
-  left: 50%;
+  top: 12px;
+  left: 12px;
   z-index: 6;
   display: flex;
-  gap: 4px;
-  align-items: center;
-  max-width: calc(100% - 28px);
-  padding: 5px;
-  overflow-x: auto;
+  flex-direction: column;
+  gap: 2px;
+  align-items: stretch;
+  width: var(--barra-l);
+  max-height: calc(100% - 24px);
+  padding: 6px;
+  overflow-y: auto;
   scrollbar-width: none;
-  transform: translateX(-50%);
   border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
   background: var(--panel-glass);
   box-shadow: var(--shadow-md);
 }
 
-/* Separador entre grupos da barra de ferramentas. */
-.mesa .tool .sep {
-  width: 1px;
-  height: 24px;
-  margin: 0 2px;
-  background: var(--line-2);
+.tool-grupo {
+  padding: 6px 0 2px;
+  color: var(--muted);
+  font: 700 11px var(--f-ui);
+  text-align: center;
+}
+.tool-grupo + .tbtn {
+  margin-top: 0;
+}
+.tool-grupo:not(:first-child) {
+  margin-top: 6px;
+  border-top: 1px solid var(--line-2);
+  padding-top: 10px;
 }
 
 .mesa .zoom {
@@ -129,7 +144,9 @@
   z-index: 6;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   border: 1px solid var(--line-2);
+  border-radius: var(--r);
   background: var(--panel-glass);
 }
 
@@ -141,10 +158,22 @@
   width: 40px;
   height: 40px;
   border: 0;
+  border-radius: var(--r);
   background: none;
   color: var(--muted);
   font: 700 18px var(--f-ui);
   cursor: pointer;
+}
+.tool .tbtn {
+  width: 100%;
+  height: auto;
+  min-height: 54px;
+  gap: 3px;
+  align-content: center;
+  padding: 6px 2px;
+}
+.tbtn-rotulo {
+  font: 700 11.5px/1.1 var(--f-ui);
 }
 
 .tbtn:hover:not(:disabled) {
@@ -153,13 +182,13 @@
 }
 
 .tbtn:focus-visible {
-  outline: 2px solid var(--focus-ring);
+  outline: 2px solid var(--red-hi);
   outline-offset: -2px;
 }
 
 .tbtn:disabled {
-  cursor: default;
-  opacity: 0.4;
+  cursor: not-allowed;
+  opacity: 0.35;
 }
 
 .tbtn.on {
@@ -167,33 +196,25 @@
   color: var(--white);
 }
 
-/* Ponto dourado: ferramenta do mestre. */
-.tbtn.gm::after {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--gold);
-  content: '';
-}
-
 .mesa-painel {
   position: absolute;
-  top: 70px;
-  right: 14px;
-  bottom: 14px;
+  top: 12px;
+  left: calc(var(--barra-l) + 24px);
   z-index: 7;
+  max-height: calc(100% - 24px);
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: min(340px, calc(100% - 28px));
+  width: min(360px, calc(100% - var(--barra-l) - 36px));
   padding: 16px;
   overflow: auto;
   border: 1px solid var(--line-2);
+  border-radius: var(--r-lg);
   background: var(--panel);
   box-shadow: var(--shadow-lg);
+}
+.mesa-painel > .row:first-child .h3 {
+  font: 700 var(--t-lg) var(--f-ui);
 }
 
 .mesa-mapas {
@@ -251,7 +272,8 @@
   align-items: center;
   padding: 4px;
   transform: translateX(-50%);
-  border: 1px solid var(--red);
+  border: 1px solid var(--line-3);
+  border-radius: var(--r);
   background: var(--panel);
   box-shadow: var(--shadow-md);
   white-space: nowrap;
@@ -319,7 +341,7 @@
 /* Dica flutuante sobre o mapa, abaixo da barra de ferramentas (como escolher um ponto). */
 .mesa-dica {
   position: absolute;
-  top: 70px;
+  top: 14px;
   left: 50%;
   z-index: 7;
   display: flex;
@@ -328,6 +350,7 @@
   padding: 6px 6px 6px 14px;
   transform: translateX(-50%);
   border: 1px solid var(--gold-dark);
+  border-radius: var(--r);
   background: var(--panel-glass);
   box-shadow: var(--shadow-md);
   white-space: nowrap;
@@ -414,7 +437,7 @@
 .mesa-legenda {
   position: absolute;
   bottom: 14px;
-  left: 14px;
+  left: calc(var(--barra-l) + 24px);
   z-index: 6;
   display: flex;
   gap: 6px;
@@ -433,9 +456,9 @@
 .mesa-resultado {
   position: absolute;
   bottom: 52px;
-  left: 14px;
+  left: calc(var(--barra-l) + 24px);
   z-index: 7;
-  width: min(340px, calc(100% - 80px));
+  width: min(340px, calc(100% - var(--barra-l) - 90px));
 }
 
 .mesa-resultado-quem {
@@ -544,7 +567,8 @@
   }
 
   .mesa-botao-esquerda,
-  .mesa-botao-chat {
+  .mesa-botao-chat,
+  .mesa-botao-dados {
     display: inline-flex;
   }
 
@@ -579,6 +603,60 @@
     display: flex;
     width: min(360px, 100%);
     box-shadow: var(--shadow-lg);
+  }
+
+  /* A coluna de ferramentas vira uma barra no pé do mapa, ao alcance do polegar. */
+  .mesa {
+    --barra-a: 76px;
+  }
+  .mesa .tool {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    flex-direction: row;
+    width: auto;
+    max-height: none;
+    overflow: auto hidden;
+  }
+  .tool .tbtn {
+    flex: none;
+    width: 60px;
+  }
+  .tool-grupo {
+    display: none;
+  }
+  .tool-grupo:not(:first-child) {
+    display: block;
+    flex: none;
+    width: 1px;
+    margin: 6px 4px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: var(--line-2);
+    color: transparent;
+    font-size: 0;
+  }
+  .mesa-painel {
+    top: auto;
+    right: 8px;
+    bottom: calc(var(--barra-a) + 8px);
+    left: 8px;
+    width: auto;
+    max-height: 62%;
+  }
+  .mesa-legenda,
+  .mesa .zoom {
+    bottom: calc(var(--barra-a) + 8px);
+  }
+  .mesa-legenda {
+    left: 8px;
+  }
+  .mesa-resultado {
+    bottom: calc(var(--barra-a) + 8px);
+    left: 8px;
+    width: calc(100% - 16px);
   }
 }
 
@@ -1001,7 +1079,6 @@
 
 .cartao-poi-titulo {
   font-weight: 900;
-  text-transform: uppercase;
 }
 
 .cartao-poi-desc {

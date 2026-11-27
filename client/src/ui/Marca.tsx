@@ -22,7 +22,7 @@ export function Marca({ compacta = false }: { compacta?: boolean }) {
       {!compacta && (
         <span>
           <b>MEMBRANA</b>
-          <small>SISTEMA &amp; MESA VIRTUAL</small>
+          <small>Mesa virtual de RPG</small>
         </span>
       )}
     </Link>

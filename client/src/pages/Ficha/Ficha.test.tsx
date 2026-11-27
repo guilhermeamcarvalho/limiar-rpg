@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { esquemaFichaOp2, fichaDoDavi, fichaNova, type FichaOp2 } from '@membrana/shared';
 import {
   abrir,
@@ -10,6 +10,20 @@ import {
   servidor,
   type Chamada,
 } from '../../teste/apoio.tsx';
+
+/** O dado marcado num atributo ou perícia (a fileira d4…d12). */
+function dadoDe(rotulo: string): string | undefined {
+  const grupo = screen.getByRole('radiogroup', { name: rotulo });
+  return within(grupo)
+    .getAllByRole<HTMLInputElement>('radio')
+    .find((r) => r.checked)?.value;
+}
+
+/** Escolhe o dado de um atributo ou perícia. */
+function escolherDado(rotulo: string, dado: string) {
+  const grupo = screen.getByRole('radiogroup', { name: rotulo });
+  fireEvent.click(within(grupo).getByRole('radio', { name: dado }));
+}
 import { fichaDoRascunho, RASCUNHO_VAZIO } from '../Criar/rascunho.ts';
 import { contarMudancas, daForm, errosDaFicha, paraForm } from './Edicao.tsx';
 
@@ -29,8 +43,8 @@ describe('Ficha em branco', () => {
 
     expect(await screen.findByText('Ficha em branco')).toBeDefined();
     expect(screen.getByLabelText<HTMLInputElement>('Nível').value).toBe('3');
-    expect(screen.getByLabelText<HTMLSelectElement>('Físico').value).toBe('d6');
-    expect(screen.getByLabelText<HTMLSelectElement>('Luta').value).toBe('d4');
+    expect(dadoDe('Físico')).toBe('d6');
+    expect(dadoDe('Luta')).toBe('d4');
     expect(screen.getByLabelText<HTMLInputElement>('PV máximo').value).toBe('10');
     expect(screen.getByText('O Sinal de Santa Ermida')).toBeDefined();
   });
@@ -46,7 +60,7 @@ describe('Ficha em branco', () => {
     await screen.findByText('Ficha em branco');
 
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Rui Batista' } });
-    fireEvent.change(screen.getByLabelText('Mente'), { target: { value: 'd10' } });
+    escolherDado('Mente', 'd10');
     expect(screen.getByText('Mente d10 passa do limite da criação (d8).')).toBeDefined();
     expect(screen.getByText('1 aviso', { exact: false })).toBeDefined();
 
@@ -137,14 +151,14 @@ describe('Edição de uma ficha salva', () => {
     await editarDavi();
 
     fireEvent.change(screen.getByLabelText('PV atual'), { target: { value: '3' } });
-    fireEvent.change(screen.getByLabelText('Mente'), { target: { value: 'd10' } });
+    escolherDado('Mente', 'd10');
     expect(screen.getByText(/^2 mudanças/)).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
     expect(await screen.findByRole('group', { name: 'PV: 12 de 12' })).toBeDefined();
     await editarDavi();
     expect(screen.getByLabelText<HTMLInputElement>('PV atual').value).toBe('12');
-    expect(screen.getByLabelText<HTMLSelectElement>('Mente').value).toBe('d6');
+    expect(dadoDe('Mente')).toBe('d6');
     expect(screen.getByText(/^0 mudanças/)).toBeDefined();
     expect(chamadas.some((c) => c.metodo === 'PUT')).toBe(false);
   });

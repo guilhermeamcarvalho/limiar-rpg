@@ -3,7 +3,7 @@
 // Ficha-Inventado). Erros (como PV acima do máximo) bloqueiam salvar, aparecem no campo e levam o
 // foco até ele; avisos da regra de criação não bloqueiam. O rascunho é separado do estado salvo:
 // Cancelar descarta.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
   ATRIBUTOS_OP2,
   DADOS,
@@ -85,6 +85,10 @@ export function contarMudancas(atual: FormDaFicha, salvo: FormDaFicha): number {
   return n;
 }
 
+/**
+ * Escolher o dado de um atributo ou perícia: as cinco opções à vista, um clique só (em vez de abrir
+ * uma lista). São rádios de verdade: setas do teclado trocam o dado.
+ */
 function SeletorDeDado({
   rotulo,
   valor,
@@ -96,21 +100,35 @@ function SeletorDeDado({
   aviso: string | undefined;
   mudar: (d: Dado) => void;
 }) {
+  const id = useId();
   return (
-    <Field label={rotulo} warning={aviso} className="ficha-dado">
-      <Select
-        value={valor}
-        onChange={(e) => {
-          mudar(e.target.value as Dado);
-        }}
-      >
+    <div className="field ficha-dado">
+      <span className="flabel" id={`${id}-r`}>
+        {rotulo}
+      </span>
+      <div className="dado-escolha" role="radiogroup" aria-labelledby={`${id}-r`}>
         {DADOS.map((d) => (
-          <option key={d} value={d}>
+          <label key={d} className={cx('dado-opcao', d === valor && 'on')}>
+            <input
+              type="radio"
+              name={id}
+              value={d}
+              checked={d === valor}
+              onChange={() => {
+                mudar(d);
+              }}
+            />
             {d}
-          </option>
+          </label>
         ))}
-      </Select>
-    </Field>
+      </div>
+      {aviso && (
+        <span className="fwarn">
+          <Icon name="alert" size="sm" />
+          {aviso}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -311,8 +329,8 @@ export function EdicaoDaFicha({
         <div className={cx('ficha-grade', lateral !== undefined && 'com-lateral')}>
           <div className="col ficha-coluna">
             <Card pad className="col">
-              <span className="lab">Atributos</span>
-              <div className="g3">
+              <h2 className="h3">Atributos</h2>
+              <div className="col">
                 {ATRIBUTOS_OP2.map((a) => (
                   <SeletorDeDado
                     key={a.id}
@@ -329,7 +347,7 @@ export function EdicaoDaFicha({
 
             <Card pad className="col">
               <div className="row between">
-                <span className="lab">Vida e sanidade</span>
+                <h2 className="h3">Vida e sanidade</h2>
                 <Button size="sm" variant="ghost" onClick={recalcular}>
                   Recalcular pelos atributos
                 </Button>
@@ -371,7 +389,7 @@ export function EdicaoDaFicha({
           </div>
 
           <Card pad className="col">
-            <span className="lab">Perícias</span>
+            <h2 className="h3">Perícias</h2>
             <div className="ficha-pericias">
               {PERICIAS_OP2.map((p) => (
                 <SeletorDeDado

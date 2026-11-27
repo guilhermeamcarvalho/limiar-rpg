@@ -75,15 +75,6 @@
 }
 .criar-nome {
   font: 400 24px var(--f-disp);
-  text-transform: uppercase;
-}
-.kv {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--s3);
-  padding: var(--s2) 0;
-  border-bottom: 1px dashed var(--line-2);
-  font-size: 13.5px;
 }
 
 /* Perfil e ocupação */
@@ -157,9 +148,7 @@
 }
 .criar-revisao dt {
   flex: 0 0 120px;
-  font: 800 11px var(--f-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 600 var(--t-sm) var(--f-ui);
   color: var(--muted);
 }
 .criar-revisao dd {
