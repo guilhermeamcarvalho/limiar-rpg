@@ -605,6 +605,17 @@ export function Palco({
         </button>
         <button
           type="button"
+          className="tbtn zoom-pct"
+          aria-label="Redefinir zoom para 100%"
+          title="Redefinir zoom para 100%"
+          onClick={() => {
+            if (tamanho) setCamera((c) => c && zoomNoPonto(c, 1, meio()));
+          }}
+        >
+          {Math.round((camera?.escala ?? 1) * 100)}%
+        </button>
+        <button
+          type="button"
           className="tbtn"
           aria-label="Afastar"
           title="Afastar"

@@ -346,8 +346,8 @@ describe('Registro (Acontecimentos)', () => {
 
     expect(screen.queryByText('Fala que fica só no chat')).toBeNull();
     expect(screen.queryByText('Narração que fica só no chat')).toBeNull();
-    // O mestre vê a origem virtual/física.
-    expect(screen.getByText(/dados virtuais/)).toBeDefined();
+    // O mestre vê a origem em tooltip (dados virtuais).
+    expect(screen.getByTitle('Dados virtuais')).toBeDefined();
     expect(screen.getByText(/Iara Nunes/)).toBeDefined();
     expect(screen.getByText('Fita 33')).toBeDefined();
     expect(screen.getByText('Estúdio B')).toBeDefined();
@@ -434,10 +434,48 @@ describe('Chat com muitas mensagens', () => {
     expect(screen.queryByText('Mensagem 1')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Tudo' }));
-    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar no chat' }), {
+    const campoBusca = screen.getByRole('searchbox', { name: 'Buscar no chat' });
+    fireEvent.change(campoBusca, {
       target: { value: 'Mensagem 2' },
     });
     expect(screen.getByText('Mensagem 2')).toBeDefined();
     expect(screen.queryByText('Mensagem 1')).toBeNull();
+
+    // Limpar busca restaura a lista e botão de atalho de dado preenche /r.
+    fireEvent.click(screen.getByRole('button', { name: 'Limpar busca' }));
+    expect(screen.getByText('Mensagem 1')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Atalho para rolar dados' }));
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Mensagem' }).value).toBe('/r ');
+  });
+
+  it('compacta rolagem simples de 1 dado sem redundância e usa estilo neutro', () => {
+    const eventos: EventoDaMesa[] = [
+      {
+        type: 'dice.rolled',
+        autorId: 'usr_bia',
+        expressao: 'd8',
+        dados: [7],
+        total: 7,
+        secreta: false,
+        seq: 1,
+      },
+    ];
+    const { container } = render(
+      <Chat
+        eventos={eventos}
+        meuId="usr_bia"
+        papel="jogador"
+        membros={MEMBROS}
+        personagens={PERSONAGENS}
+        meuPersonagemNome="Davi Rocha"
+        enviar={() => Promise.resolve({ ok: true })}
+      />,
+    );
+
+    expect(container.querySelector('.rmsg.neutro')).not.toBeNull();
+    expect(screen.getByText('Davi · d8')).toBeDefined();
+    expect(screen.getByText('7')).toBeDefined();
+    expect(screen.queryByText(/Total 7/)).toBeNull();
+    expect(container.querySelector('.rmsg-dados')).toBeNull();
   });
 });

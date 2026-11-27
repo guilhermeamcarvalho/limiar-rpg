@@ -17,9 +17,10 @@
   background: var(--panel);
 }
 
-.mesa-titulo-bloco {
+.mesa-titulo-linha {
   flex: 0 1 auto;
-  gap: 0;
+  gap: 8px;
+  align-items: center;
   min-width: 0;
 }
 
@@ -32,14 +33,53 @@
   white-space: nowrap;
 }
 
-.mesa-subtitulo {
-  gap: 6px;
+.mesa-selo-mestre {
+  display: inline-flex;
   align-items: center;
-  white-space: nowrap;
+  padding: 2px 9px;
+  border: 1px solid var(--gold-dark);
+  border-radius: var(--r-full);
+  background: var(--gold-a08);
+  color: var(--gold);
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+.mesa-rodada-pilula {
+  gap: 8px;
+  align-items: center;
+  padding: 3px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-full);
+  background: var(--panel-2);
+}
+
+.mesa-rodada-divisor {
+  width: 1px;
+  height: 14px;
+  background: var(--line-2);
+}
+
+.mesa-rodada-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font: 700 var(--t-xs) var(--f-ui);
+  cursor: pointer;
+}
+
+.mesa-rodada-btn:hover {
+  background: var(--panel-3);
+  color: var(--white);
 }
 
 /* Rodada, quantos estão na mesa e a conexão: sempre numa linha; o título é que encolhe. */
-.mesa-topo > :not(.mesa-titulo-bloco, .grow) {
+.mesa-topo > :not(.mesa-titulo-linha, .grow) {
   flex: none;
   white-space: nowrap;
 }
@@ -97,10 +137,9 @@
   padding: 16px;
 }
 
-/* Barra de ferramentas: uma coluna na borda esquerda do mapa. Cada botão tem ícone e nome, e
-   os do mestre ficam num grupo próprio ("Preparar"). O painel da ferramenta abre logo ao lado. */
+/* Barra de ferramentas: coluna compacta de ícones com tooltips na borda esquerda do mapa. */
 .mesa {
-  --barra-l: 72px;
+  --barra-l: 52px;
 }
 .mesa .tool {
   position: absolute;
@@ -113,28 +152,41 @@
   align-items: stretch;
   width: var(--barra-l);
   max-height: calc(100% - 24px);
-  padding: 6px;
+  padding: 5px;
   overflow-y: auto;
   scrollbar-width: none;
   border: 1px solid var(--line-2);
   border-radius: var(--r-lg);
   background: var(--panel-glass);
+  backdrop-filter: blur(10px);
   box-shadow: var(--shadow-md);
 }
 
 .tool-grupo {
-  padding: 6px 0 2px;
+  padding: 4px 0 2px;
   color: var(--muted);
-  font: 700 11px var(--f-ui);
+  font: 700 10px var(--f-ui);
   text-align: center;
+}
+.tool-grupo-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.tool-grupo-btn:hover {
+  color: var(--text);
 }
 .tool-grupo + .tbtn {
   margin-top: 0;
 }
 .tool-grupo:not(:first-child) {
-  margin-top: 6px;
+  margin-top: 4px;
   border-top: 1px solid var(--line-2);
-  padding-top: 10px;
+  padding-top: 8px;
 }
 
 .mesa .zoom {
@@ -148,6 +200,26 @@
   border: 1px solid var(--line-2);
   border-radius: var(--r);
   background: var(--panel-glass);
+  backdrop-filter: blur(10px);
+}
+
+.zoom-pct {
+  height: 26px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.mesa-btn-secundario {
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.mesa-btn-secundario:hover:not(:disabled) {
+  border-color: var(--line-3);
+  background: var(--panel-3);
+  color: var(--white);
 }
 
 .tbtn {
@@ -166,11 +238,7 @@
 }
 .tool .tbtn {
   width: 100%;
-  height: auto;
-  min-height: 54px;
-  gap: 3px;
-  align-content: center;
-  padding: 6px 2px;
+  height: 38px;
 }
 .tbtn-rotulo {
   font: 700 11.5px/1.1 var(--f-ui);
@@ -808,10 +876,15 @@
 }
 
 .rmsg {
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--line-2);
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--line-3);
+  border-radius: var(--r-sm);
   background: var(--panel-2);
+}
+
+.rmsg.ok {
+  border-left-color: var(--green);
 }
 
 .rmsg.ko {
@@ -821,6 +894,13 @@
 .rmsg.crit,
 .rmsg.secreta {
   border-left-color: var(--gold);
+}
+
+.rmsg-total {
+  font-size: var(--t-md);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
 }
 
 .rmsg .verdict {
@@ -929,6 +1009,123 @@
   display: flex;
   justify-content: center;
   padding-top: 4px;
+}
+
+.mesa-busca {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mesa-busca-lupa {
+  position: absolute;
+  left: 10px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.mesa-busca-campo {
+  width: 100%;
+  min-height: 34px;
+  height: 34px;
+  padding: 4px 30px 4px 32px;
+  font-size: var(--t-sm);
+}
+
+.mesa-busca-limpar {
+  position: absolute;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.mesa-busca-limpar:hover {
+  background: var(--panel-3);
+  color: var(--text);
+}
+
+.chat-lista,
+.registro-lista,
+.mesa-aba-corpo {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+.chat-lista::-webkit-scrollbar,
+.registro-lista::-webkit-scrollbar,
+.mesa-aba-corpo::-webkit-scrollbar {
+  width: 5px;
+}
+
+.chat-lista::-webkit-scrollbar-thumb,
+.registro-lista::-webkit-scrollbar-thumb,
+.mesa-aba-corpo::-webkit-scrollbar-thumb {
+  border-radius: var(--r-full);
+  background: var(--line-2);
+}
+
+.chat-lista::-webkit-scrollbar-track,
+.registro-lista::-webkit-scrollbar-track,
+.mesa-aba-corpo::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.registro-hora {
+  flex: none;
+  color: var(--muted);
+  font-size: var(--t-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.registro-icone.teste {
+  border-color: var(--red-dark);
+  color: var(--red-soft);
+}
+
+.registro-icone.pista {
+  border-color: var(--gold-dark);
+  color: var(--gold);
+}
+
+.registro-icone.cena {
+  border-color: var(--blue-dark);
+  color: var(--blue-hi);
+}
+
+.reg-selo {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-full);
+  font-size: var(--t-xs);
+  font-weight: 700;
+}
+
+.reg-selo.ok {
+  border-color: var(--green-dark);
+  background: var(--green-a12);
+  color: var(--green-hi);
+}
+
+.reg-selo.ko {
+  border-color: var(--red-dark);
+  background: var(--red-a12);
+  color: var(--red-soft);
+}
+
+.reg-selo.crit {
+  border-color: var(--gold-dark);
+  background: var(--gold-a08);
+  color: var(--gold);
 }
 
 .registro-vazio {

@@ -167,3 +167,16 @@
   stroke: var(--line-3);
   stroke-width: 1.5;
 }
+
+.escudo-privado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--gold-dark);
+  border-radius: var(--r-full);
+  background: var(--gold-a08);
+  color: var(--gold);
+  font-size: var(--t-xs);
+  font-weight: 700;
+}

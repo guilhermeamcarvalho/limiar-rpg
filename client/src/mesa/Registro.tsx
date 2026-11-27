@@ -8,16 +8,10 @@ import {
   type Membro,
   type Papel,
   type PersonagemNaMesa,
+  type Veredito,
 } from '@membrana/shared';
-import {
-  cx,
-  EmptyState,
-  Icon,
-  Input,
-  Note,
-  textoDoVeredito,
-  type NomeDoIcone,
-} from '../ui/index.ts';
+import { cx, EmptyState, Icon, Note, textoDoVeredito, type NomeDoIcone } from '../ui/index.ts';
+import { CampoBusca } from './CampoBusca.tsx';
 import { ImagemDaPista } from './ImagemDaPista.tsx';
 
 /** Quantos acontecimentos são exibidos inicialmente no registro; o restante carrega sob demanda. */
@@ -96,6 +90,7 @@ function horarioCurto(iso: string | undefined): string {
 function iconeDo(tipo: ItemDeAcontecimento['type']): NomeDoIcone {
   switch (tipo) {
     case 'test.resolved':
+      return 'target';
     case 'dice.rolled':
       return 'dice';
     case 'clue.presented':
@@ -108,6 +103,36 @@ function iconeDo(tipo: ItemDeAcontecimento['type']): NomeDoIcone {
     case 'audio.changed':
       return 'music';
   }
+}
+
+function categoriaDo(tipo: ItemDeAcontecimento['type']): string {
+  switch (tipo) {
+    case 'test.resolved':
+      return 'teste';
+    case 'dice.rolled':
+      return 'rolagem';
+    case 'clue.presented':
+    case 'poi.infoRevealed':
+      return 'pista';
+    case 'map.activated':
+    case 'round.started':
+      return 'cena';
+    case 'audio.changed':
+      return 'trilha';
+  }
+}
+
+function tomDoVeredito(v: Veredito): 'ok' | 'crit' | 'ko' {
+  if (v === 'critico') return 'crit';
+  if (v === 'sucesso') return 'ok';
+  return 'ko';
+}
+
+function horarioDoItem(item: ItemDeAcontecimento): string {
+  if (item.type === 'test.resolved') return horarioCurto(item.registro.em);
+  if (item.type === 'clue.presented') return horarioCurto(item.item.em);
+  if (item.type === 'audio.changed') return horarioCurto(item.trilha?.iniciadaEm);
+  return '';
 }
 
 export interface RegistroProps {
@@ -176,14 +201,11 @@ export function Registro({ eventos, papel, membros, personagens }: RegistroProps
     <div className="registro-coluna">
       <div className="col registro-topo">
         {(todos.length > 0 || termo !== '') && (
-          <Input
-            type="search"
-            aria-label="Buscar no registro"
+          <CampoBusca
+            label="Buscar no registro"
             placeholder="Buscar no registro…"
             value={busca}
-            onChange={(e) => {
-              setBusca(e.target.value);
-            }}
+            onChange={setBusca}
           />
         )}
         <div
@@ -220,113 +242,154 @@ export function Registro({ eventos, papel, membros, personagens }: RegistroProps
         </div>
       ) : (
         <ol className="registro-lista" aria-label="Acontecimentos da sessão">
-          {visiveis.map((item) => (
-            <li key={item.seq} className="registro-item">
-              <span className="registro-icone" aria-hidden="true">
-                <Icon name={iconeDo(item.type)} size="sm" />
-              </span>
-              <div className="registro-corpo">
-                {item.type === 'test.resolved' && (
-                  <>
-                    <div className="row between">
-                      <span className="small">
-                        <b>
-                          {item.registro.personagemNome ??
-                            nomesDePersonagens[item.registro.personagemId] ??
-                            item.registro.autor?.nome ??
-                            'Personagem'}
-                        </b>{' '}
-                        · {nomeDaPericia(item.registro.periciaId)}
-                      </span>
-                      <span className="small muted">{horarioCurto(item.registro.em)}</span>
-                    </div>
-                    <span className="small muted">
-                      {item.registro.resultado.total} contra DT {item.registro.resultado.dt} ·{' '}
-                      {textoDoVeredito(item.registro.resultado.veredito)}
-                      {(papel === 'mestre' || item.registro.origem === 'fisico') &&
-                        (item.registro.origem === 'fisico'
-                          ? ' · dados físicos'
-                          : ' · dados virtuais')}
-                    </span>
-                    {item.registro.efeitos.length > 0 && (
-                      <span className="small">{item.registro.efeitos.join(' ')}</span>
-                    )}
-                  </>
-                )}
-
-                {item.type === 'dice.rolled' && (
-                  <>
-                    <span className="small">
-                      <b>{nomesDeUsuarios[item.autorId] ?? 'Alguém'}</b> rolou{' '}
-                      <b>{item.expressao}</b>: {item.dados.join(', ')} = <b>{item.total}</b>
-                    </span>
-                    {item.secreta && <span className="small gold">Rolagem secreta</span>}
-                  </>
-                )}
-
-                {item.type === 'poi.infoRevealed' && (
-                  <Note className="registro-pista">
-                    <b>Informação descoberta</b>
-                    <br />
-                    {item.texto}
-                  </Note>
-                )}
-
-                {item.type === 'clue.presented' && (
-                  <>
-                    <div className="row between">
-                      <span className="small">
-                        <b>{nomesDePersonagens[item.item.personagemId] ?? 'Alguém'}</b> compartilhou
-                        uma pista
-                      </span>
-                      <span className="small muted">{horarioCurto(item.item.em)}</span>
-                    </div>
-                    <div className="note registro-pista col" style={{ gap: 6 }}>
-                      <b>{item.item.titulo}</b>
-                      {item.item.imagem && (
-                        <ImagemDaPista
-                          imagem={item.item.imagem}
-                          titulo={item.item.titulo}
-                          compacta
-                        />
+          {visiveis.map((item) => {
+            const hora = horarioDoItem(item);
+            return (
+              <li key={item.seq} className="registro-item">
+                <span className={cx('registro-icone', categoriaDo(item.type))} aria-hidden="true">
+                  <Icon name={iconeDo(item.type)} size="sm" />
+                </span>
+                <div className="registro-corpo">
+                  {item.type === 'test.resolved' && (
+                    <>
+                      <div className="row between" style={{ gap: 8 }}>
+                        <span className="small">
+                          <b>
+                            {item.registro.personagemNome ??
+                              nomesDePersonagens[item.registro.personagemId] ??
+                              item.registro.autor?.nome ??
+                              'Personagem'}
+                          </b>{' '}
+                          · {nomeDaPericia(item.registro.periciaId)}
+                        </span>
+                        {hora && <span className="registro-hora">{hora}</span>}
+                      </div>
+                      <div className="row between wrapx" style={{ gap: 6 }}>
+                        <span
+                          className="small muted"
+                          title={
+                            papel === 'mestre' && item.registro.origem !== 'fisico'
+                              ? 'Dados virtuais'
+                              : undefined
+                          }
+                        >
+                          {item.registro.resultado.total} contra DT {item.registro.resultado.dt}
+                          {item.registro.origem === 'fisico' && ' · dados físicos'}
+                        </span>
+                        <span
+                          className={cx(
+                            'reg-selo',
+                            tomDoVeredito(item.registro.resultado.veredito),
+                          )}
+                        >
+                          {textoDoVeredito(item.registro.resultado.veredito)}
+                        </span>
+                      </div>
+                      {item.registro.efeitos.length > 0 && (
+                        <span className="small">{item.registro.efeitos.join(' ')}</span>
                       )}
-                      {item.item.texto && <span>{item.item.texto}</span>}
+                    </>
+                  )}
+
+                  {item.type === 'dice.rolled' && (
+                    <>
+                      <div className="row between" style={{ gap: 8 }}>
+                        <span className="small">
+                          <b>{nomesDeUsuarios[item.autorId] ?? 'Alguém'}</b> rolou{' '}
+                          <b>{item.expressao}</b>
+                          {item.dados.length === 1 && !/[+-]/.test(item.expressao) ? (
+                            <>
+                              {' '}
+                              → <b>{item.total}</b>
+                            </>
+                          ) : (
+                            <>
+                              : {item.dados.join(', ')} = <b>{item.total}</b>
+                            </>
+                          )}
+                        </span>
+                        {hora && <span className="registro-hora">{hora}</span>}
+                      </div>
+                      {item.secreta && <span className="small gold">Rolagem secreta</span>}
+                    </>
+                  )}
+
+                  {item.type === 'poi.infoRevealed' && (
+                    <div className="row between" style={{ gap: 8 }}>
+                      <Note className="registro-pista grow">
+                        <b>Informação descoberta</b>
+                        <br />
+                        {item.texto}
+                      </Note>
+                      {hora && <span className="registro-hora">{hora}</span>}
                     </div>
-                  </>
-                )}
+                  )}
 
-                {item.type === 'map.activated' && (
-                  <span className="small">
-                    {item.mapa ? (
-                      <>
-                        Cena aberta: <b>{item.mapa.nome}</b>
-                      </>
-                    ) : (
-                      'Mapa recolhido da mesa'
-                    )}
-                  </span>
-                )}
+                  {item.type === 'clue.presented' && (
+                    <>
+                      <div className="row between" style={{ gap: 8 }}>
+                        <span className="small">
+                          <b>{nomesDePersonagens[item.item.personagemId] ?? 'Alguém'}</b>{' '}
+                          compartilhou uma pista
+                        </span>
+                        {hora && <span className="registro-hora">{hora}</span>}
+                      </div>
+                      <div className="note registro-pista col" style={{ gap: 6 }}>
+                        <b>{item.item.titulo}</b>
+                        {item.item.imagem && (
+                          <ImagemDaPista
+                            imagem={item.item.imagem}
+                            titulo={item.item.titulo}
+                            compacta
+                          />
+                        )}
+                        {item.item.texto && <span>{item.item.texto}</span>}
+                      </div>
+                    </>
+                  )}
 
-                {item.type === 'round.started' && (
-                  <span className="small">
-                    <b>Rodada {item.numero}</b> iniciada
-                  </span>
-                )}
+                  {item.type === 'map.activated' && (
+                    <div className="row between" style={{ gap: 8 }}>
+                      <span className="small">
+                        {item.mapa ? (
+                          <>
+                            Cena aberta: <b>{item.mapa.nome}</b>
+                          </>
+                        ) : (
+                          'Mapa recolhido da mesa'
+                        )}
+                      </span>
+                      {hora && <span className="registro-hora">{hora}</span>}
+                    </div>
+                  )}
 
-                {item.type === 'audio.changed' && (
-                  <span className="small">
-                    {item.trilha ? (
-                      <>
-                        Trilha tocando: <b>{item.trilha.faixaId}</b>
-                      </>
-                    ) : (
-                      'Trilha sonora parada'
-                    )}
-                  </span>
-                )}
-              </div>
-            </li>
-          ))}
+                  {item.type === 'round.started' && (
+                    <div className="row between" style={{ gap: 8 }}>
+                      <span className="small">
+                        <b>Rodada {item.numero}</b> iniciada
+                      </span>
+                      {hora && <span className="registro-hora">{hora}</span>}
+                    </div>
+                  )}
+
+                  {item.type === 'audio.changed' && (
+                    <div className="row between" style={{ gap: 8 }}>
+                      <span className="small">
+                        {item.trilha ? (
+                          <>
+                            Trilha tocando: <b>{item.trilha.faixaId}</b>
+                          </>
+                        ) : (
+                          'Trilha sonora parada'
+                        )}
+                      </span>
+                      {hora && <span className="registro-hora">{hora}</span>}
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
           {ocultos > 0 && (
             <li className="registro-mais">
               <button
