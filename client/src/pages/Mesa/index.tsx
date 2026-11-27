@@ -54,7 +54,6 @@ import {
   RevelacaoDoDado,
   revelacaoDaRolagem,
   revelacaoDoTeste,
-  Tag,
   useCarga,
   useToast,
   type NomeDoIcone,
@@ -261,6 +260,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   // O pop-up do resultado: só para quem rolou, e some depois de visto.
   const [seqRevelacaoFechada, setSeqRevelacaoFechada] = useState(0);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
+  const [prepararAberto, setPrepararAberto] = useState(true);
   const [escolhendoPoi, setEscolhendoPoi] = useState<((ponto: Ponto) => void) | null>(null);
   const [escolhendoPista, setEscolhendoPista] = useState<((ponto: Ponto) => void) | null>(null);
   const [poiAbertoId, setPoiAbertoId] = useState<string | null>(null);
@@ -524,30 +524,39 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   return (
     <div className="mesa">
       <header className="mesa-topo">
-        <Link className="btn ghost sm" to="/" aria-label="Voltar para a Central">
+        <Link
+          className="btn ghost sm"
+          to="/"
+          aria-label="Voltar para a Central"
+          title="Voltar para a Central"
+        >
           <Icon name="back" size="sm" />
         </Link>
-        <div className="col mesa-titulo-bloco">
+        <div className="row mesa-titulo-linha">
           <h1 className="mesa-titulo">{nomeDoCaso ?? 'Mesa'}</h1>
-          {visao && (
-            <div className="row mesa-subtitulo">
-              {mestre && <Tag tone="gold">Mestre</Tag>}
-              <span className="small muted">Rodada {visao.rodada.numero}</span>
-              {!mestre && rodadasAtivo && (
-                <span className="small muted">· {jaAgiuNaRodada ? 'ação usada' : 'sua vez'}</span>
-              )}
-            </div>
+          {mestre && <span className="mesa-selo-mestre">Mestre</span>}
+          {!mestre && visao && rodadasAtivo && (
+            <span className="small muted">· {jaAgiuNaRodada ? 'ação usada' : 'sua vez'}</span>
           )}
         </div>
 
-        {mestre && (
-          <Button
-            size="sm"
-            icon={<Icon name="flag" size="sm" />}
-            onClick={() => void encerrarRodada()}
-          >
-            Encerrar rodada
-          </Button>
+        {visao && (
+          <div className="row mesa-rodada-pilula">
+            <span className="small muted">Rodada {visao.rodada.numero}</span>
+            {mestre && (
+              <>
+                <span className="mesa-rodada-divisor" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="mesa-rodada-btn"
+                  onClick={() => void encerrarRodada()}
+                >
+                  <Icon name="flag" size="sm" />
+                  Encerrar rodada
+                </button>
+              </>
+            )}
+          </div>
         )}
 
         <span className="grow" />
@@ -937,7 +946,6 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 }}
               >
                 <Icon name="hand" />
-                <span className="tbtn-rotulo">Mover</span>
               </button>
               <button
                 type="button"
@@ -952,7 +960,6 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 }}
               >
                 <Icon name="ruler" />
-                <span className="tbtn-rotulo">Medir</span>
               </button>
               <button
                 type="button"
@@ -967,7 +974,6 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 }}
               >
                 <Icon name="target" />
-                <span className="tbtn-rotulo">Marcar</span>
               </button>
               {ferramentasComuns.map((f) => (
                 <button
@@ -983,35 +989,47 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   }}
                 >
                   <Icon name={f.icone} />
-                  <span className="tbtn-rotulo">{f.curto}</span>
                 </button>
               ))}
               {ferramentasDoMestre.length > 0 && (
-                <span className="tool-grupo" aria-hidden="true">
-                  Preparar
-                </span>
-              )}
-              {ferramentasDoMestre.map((f) => (
                 <button
-                  key={f.id}
                   type="button"
-                  className={cx('tbtn gm', painel === f.id && 'on')}
-                  aria-pressed={painel === f.id}
-                  aria-label={f.rotulo}
+                  className="tool-grupo tool-grupo-btn"
+                  aria-expanded={prepararAberto}
                   title={
-                    f.comMapa && !comMapa
-                      ? `${f.titulo}: ponha um mapa na mesa primeiro`
-                      : `${f.titulo} (tecla ${f.tecla.toUpperCase()})`
+                    prepararAberto
+                      ? 'Recolher ferramentas de preparação'
+                      : 'Mostrar ferramentas de preparação'
                   }
-                  disabled={f.comMapa && !comMapa}
                   onClick={() => {
-                    setPainel((agora) => (agora === f.id ? null : f.id));
+                    setPrepararAberto((v) => !v);
                   }}
                 >
-                  <Icon name={f.icone} />
-                  <span className="tbtn-rotulo">{f.curto}</span>
+                  <span>Preparar</span>
+                  <Icon name={prepararAberto ? 'down' : 'next'} size="sm" />
                 </button>
-              ))}
+              )}
+              {prepararAberto &&
+                ferramentasDoMestre.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    className={cx('tbtn gm', painel === f.id && 'on')}
+                    aria-pressed={painel === f.id}
+                    aria-label={f.rotulo}
+                    title={
+                      f.comMapa && !comMapa
+                        ? `${f.titulo}: ponha um mapa na mesa primeiro`
+                        : `${f.titulo} (tecla ${f.tecla.toUpperCase()})`
+                    }
+                    disabled={f.comMapa && !comMapa}
+                    onClick={() => {
+                      setPainel((agora) => (agora === f.id ? null : f.id));
+                    }}
+                  >
+                    <Icon name={f.icone} />
+                  </button>
+                ))}
             </div>
           )}
 
@@ -1150,6 +1168,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   size="sm"
                   icon={<Icon name="next" size="sm" />}
                   aria-label="Recolher painel direito"
+                  title="Recolher painel"
                   onClick={() => {
                     alternarPainel('direito');
                     setConversaMovel(false);

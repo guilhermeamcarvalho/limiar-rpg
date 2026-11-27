@@ -106,7 +106,9 @@ describe('contexto da URL', () => {
     });
     abrir('/campanhas/cmp_1/escudo');
 
-    expect(await screen.findByText('você mestra')).toBeDefined();
+    expect(await screen.findByText('Mestre')).toBeDefined();
+    const trilha = screen.getByRole('navigation', { name: 'Caminho do caso' });
+    expect(within(trilha).getByRole('link', { name: 'Casos' }).getAttribute('href')).toBe('/casos');
     expect(
       await screen.findByRole('heading', { name: 'Escudo do mestre', level: 1 }),
     ).toBeDefined();

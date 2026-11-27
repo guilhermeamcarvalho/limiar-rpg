@@ -68,20 +68,65 @@ export interface OrdemDaRodadaProps {
 }
 
 export function OrdemDaRodada({
+  campanhaId,
+  papel,
   membros,
   personagens,
   online,
   rodada,
   rodadas,
-}: OrdemDaRodadaProps) {
+}: OrdemDaRodadaProps & { campanhaId?: string; papel?: Papel }) {
+  const avisos = useToast();
+  const [copiando, setCopiando] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiarConvite() {
+    if (!campanhaId || copiando) return;
+    setCopiando(true);
+    try {
+      const r = await pedir<{ convite: { codigo: string } }>(
+        `/api/campanhas/${encodeURIComponent(campanhaId)}/convites`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: '{}',
+        },
+      );
+      const url = `${window.location.origin}/entrar/${r.convite.codigo}`;
+      if (typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(url);
+      }
+      setCopiado(true);
+      avisos.show({ type: 'ok', title: 'Link de convite copiado', text: r.convite.codigo });
+      setTimeout(() => {
+        setCopiado(false);
+      }, 2500);
+    } catch {
+      avisos.show({ type: 'err', title: 'Não foi possível gerar o convite' });
+    } finally {
+      setCopiando(false);
+    }
+  }
+
   const jogadores = membros.filter((m) => m.papel === 'jogador');
   if (jogadores.length === 0) {
     return (
       <div className="col jogador-secao">
         <span className="lab">Ordem da rodada</span>
-        <p className="small muted">
-          Ninguém do grupo entrou ainda. Mande o convite pelo dossiê do caso.
-        </p>
+        <p className="small muted">Ninguém do grupo entrou ainda.</p>
+        {campanhaId && papel === 'mestre' && (
+          <Button
+            size="sm"
+            className="mesa-btn-secundario"
+            icon={<Icon name={copiado ? 'check' : 'copy'} size="sm" />}
+            loading={copiando}
+            onClick={() => {
+              void copiarConvite();
+            }}
+          >
+            {copiado ? 'Link copiado!' : 'Copiar link de convite'}
+          </Button>
+        )}
       </div>
     );
   }
@@ -385,7 +430,7 @@ export function Jogador({
         <div className="col jogador-secao">
           <Button
             size="sm"
-            variant="ghost"
+            className="mesa-btn-secundario"
             icon={<Icon name="dice" size="sm" />}
             onClick={aoAbrirDadosAvulsos}
           >
@@ -397,6 +442,8 @@ export function Jogador({
       <hr className="hr" />
 
       <OrdemDaRodada
+        {...(campanhaId && { campanhaId })}
+        papel={papel}
         membros={membros}
         personagens={personagens}
         online={online}

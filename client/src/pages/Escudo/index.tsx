@@ -32,7 +32,6 @@ import {
   Input,
   Modal,
   Skeleton,
-  Tag,
   Textarea,
   useCarga,
   useToast,
@@ -575,8 +574,12 @@ export function Escudo() {
             <div className="col" style={{ gap: 24 }}>
               <div className="row between wrapx" style={{ alignItems: 'flex-end', gap: 12 }}>
                 <div className="col" style={{ gap: 6 }}>
-                  <div className="row wrapx" style={{ gap: 8 }}>
-                    <Tag tone="gold">Só você vê esta página</Tag>
+                  <div className="row wrapx" style={{ alignItems: 'center', gap: 10 }}>
+                    <h1 className="h1">Escudo do mestre</h1>
+                    <span className="escudo-privado">
+                      <Icon name="lock" size="sm" />
+                      <span>Só você vê esta página</span>
+                    </span>
                     {situacaoNotas === 'salvando' && (
                       <span className="small muted" role="status">
                         Salvando…
@@ -588,7 +591,6 @@ export function Escudo() {
                       </span>
                     )}
                   </div>
-                  <h1 className="h1">Escudo do mestre</h1>
                   <p className="muted">
                     Salas e pontos de interesse ligados à mesa ao vivo. Editar aqui atualiza a mesa
                     na hora; notas e contexto nunca vão para os jogadores.

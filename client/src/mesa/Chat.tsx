@@ -29,6 +29,7 @@ import {
   textoDoVeredito,
   type TipoDeDado,
 } from '../ui/index.ts';
+import { CampoBusca } from './CampoBusca.tsx';
 
 /** Distância máxima do rodapé (em px) em que a lista ainda acompanha novas mensagens sozinha. */
 export const FOLGA_DO_FIM_PX = 48;
@@ -111,7 +112,7 @@ function horarioCurto(iso: string): string {
 }
 
 const COR_DO_VEREDITO: Record<Veredito, { classe: string; cor: string }> = {
-  sucesso: { classe: '', cor: 'green' },
+  sucesso: { classe: 'ok', cor: 'green' },
   critico: { classe: 'crit', cor: 'gold' },
   falha: { classe: 'ko', cor: 'red' },
   falhaCritica: { classe: 'ko', cor: 'red' },
@@ -176,25 +177,25 @@ function CartaoDeRolagemLivre({
   autorNome: string;
 }) {
   const forma = tipoDeDadoVisual(item.expressao);
+  const simples = item.dados.length === 1 && !/[+-]/.test(item.expressao);
+
   return (
-    <div className={cx('rmsg', item.secreta && 'secreta')}>
-      <div className="row between">
+    <div className={cx('rmsg', item.secreta ? 'secreta' : 'neutro')}>
+      <div className="row between" style={{ gap: 8 }}>
         <b className="small">
           {autorNome} · {item.expressao}
+          {item.secreta && <span className="small gold"> · secreta</span>}
         </b>
-        <span className={cx('verdict', item.secreta ? 'gold' : 'green')}>
-          {item.secreta ? 'Secreta' : `Total ${String(item.total)}`}
-        </span>
+        <span className={cx('rmsg-total', item.secreta && 'gold')}>{item.total}</span>
       </div>
-      <div className="row wrapx rmsg-dados">
-        {item.dados.map((valor, i) => (
-          <Die key={i} type={forma} value={valor} role={item.secreta ? 'bonus' : 'pericia'} />
-        ))}
-        <span className="small muted">
-          = {item.total}
-          {item.secreta && ' · só o mestre vê'}
-        </span>
-      </div>
+      {!simples && (
+        <div className="row wrapx rmsg-dados">
+          {item.dados.map((valor, i) => (
+            <Die key={i} type={forma} value={valor} role={item.secreta ? 'bonus' : 'pericia'} />
+          ))}
+          {item.secreta && <span className="small muted">só o mestre vê</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -235,6 +236,7 @@ export function Chat({
   const [limite, setLimite] = useState(LOTE_DO_CHAT);
 
   const listaRef = useRef<HTMLDivElement | null>(null);
+  const campoRef = useRef<HTMLInputElement | null>(null);
   const pertoDoFimRef = useRef(true);
   const [lendoAcima, setLendoAcima] = useState(false);
   const [seqNoFim, setSeqNoFim] = useState(0);
@@ -376,14 +378,11 @@ export function Chat({
     <div className="chat-coluna">
       {(itens.length > 4 || filtrando) && (
         <div className="col chat-barra">
-          <Input
-            type="search"
-            aria-label="Buscar no chat"
+          <CampoBusca
+            label="Buscar no chat"
             placeholder="Buscar no chat…"
             value={busca}
-            onChange={(e) => {
-              setBusca(e.target.value);
-            }}
+            onChange={setBusca}
           />
           <div className="prontos-categorias" role="group" aria-label="Filtrar chat">
             {FILTROS_CHAT.map((f) => (
@@ -496,7 +495,7 @@ export function Chat({
         </button>
       )}
 
-      <form className="chat-form" onSubmit={(e) => void submeter(e)} noValidate>
+      <form className="chat-form chat-composer" onSubmit={(e) => void submeter(e)} noValidate>
         {(papel === 'mestre' || destinatarios.length > 0) && (
           <div className="row chat-modos">
             {papel === 'mestre' && (
@@ -512,7 +511,7 @@ export function Chat({
                   });
                 }}
               >
-                Narrar
+                {narracao ? 'Narrando' : 'Narrar'}
               </button>
             )}
             {destinatarios.length > 0 && !narracao && (
@@ -547,6 +546,7 @@ export function Chat({
             Mensagem
           </label>
           <Input
+            ref={campoRef}
             id={idCampo}
             value={texto}
             maxLength={2000}
@@ -554,6 +554,18 @@ export function Chat({
             onChange={(e) => {
               setTexto(e.target.value);
               if (erro) setErro(null);
+            }}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            icon={<Icon name="dice" size="sm" />}
+            aria-label="Atalho para rolar dados"
+            title="Inserir comando /r para rolar dados"
+            onClick={() => {
+              setTexto((t) => (t.startsWith('/r') ? t : `/r ${t}`));
+              campoRef.current?.focus();
             }}
           />
           <Button

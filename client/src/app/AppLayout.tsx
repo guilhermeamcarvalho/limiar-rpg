@@ -70,11 +70,23 @@ function ContextoDoCaso({ caso }: { caso: CampanhaDetalhe }) {
   const papel = PAPEL[caso.papel];
   return (
     <div className="ctx">
-      <Link className="ctx-voltar" to={`/casos/${caso.id}`}>
-        <Icon name="back" size="sm" />
-        Caso <b>{caso.nome}</b>
-      </Link>
-      <Tag tone={papel.tom}>{papel.voce}</Tag>
+      <nav className="ctx-trilha" aria-label="Caminho do caso">
+        <Link className="ctx-voltar" to="/casos">
+          <Icon name="back" size="sm" />
+          <span>Casos</span>
+        </Link>
+        <span className="ctx-sep" aria-hidden="true">
+          /
+        </span>
+        <Link className="ctx-caso" to={`/casos/${caso.id}`}>
+          <b>{caso.nome}</b>
+        </Link>
+      </nav>
+      {caso.papel === 'mestre' ? (
+        <span className="ctx-selo">Mestre</span>
+      ) : (
+        <Tag tone={papel.tom}>{papel.voce}</Tag>
+      )}
     </div>
   );
 }
