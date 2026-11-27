@@ -3,7 +3,13 @@
 // Cada bloco carrega e falha sozinho: se a agenda cair, o resto da página continua de pé.
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router';
-import { tituloDaPagina, type CampanhaNaLista, type ConvitePublico } from '@membrana/shared';
+import {
+  tituloDaPagina,
+  urlDoArquivo,
+  type CampanhaNaLista,
+  type ConvitePublico,
+  type PersonagemNaLista,
+} from '@membrana/shared';
 import { ErroDaApi, pedir } from '../auth/api.ts';
 import { useMe } from '../auth/sessao.tsx';
 import {
@@ -12,6 +18,7 @@ import {
   casoParaContinuar,
   etiquetaDoSistema,
   hora,
+  iniciais,
   linkDaCampanha,
   linkDoDossie,
   mesaAbertaHa,
@@ -20,14 +27,22 @@ import {
   sessaoFutura,
 } from '../casos/formatos.ts';
 import { esquecerConvitePendente, useConvitesPendentes } from '../convites/pendentes.ts';
-import { linkDeCriar } from '../personagens/formatos.ts';
+import {
+  NOME_DO_PERFIL,
+  TOM_DO_PERFIL,
+  linkDaFicha,
+  linkDeCriar,
+  primeiroNome,
+} from '../personagens/formatos.ts';
 import {
   Async,
+  Avatar,
   Button,
   Card,
   Chip,
   EmptyState,
   Icon,
+  ResourceBar,
   Skeleton,
   Tag,
   useCarga,
@@ -257,7 +272,36 @@ function Inicio({ casos }: { casos: Casos }) {
 
 /* ---------- Sobreviventes ---------- */
 
-function Sobreviventes() {
+function CartaoDoSobrevivente({ p }: { p: PersonagemNaLista }) {
+  const { ficha, campanha } = p;
+  const imagem = p.tokenImg ?? p.foto;
+  const nome = primeiroNome(ficha.nome) || ficha.nome;
+  return (
+    <Link className="card central-sobrevivente" to={linkDaFicha(p.id)}>
+      <div className="row">
+        <Avatar
+          initials={iniciais(ficha.nome) || '?'}
+          name={ficha.nome}
+          tone={TOM_DO_PERFIL[ficha.perfil]}
+          src={imagem ? urlDoArquivo(imagem) : undefined}
+        />
+        <div className="grow col" style={{ gap: 2, minWidth: 0 }}>
+          <div className="row between">
+            <b className="h3 central-sobrevivente-nome">{nome}</b>
+            {p.emUso && campanha && !campanha.encerrado && <Tag tone="green">Em uso</Tag>}
+          </div>
+          <span className="small muted">
+            {NOME_DO_PERFIL[ficha.perfil]} · {campanha ? campanha.nome : 'Sem caso'}
+          </span>
+        </div>
+      </div>
+      <ResourceBar kind="pv" value={ficha.pv} max={ficha.pvMax} />
+      <ResourceBar kind="pd" value={ficha.pd} max={ficha.pdMax} />
+    </Link>
+  );
+}
+
+function Sobreviventes({ personagens }: { personagens: UsoDaCarga<PersonagemNaLista[]> }) {
   return (
     <section aria-labelledby="sobreviventes">
       <div className="sect-h">
@@ -268,11 +312,51 @@ function Sobreviventes() {
           Ver todos
         </Link>
       </div>
-      <Card pad>
-        <EmptyState icon={<Icon name="users" size="xl" />} title="Nenhum sobrevivente ainda">
-          Os personagens que você criar aparecem aqui, com PV e PD.
-        </EmptyState>
-      </Card>
+      <Async
+        uso={personagens}
+        falha="Os seus sobreviventes não carregaram."
+        esqueleto={
+          <div className="g3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="card central-caso">
+                <Skeleton width="40%" />
+                <Skeleton variant="h" />
+                <Skeleton width="60%" />
+              </div>
+            ))}
+          </div>
+        }
+        vazio={{
+          se: (lista) => lista.length === 0,
+          mostrar: (
+            <Card pad>
+              <EmptyState
+                icon={<Icon name="users" size="xl" />}
+                title="Nenhum sobrevivente ainda"
+                action={
+                  <Link className="btn" to={linkDeCriar()}>
+                    <Icon name="plus" size="sm" />
+                    Criar personagem
+                  </Link>
+                }
+              >
+                Os personagens que você criar aparecem aqui, com PV e PD.
+              </EmptyState>
+            </Card>
+          ),
+        }}
+      >
+        {(lista) => (
+          <div className="g3">
+            {[...lista]
+              .sort((a, b) => b.atualizadoEm.localeCompare(a.atualizadoEm))
+              .slice(0, 3)
+              .map((p) => (
+                <CartaoDoSobrevivente key={p.id} p={p} />
+              ))}
+          </div>
+        )}
+      </Async>
     </section>
   );
 }
@@ -496,6 +580,11 @@ export function Central() {
   const casos = useCarga('/api/campanhas', (signal) =>
     pedir<{ campanhas: CampanhaNaLista[] }>('/api/campanhas', { signal }).then((r) => r.campanhas),
   );
+  const personagens = useCarga('/api/me/personagens', (signal) =>
+    pedir<{ personagens: PersonagemNaLista[] }>('/api/me/personagens', { signal }).then(
+      (r) => r.personagens,
+    ),
+  );
 
   useEffect(() => {
     document.title = tituloDaPagina('Central');
@@ -533,7 +622,7 @@ export function Central() {
       <div className="split">
         <div className="main col" style={{ gap: 24 }}>
           <Inicio casos={casos} />
-          <Sobreviventes />
+          <Sobreviventes personagens={personagens} />
         </div>
         <aside className="side col" style={{ gap: 24 }} aria-label="Convites e agenda">
           <ConvitesPendentes aoEntrar={casos.recarregar} />

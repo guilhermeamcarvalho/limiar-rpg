@@ -168,7 +168,7 @@ export function AppLayout() {
           ))}
         </nav>
         <div className="end">
-          <Link className="btn sm top-codigo" to="/convite">
+          <Link className="btn sm top-codigo" to="/convite" title="Entrar com código">
             <Icon name="key" size="sm" />
             <span className="top-rotulo">Entrar com código</span>
           </Link>

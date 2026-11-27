@@ -24,14 +24,19 @@ import {
   type RespostaDoComando,
 } from '@membrana/shared';
 import { pedir } from '../../auth/api.ts';
-import { iniciais } from '../../casos/formatos.ts';
+import { iniciais, linkDaCampanha } from '../../casos/formatos.ts';
 import {
   depoisDoTeste,
   NADA_ARMADO,
   previaDoTeste,
   type Armados,
 } from '../../pages/Ficha/extras.ts';
-import { NOME_DO_PERFIL, primeiroNome, TOM_DO_PERFIL } from '../../personagens/formatos.ts';
+import {
+  linkDaFicha,
+  NOME_DO_PERFIL,
+  primeiroNome,
+  TOM_DO_PERFIL,
+} from '../../personagens/formatos.ts';
 import {
   Async,
   Avatar,
@@ -321,6 +326,7 @@ function CartaoDoPersonagem({
 }
 
 export interface PainelEsquerdoProps {
+  campanhaId?: string;
   papel: Papel;
   meuPersonagemId: string | null;
   versaoPersonagens: Readonly<Record<string, number>>;
@@ -335,6 +341,7 @@ export interface PainelEsquerdoProps {
 }
 
 export function Jogador({
+  campanhaId,
   papel,
   meuPersonagemId,
   versaoPersonagens,
@@ -387,6 +394,19 @@ export function Jogador({
         rodada={rodada}
         rodadas={rodadas}
       />
+
+      {campanhaId && papel === 'mestre' && (
+        <Link className="btn sm mesa-link-painel" to={linkDaCampanha(campanhaId, 'escudo')}>
+          <Icon name="shield" size="sm" />
+          Escudo do mestre
+        </Link>
+      )}
+      {papel === 'jogador' && meuPersonagemId && (
+        <Link className="btn sm mesa-link-painel" to={linkDaFicha(meuPersonagemId)}>
+          <Icon name="user" size="sm" />
+          Abrir ficha completa
+        </Link>
+      )}
     </div>
   );
 }

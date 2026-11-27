@@ -389,10 +389,15 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       const alvo = e.target as HTMLElement | null;
       if (alvo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return;
       if (e.key === 'Escape') {
-        setEscolhendoGrupo(false);
-        setEscolhendoPoi(null);
-        setPoiAbertoId(null);
-        setModo('mover');
+        if (escolhendoGrupo || escolhendoPoi || poiAbertoId) {
+          setEscolhendoGrupo(false);
+          setEscolhendoPoi(null);
+          setPoiAbertoId(null);
+        } else if (modo !== 'mover') {
+          setModo('mover');
+        } else {
+          setPainel(null);
+        }
         return;
       }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -416,7 +421,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     return () => {
       window.removeEventListener('keydown', aoTeclar);
     };
-  }, [visao, mestre, temMapa]);
+  }, [visao, mestre, temMapa, escolhendoGrupo, escolhendoPoi, poiAbertoId, modo]);
 
   /** RF-24: imagem solta sobre o mapa vira token ali (mestre) ou a imagem do próprio token. */
   async function aoSoltarImagem(
@@ -650,6 +655,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               </div>
               <div className="pnl-b">
                 <Jogador
+                  campanhaId={campanhaId}
                   papel={visao.papel}
                   meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
                   versaoPersonagens={mesa.versaoPersonagens}
@@ -700,6 +706,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   </div>
                   <div className="pnl-b">
                     <Jogador
+                      campanhaId={campanhaId}
                       papel={visao.papel}
                       meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
                       versaoPersonagens={mesa.versaoPersonagens}

@@ -26,6 +26,7 @@ import {
   useCarga,
   useToast,
 } from '../../ui/index.ts';
+import './escudo.css';
 
 interface DadosDoEscudo {
   campanha: { id: string; nome: string };
@@ -66,9 +67,10 @@ function SalaNoEscudo({
   }
 
   return (
-    <div className="paper col" style={{ padding: 14, gap: 8 }}>
+    <div className="paper col escudo-sala">
       <div className="row" style={{ gap: 6 }}>
         <Input
+          paper
           aria-label={`Nome da sala ${sala.nome}`}
           value={nome}
           onChange={(e) => {
@@ -81,6 +83,7 @@ function SalaNoEscudo({
         <Button
           size="sm"
           variant="ghost"
+          className="no-papel"
           icon={<Icon name="trash" size="sm" />}
           aria-label={`Remover sala ${sala.nome}`}
           onClick={() => {
@@ -88,9 +91,10 @@ function SalaNoEscudo({
           }}
         />
       </div>
-      <Field label={`Notas · ${sala.nome}`}>
+      <Field label={`Notas secretas · ${sala.nome}`}>
         <Textarea
-          placeholder="Notas exclusivas do mestre…"
+          className="paper"
+          placeholder="O que só você precisa lembrar sobre esta área…"
           rows={2}
           value={notas}
           onChange={(e) => {
@@ -144,12 +148,12 @@ export function Escudo() {
   }
 
   return (
-    <div className="wrap" style={{ paddingTop: 28, paddingBottom: 48 }}>
+    <div className="wrap col escudo">
       <Async uso={uso} falha="O escudo não abriu." esqueleto={<Skeleton />}>
         {(carregado) => {
           const escudo = atual ?? carregado;
           return (
-            <div className="col" style={{ gap: 20 }}>
+            <div className="col" style={{ gap: 24 }}>
               <div className="row between wrapx" style={{ alignItems: 'flex-end', gap: 12 }}>
                 <div className="col" style={{ gap: 6 }}>
                   <div className="row" style={{ gap: 8 }}>
@@ -163,23 +167,27 @@ export function Escudo() {
                   </p>
                 </div>
                 <div className="row">
-                  <Link className="btn" to={linkDaCampanha(id, 'mesa')}>
+                  <Link className="btn red" to={linkDaCampanha(id, 'mesa')}>
                     <Icon name="map" size="sm" />
                     Abrir mesa
                   </Link>
                 </div>
               </div>
 
-              <div className="g2" style={{ gap: 20, alignItems: 'start' }}>
-                <section className="card col" style={{ padding: 18, gap: 12 }}>
-                  <div className="row between">
-                    <h2 className="h3">Salas · iguais às da mesa</h2>
-                    <span className="small muted">{escudo.salas.length}</span>
-                  </div>
+              <div className="escudo-grade">
+                <section className="col escudo-coluna" aria-labelledby="escudo-salas">
+                  <h2 id="escudo-salas" className="disp escudo-faixa">
+                    I · Salas ({escudo.salas.length})
+                  </h2>
+                  <p className="small muted">
+                    Áreas demarcadas no mapa. Só você vê os contornos e as notas de cada sala.
+                  </p>
                   {escudo.salas.length === 0 ? (
-                    <EmptyState icon={<Icon name="door" size="xl" />} title="Nenhuma sala ainda">
-                      Abra a ferramenta Salas (S) na mesa para demarcar áreas no mapa.
-                    </EmptyState>
+                    <div className="card">
+                      <EmptyState icon={<Icon name="door" size="xl" />} title="Nenhuma sala ainda">
+                        Abra a ferramenta Salas (S) na mesa para demarcar áreas no mapa.
+                      </EmptyState>
+                    </div>
                   ) : (
                     <div className="col" style={{ gap: 10 }}>
                       {escudo.salas.map((sala) => (
@@ -189,22 +197,62 @@ export function Escudo() {
                   )}
                 </section>
 
-                <section className="card col" style={{ padding: 18, gap: 12 }}>
-                  <div className="row between">
-                    <h2 className="h3">Pontos de interesse</h2>
-                    <span className="small muted">{escudo.pois.length}</span>
+                <section className="col escudo-coluna" aria-labelledby="escudo-pois">
+                  <h2 id="escudo-pois" className="disp escudo-faixa">
+                    II · Pontos de interesse ({escudo.pois.length})
+                  </h2>
+                  <p className="small muted">
+                    Lugares clicáveis no mapa. Cada ponto pode pedir perícias e liberar informações
+                    conforme a DT alcançada.
+                  </p>
+                  <div className="card col" style={{ padding: 16, gap: 12 }}>
+                    <EditorPoi
+                      salas={escudo.salas}
+                      pois={escudo.pois}
+                      temMapa={Boolean(escudo.mapa)}
+                      aoExecutar={executar}
+                      centroPadrao={
+                        escudo.mapa
+                          ? { x: escudo.mapa.largura / 2, y: escudo.mapa.altura / 2 }
+                          : { x: 200, y: 200 }
+                      }
+                    />
                   </div>
-                  <EditorPoi
-                    salas={escudo.salas}
-                    pois={escudo.pois}
-                    temMapa={Boolean(escudo.mapa)}
-                    aoExecutar={executar}
-                    centroPadrao={
-                      escudo.mapa
-                        ? { x: escudo.mapa.largura / 2, y: escudo.mapa.altura / 2 }
-                        : { x: 200, y: 200 }
-                    }
-                  />
+                </section>
+
+                <section className="col escudo-coluna" aria-labelledby="escudo-regras">
+                  <h2 id="escudo-regras" className="disp escudo-faixa">
+                    III · Regras na mão
+                  </h2>
+                  <div className="paper col escudo-bloco">
+                    <span className="lab">Dificuldade (DT)</span>
+                    <div className="kv">
+                      <span>Fácil</span>
+                      <b>5</b>
+                    </div>
+                    <div className="kv">
+                      <span>Padrão</span>
+                      <b>7</b>
+                    </div>
+                    <div className="kv">
+                      <span>Difícil</span>
+                      <b>10</b>
+                    </div>
+                    <div className="kv">
+                      <span>Muito difícil</span>
+                      <b>13</b>
+                    </div>
+                  </div>
+                  <div className="paper col escudo-bloco">
+                    <span className="lab">Como funciona um ponto</span>
+                    <p className="doc small">
+                      <b>1.</b> Escolha as perícias e DTs que podem investigar o ponto.
+                    </p>
+                    <p className="doc small">
+                      <b>2.</b> Cadastre as informações por DT mínima: os jogadores veem tarjas
+                      pretas até passarem no teste.
+                    </p>
+                  </div>
                 </section>
               </div>
             </div>

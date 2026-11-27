@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router';
 import { tituloDaPagina, type CampanhaDetalhe } from '@membrana/shared';
 import { pedir } from '../auth/api.ts';
 import { linkDaCampanha, linkDoDossie, type PaginaDaCampanha } from '../casos/formatos.ts';
+import { linkDaFicha, linkDeCriar } from '../personagens/formatos.ts';
 import {
   Async,
   Card,
@@ -73,25 +74,75 @@ export function PaginaDaCampanhaEmBreve({ pagina }: { pagina: PaginaDaCampanha }
               <JogandoCom caso={caso} />
             </div>
             <Card pad>
-              <EmptyState
-                icon={<Icon name={info.icone} size="xl" />}
-                title="Em breve"
-                action={
-                  <div className="row wrapx" style={{ justifyContent: 'center' }}>
-                    <Link className="btn" to={linkDoDossie(caso.id)}>
-                      <Icon name="folder" size="sm" />
-                      Dossiê do caso
-                    </Link>
-                    {pagina !== 'mesa' && (
-                      <Link className="btn ghost" to={linkDaCampanha(caso.id, 'mesa')}>
-                        Mesa
+              {pagina === 'ficha' ? (
+                caso.meuPersonagem ? (
+                  <EmptyState
+                    icon={<Icon name="user" size="xl" />}
+                    title={caso.meuPersonagem.nome}
+                    action={
+                      <div className="row wrapx" style={{ justifyContent: 'center' }}>
+                        <Link className="btn red" to={linkDaFicha(caso.meuPersonagem.id)}>
+                          <Icon name="user" size="sm" />
+                          Abrir ficha
+                        </Link>
+                        <Link className="btn" to={linkDaCampanha(caso.id, 'mesa')}>
+                          <Icon name="map" size="sm" />
+                          Abrir mesa
+                        </Link>
+                        <Link className="btn ghost" to={linkDoDossie(caso.id)}>
+                          Dossiê do caso
+                        </Link>
+                      </div>
+                    }
+                  >
+                    Personagem em uso neste caso.
+                  </EmptyState>
+                ) : (
+                  <EmptyState
+                    icon={<Icon name="user" size="xl" />}
+                    title="Sem personagem neste caso"
+                    action={
+                      <div className="row wrapx" style={{ justifyContent: 'center' }}>
+                        <Link className="btn red" to={linkDeCriar(caso.id)}>
+                          <Icon name="plus" size="sm" />
+                          Criar personagem
+                        </Link>
+                        <Link
+                          className="btn"
+                          to={`/personagens?${new URLSearchParams({ aceito: caso.id }).toString()}`}
+                        >
+                          Escolher existente
+                        </Link>
+                        <Link className="btn ghost" to={linkDoDossie(caso.id)}>
+                          Dossiê do caso
+                        </Link>
+                      </div>
+                    }
+                  >
+                    Crie um sobrevivente novo ou traga um que você já tenha para este caso.
+                  </EmptyState>
+                )
+              ) : (
+                <EmptyState
+                  icon={<Icon name={info.icone} size="xl" />}
+                  title="Em breve"
+                  action={
+                    <div className="row wrapx" style={{ justifyContent: 'center' }}>
+                      <Link className="btn" to={linkDoDossie(caso.id)}>
+                        <Icon name="folder" size="sm" />
+                        Dossiê do caso
                       </Link>
-                    )}
-                  </div>
-                }
-              >
-                {info.texto}
-              </EmptyState>
+                      {pagina !== 'mesa' && (
+                        <Link className="btn ghost" to={linkDaCampanha(caso.id, 'mesa')}>
+                          Mesa
+                        </Link>
+                      )}
+                    </div>
+                  }
+                >
+                  {info.texto}
+                </EmptyState>
+              )}
             </Card>
           </>
         )}
