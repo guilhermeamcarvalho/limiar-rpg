@@ -165,6 +165,10 @@ body::after {
 /* Cartões: uma sombra funda por baixo, como objetos sobre uma mesa escura. */
 .card {
   box-shadow: 0 18px 40px -24px var(--black);
+  transition:
+    border-color var(--dur-micro) var(--ease-out),
+    box-shadow var(--dur-ui) var(--ease-out),
+    transform var(--dur-micro) var(--ease-out);
 }
 a.card:hover,
 .card.hl {
@@ -173,31 +177,106 @@ a.card:hover,
     0 0 0 1px var(--red-dark),
     0 18px 40px -20px var(--brilho-sangue);
 }
+a.card:hover {
+  transform: translateY(-2px) scale(1.01);
+}
 
-/* Janelas: surgem do escuro. */
+/* Janelas: surgem do escuro com transform + opacity (GPU). */
 .modal,
 .sheet {
-  animation: atm-surge 0.28s ease-out;
+  animation: atm-surge var(--dur-ui) var(--ease-out);
 }
 .scrim {
   backdrop-filter: blur(3px) saturate(0.6);
+  animation: atm-scrim var(--dur-micro) var(--ease-out);
+}
+@keyframes atm-scrim {
+  from {
+    opacity: 0;
+  }
 }
 @keyframes atm-surge {
   from {
     opacity: 0;
-    filter: blur(4px);
+    transform: translateY(10px) scale(0.97);
   }
 }
 
 /* As páginas também: cada troca de tela emerge do escuro. */
 .app-conteudo > :not(.ctx) {
-  animation: atm-emerge 0.45s ease-out;
+  animation: atm-emerge var(--dur-enter) var(--ease-out);
 }
 @keyframes atm-emerge {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(12px);
   }
+}
+
+/* Entrada escalonada para blocos, seções e cartões ao abrir a página. */
+@keyframes atm-revela {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+}
+
+.wrap > section,
+.escudo-grade > *,
+.arq-split > *,
+.arq-detalhe,
+.banner {
+  animation: atm-revela var(--dur-enter) var(--ease-out) both;
+}
+
+.wrap > section:nth-child(2),
+.escudo-grade > *:nth-child(2),
+.arq-split > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.wrap > section:nth-child(3),
+.escudo-grade > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.wrap > section:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.mesa-bloco.card,
+.arq-item {
+  animation: atm-revela var(--dur-ui) var(--ease-out) both;
+}
+
+.mesa-bloco.card:nth-child(2),
+.arq-item:nth-child(2) {
+  animation-delay: 35ms;
+}
+
+.mesa-bloco.card:nth-child(3),
+.arq-item:nth-child(3) {
+  animation-delay: 70ms;
+}
+
+.mesa-bloco.card:nth-child(4),
+.arq-item:nth-child(4) {
+  animation-delay: 105ms;
+}
+
+.mesa-bloco.card:nth-child(5),
+.arq-item:nth-child(5) {
+  animation-delay: 140ms;
+}
+
+/* Scroll reveal para elementos abaixo da dobra. */
+.revelar-pendente {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.revelar-visivel {
+  animation: atm-revela var(--dur-enter) var(--ease-out) both;
 }
 
 /* ---------- Marca: a fenda da Membrana falha de vez em quando ---------- */
@@ -240,6 +319,123 @@ a.card:hover,
   content: '';
   pointer-events: none;
   background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, var(--vinheta) 100%);
+}
+
+/* ---------- Micro-interações e transições fluidas ---------- */
+
+.btn,
+.chip,
+.tbtn,
+.tabs button,
+.nav a,
+.cabeca-perfil,
+.fld {
+  transition:
+    transform var(--dur-micro) var(--ease-out),
+    opacity var(--dur-micro) var(--ease-out),
+    background-color var(--dur-micro) var(--ease-in-out),
+    border-color var(--dur-micro) var(--ease-in-out),
+    color var(--dur-micro) var(--ease-in-out),
+    box-shadow var(--dur-ui) var(--ease-out);
+}
+
+.btn:hover:not(:disabled),
+.tbtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled),
+.chip:active:not(:disabled),
+.tbtn:active:not(:disabled),
+.tabs button:active:not(:disabled),
+.arq-item:active,
+.arq-secoes .li:active:not(:disabled),
+a.card:active,
+[role='button']:active:not([aria-disabled='true']) {
+  transform: scale(0.98);
+}
+
+.pulsos-clique {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.pulso-clique {
+  position: fixed;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--red-soft);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.35);
+  animation: atm-pulso-clique 0.44s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.pulso-clique.ativo {
+  border-color: var(--red-hi);
+  box-shadow: 0 0 12px var(--brilho-sangue);
+}
+
+@keyframes atm-pulso-clique {
+  0% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(0.35);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(2.8);
+  }
+}
+
+.toast {
+  animation: atm-toast-entra var(--dur-ui) var(--ease-out);
+}
+
+@keyframes atm-toast-entra {
+  from {
+    opacity: 0;
+    transform: translateX(16px) scale(0.97);
+  }
+}
+
+[role='tabpanel'] {
+  animation: atm-painel-entra var(--dur-micro) var(--ease-out);
+}
+
+@keyframes atm-painel-entra {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.msg,
+.narr,
+.rmsg,
+.registro-item {
+  animation: atm-item-entra 0.22s ease-out;
+}
+
+@keyframes atm-item-entra {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+.rmsg .dz,
+.revelacao .dz {
+  animation: atm-dado-entra 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes atm-dado-entra {
+  from {
+    opacity: 0;
+    transform: scale(0.72) rotate(-10deg);
+  }
 }
 
 /* Barra de rolagem cor de sangue seco. */

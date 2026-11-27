@@ -171,4 +171,11 @@
   --z-res: 20; /* resultado de rolagem e folha de baixo no celular */
   --z-modal: 40; /* véu e janela modal */
   --z-toast: 50; /* avisos, sempre por cima de tudo */
+
+  /* Movimento (60fps, apenas transform/opacity) */
+  --dur-micro: 160ms;
+  --dur-ui: 240ms;
+  --dur-enter: 440ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
