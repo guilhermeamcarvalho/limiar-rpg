@@ -1,0 +1,1 @@
+ALTER TABLE `clues` ADD `manter_visivel` integer DEFAULT false NOT NULL;

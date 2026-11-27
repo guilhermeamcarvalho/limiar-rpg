@@ -1,10 +1,13 @@
 // /campanhas/:id/escudo (artboard "13 · Sala do mestre", #82, #83): só o mestre vê.
 // Lê e edita a mesma tabela de salas e pontos de interesse da mesa ao vivo.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
+import { io, type Socket } from 'socket.io-client';
 import {
   tituloDaPagina,
   type ComandoDaMesa,
+  type EventosDoCliente,
+  type EventosDoServidor,
   type ItemDoInventario,
   type MapaNaMesa,
   type PersonagemNaMesa,
@@ -155,10 +158,97 @@ export function Escudo() {
   );
 
   const dados = atual ?? (uso.carga.estado === 'pronto' ? uso.carga.dados : null);
+  const cargaRef = useRef(uso.carga);
+  useEffect(() => {
+    cargaRef.current = uso.carga;
+  }, [uso.carga]);
 
   useEffect(() => {
     document.title = tituloDaPagina(dados ? `Escudo · ${dados.campanha.nome}` : 'Escudo');
   }, [dados]);
+
+  // Sincronização em tempo real: mantém o Escudo atualizado quando a Mesa sofre alterações.
+  useEffect(() => {
+    if (!id) return;
+    const baseDe = (prev: DadosDoEscudo | null) =>
+      prev ?? (cargaRef.current.estado === 'pronto' ? cargaRef.current.dados : null);
+    const socket: Socket<EventosDoServidor, EventosDoCliente> = io({ auth: { campanhaId: id } });
+    socket.on('evt', (evento) => {
+      if (evento.type === 'mesa.estado' && evento.estado.papel === 'mestre') {
+        setAtual((prev) => {
+          const base = baseDe(prev);
+          if (!base) return null;
+          return {
+            ...base,
+            mapa: evento.estado.mapa,
+            salas: evento.estado.salas ?? base.salas,
+            pois: evento.estado.pois.filter((p): p is PoiNaMesa => 'contextoMestre' in p),
+            pistas: evento.estado.pistas.filter((p): p is PistaNaMesa => 'notaMestre' in p),
+            inventario: evento.estado.inventario,
+          };
+        });
+      } else if (evento.type === 'clue.changed') {
+        const { pistaId, pista } = evento;
+        setAtual((prev) => {
+          const base = baseDe(prev);
+          if (!base) return null;
+          const atuais = base.pistas ?? [];
+          if (!pista) return { ...base, pistas: atuais.filter((p) => p.id !== pistaId) };
+          if (!('notaMestre' in pista)) return base;
+          const existe = atuais.some((p) => p.id === pistaId);
+          return {
+            ...base,
+            pistas: existe ? atuais.map((p) => (p.id === pistaId ? pista : p)) : [...atuais, pista],
+          };
+        });
+      } else if (evento.type === 'poi.changed') {
+        const { poiId, poi } = evento;
+        setAtual((prev) => {
+          const base = baseDe(prev);
+          if (!base) return null;
+          if (!poi) return { ...base, pois: base.pois.filter((p) => p.id !== poiId) };
+          if (!('contextoMestre' in poi)) return base;
+          const existe = base.pois.some((p) => p.id === poiId);
+          return {
+            ...base,
+            pois: existe ? base.pois.map((p) => (p.id === poiId ? poi : p)) : [...base.pois, poi],
+          };
+        });
+      } else if (evento.type === 'clue.received' || evento.type === 'clue.presented') {
+        const { item } = evento;
+        setAtual((prev) => {
+          const base = baseDe(prev);
+          if (!base) return null;
+          const inv = base.inventario ?? [];
+          const existe = inv.some(
+            (i) => i.pistaId === item.pistaId && i.personagemId === item.personagemId,
+          );
+          return {
+            ...base,
+            inventario: existe
+              ? inv.map((i) =>
+                  i.pistaId === item.pistaId && i.personagemId === item.personagemId ? item : i,
+                )
+              : [...inv, item],
+          };
+        });
+      } else if (evento.type === 'clue.revoked') {
+        setAtual((prev) => {
+          const base = baseDe(prev);
+          if (!base) return null;
+          return {
+            ...base,
+            inventario: (base.inventario ?? []).filter(
+              (i) => !(i.pistaId === evento.pistaId && i.personagemId === evento.personagemId),
+            ),
+          };
+        });
+      }
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [id]);
 
   async function executar(comando: ComandoDaMesa): Promise<RespostaDoComando> {
     try {
@@ -247,6 +337,7 @@ export function Escudo() {
                         inventario={escudo.inventario ?? []}
                         personagens={escudo.personagens ?? []}
                         temMapa={Boolean(escudo.mapa)}
+                        mapa={escudo.mapa}
                         enviar={executar}
                         criarEmModal
                         centroPadrao={
@@ -272,6 +363,7 @@ export function Escudo() {
                       salas={escudo.salas}
                       pois={escudo.pois}
                       temMapa={Boolean(escudo.mapa)}
+                      mapa={escudo.mapa}
                       aoExecutar={executar}
                       criarEmModal
                       centroPadrao={

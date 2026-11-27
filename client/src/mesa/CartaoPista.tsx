@@ -18,6 +18,7 @@ import {
   EmptyState,
   Field,
   Icon,
+  Input,
   Select,
   Tag,
   useToast,
@@ -202,6 +203,8 @@ export function CartaoPista({
   );
 }
 
+type FiltroDePistaNaMesa = 'todas' | 'minhas' | 'apresentadas';
+
 export function AbaPistasNaMesa({
   inventario,
   papel,
@@ -217,6 +220,8 @@ export function AbaPistasNaMesa({
 }) {
   const avisos = useToast();
   const [apresentandoId, setApresentandoId] = useState<string | null>(null);
+  const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState<FiltroDePistaNaMesa>('todas');
 
   async function apresentar(pistaId: string) {
     if (apresentandoId) return;
@@ -243,61 +248,109 @@ export function AbaPistasNaMesa({
     );
   }
 
+  const termo = busca.trim().toLowerCase();
+  const visiveis = inventario.filter((item) => {
+    if (filtro === 'apresentadas' && !item.apresentada) return false;
+    if (filtro === 'minhas' && (item.apresentada || item.personagemId !== meuPersonagemId)) {
+      return false;
+    }
+    if (!termo) return true;
+    return item.titulo.toLowerCase().includes(termo) || item.texto.toLowerCase().includes(termo);
+  });
+
   return (
     <div className="mesa-aba-lista">
       <div className="col" style={{ gap: 10 }}>
-        {inventario.map((item) => {
-          const ehMinha = meuPersonagemId !== null && item.personagemId === meuPersonagemId;
-          const dono = nomesDePersonagens[item.personagemId];
-          return (
-            <div key={`${item.pistaId}-${item.personagemId}`} className="note col">
-              <div className="row between wrapx" style={{ gap: 6 }}>
-                <b>{item.titulo}</b>
-                <span className="small muted">
-                  {item.apresentada
-                    ? dono
-                      ? `apresentada por ${dono}`
-                      : 'apresentada'
-                    : ehMinha
-                      ? 'só com você'
-                      : dono
-                        ? `com ${dono}`
-                        : 'guardada'}
-                </span>
-              </div>
-              {item.imagem && <ImagemDaPista imagem={item.imagem} titulo={item.titulo} />}
-              {item.texto && <p style={{ marginTop: 4 }}>{item.texto}</p>}
-              {!item.apresentada && ehMinha && (
-                <div className="row" style={{ marginTop: 8 }}>
-                  <Button
-                    size="sm"
-                    loading={apresentandoId === item.pistaId}
-                    onClick={() => void apresentar(item.pistaId)}
-                  >
-                    Apresentar ao grupo
-                  </Button>
-                </div>
-              )}
-              {!item.apresentada && papel === 'mestre' && (
-                <div className="row" style={{ marginTop: 8 }}>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      void enviar({
-                        type: 'clue.revoke',
-                        pistaId: item.pistaId,
-                        personagemId: item.personagemId,
-                      });
-                    }}
-                  >
-                    Recolher de {dono ?? 'jogador'}
-                  </Button>
-                </div>
-              )}
+        {inventario.length > 2 && (
+          <div className="col" style={{ gap: 6 }}>
+            <Input
+              aria-label="Buscar pista no inventário"
+              placeholder="Buscar pista…"
+              value={busca}
+              onChange={(e) => {
+                setBusca(e.target.value);
+              }}
+            />
+            <div className="prontos-categorias">
+              {(
+                [
+                  { id: 'todas', rotulo: 'Todas' },
+                  { id: 'minhas', rotulo: 'Só comigo' },
+                  { id: 'apresentadas', rotulo: 'Apresentadas' },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  className={cx('chip', filtro === f.id && 'on')}
+                  aria-pressed={filtro === f.id}
+                  onClick={() => {
+                    setFiltro(f.id);
+                  }}
+                >
+                  {f.rotulo}
+                </button>
+              ))}
             </div>
-          );
-        })}
+          </div>
+        )}
+
+        {visiveis.length === 0 ? (
+          <p className="small muted">Nenhuma pista encontrada com esse filtro.</p>
+        ) : (
+          visiveis.map((item) => {
+            const ehMinha = meuPersonagemId !== null && item.personagemId === meuPersonagemId;
+            const dono = nomesDePersonagens[item.personagemId];
+            return (
+              <div key={`${item.pistaId}-${item.personagemId}`} className="note col">
+                <div className="row between wrapx" style={{ gap: 6 }}>
+                  <b>{item.titulo}</b>
+                  <span className="small muted">
+                    {item.apresentada
+                      ? dono
+                        ? `apresentada por ${dono}`
+                        : 'apresentada'
+                      : ehMinha
+                        ? 'só com você'
+                        : dono
+                          ? `com ${dono}`
+                          : 'guardada'}
+                  </span>
+                </div>
+                {item.imagem && <ImagemDaPista imagem={item.imagem} titulo={item.titulo} />}
+                {item.texto && <p style={{ marginTop: 4 }}>{item.texto}</p>}
+                {!item.apresentada && ehMinha && (
+                  <div className="row" style={{ marginTop: 8 }}>
+                    <Button
+                      size="sm"
+                      loading={apresentandoId === item.pistaId}
+                      onClick={() => void apresentar(item.pistaId)}
+                    >
+                      Apresentar ao grupo
+                    </Button>
+                  </div>
+                )}
+                {!item.apresentada && papel === 'mestre' && (
+                  <div className="row" style={{ marginTop: 8 }}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        void enviar({
+                          type: 'clue.revoke',
+                          pistaId: item.pistaId,
+                          personagemId: item.personagemId,
+                        });
+                      }}
+                    >
+                      Recolher de {dono ?? 'jogador'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

@@ -48,6 +48,14 @@ export const CamadaDeSalas = memo(function CamadaDeSalas({ salas }: { salas: Sal
 
 const CAMINHO_ICONE_PISTA = 'M6 3h9l4 4v14H6z M15 3v4h4 M9 12h7 M9 16h5';
 
+function definirCursor(
+  alvo: { getStage: () => { container: () => HTMLElement } | null },
+  cursor: string,
+) {
+  const container = alvo.getStage()?.container();
+  if (container) container.style.cursor = cursor;
+}
+
 function MarcadorDePista({
   pista,
   interativo,
@@ -76,8 +84,19 @@ function MarcadorDePista({
       opacity={oculta ? 0.55 : 1}
       draggable={arrastavel}
       listening={interativo || arrastavel}
+      onMouseEnter={(e) => {
+        if (arrastavel) definirCursor(e.target, 'grab');
+        else if (interativo) definirCursor(e.target, 'pointer');
+      }}
+      onMouseLeave={(e) => {
+        definirCursor(e.target, '');
+      }}
+      onDragStart={(e) => {
+        if (arrastavel) definirCursor(e.target, 'grabbing');
+      }}
       onDragEnd={(e) => {
         if (!arrastavel) return;
+        definirCursor(e.target, 'grab');
         aoMoverPista?.(pista.id, { x: e.target.x(), y: e.target.y() });
       }}
       onClick={(e) => {
@@ -231,8 +250,19 @@ export const CamadaDePois = memo(function CamadaDePois({
             scaleY={inv}
             draggable={arrastavel}
             listening={interativo || arrastavel}
+            onMouseEnter={(e) => {
+              if (arrastavel) definirCursor(e.target, 'grab');
+              else if (interativo) definirCursor(e.target, 'pointer');
+            }}
+            onMouseLeave={(e) => {
+              definirCursor(e.target, '');
+            }}
+            onDragStart={(e) => {
+              if (arrastavel) definirCursor(e.target, 'grabbing');
+            }}
             onDragEnd={(e) => {
               if (!arrastavel) return;
+              definirCursor(e.target, 'grab');
               aoMoverPoi?.(poi.id, { x: e.target.x(), y: e.target.y() });
             }}
             onClick={(e) => {

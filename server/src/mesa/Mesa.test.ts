@@ -1099,4 +1099,31 @@ describe('pistas: criar, enviar, pegar no mapa e apresentar (#87, #88, #89)', ()
     expect(recarregada.estado.pistas).toEqual(m.mesa.estado.pistas);
     expect(recarregada.estado.comAlguem).toEqual(m.mesa.estado.comAlguem);
   });
+
+  it('clue.take com manterVisivel mantém a pista visível no mapa após examinada', () => {
+    const m = montar();
+    eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'token.create',
+        nome: 'Davi',
+        personagemId: m.davi,
+        x: 120,
+        y: 100,
+      }),
+    );
+    eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'clue.create',
+        titulo: 'Quadro na parede',
+        texto: 'Um retrato rasgado.',
+        x: 100,
+        y: 100,
+        visivel: true,
+        manterVisivel: true,
+      }),
+    );
+    const pistaId = m.mesa.estado.pistas[0]?.id ?? '';
+    eventos(m.mesa.aplicar(m.bia, { type: 'clue.take', pistaId }));
+    expect(m.mesa.estado.pistas[0]).toMatchObject({ visivel: true, descoberta: true });
+  });
 });
