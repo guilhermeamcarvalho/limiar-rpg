@@ -374,3 +374,76 @@ describe('detalhes do caso (assistente de novo caso)', () => {
     expect([encerrado, reaberto]).toEqual(['encerrado', 'em-curso']);
   });
 });
+
+describe('escudo do mestre (#92, #93)', () => {
+  it('persiste notas, relógios e segredos em gm_notes e bloqueia quem não é mestre', async () => {
+    const a = await montar();
+    const ana = pessoaLogada(a, 'Ana');
+    const bia = pessoaLogada(a, 'Bia');
+    const { campanha } = await criar(a, ana, { nome: 'Caso do Escudo' });
+    await entrarComoJogador(a, ana, bia, campanha.id);
+
+    const inicial = await a.inject({
+      method: 'GET',
+      url: `/api/campanhas/${campanha.id}/escudo`,
+      cookies: ana.cookies,
+    });
+    expect(inicial.statusCode).toBe(200);
+    const corpo = inicial.json<{
+      notas: {
+        regras: Array<{ id: string; titulo: string; texto: string }>;
+        ameacas: Array<{ id: string; titulo: string; texto: string }>;
+        relogios: Array<{ id: string; titulo: string; segmentos: number; preenchidos: number }>;
+        segredos: Array<{
+          id: string;
+          titulo: string;
+          texto: string;
+          reveladoNaSessao: string | null;
+        }>;
+      };
+    }>();
+    expect(corpo.notas.relogios.length).toBeGreaterThan(0);
+
+    const atualizadas = {
+      ...corpo.notas,
+      relogios: [{ id: 'rel_1', titulo: 'A Membrana afina', segmentos: 6, preenchidos: 3 }],
+      segredos: [
+        {
+          id: 'seg_1',
+          titulo: 'O transmissor nunca foi desligado',
+          texto: 'Fita de 1998.',
+          reveladoNaSessao: '2',
+        },
+      ],
+    };
+    const put = await a.inject({
+      method: 'PUT',
+      url: `/api/campanhas/${campanha.id}/escudo/notas`,
+      cookies: ana.cookies,
+      payload: atualizadas,
+    });
+    expect(put.statusCode).toBe(200);
+
+    const recarregado = await a.inject({
+      method: 'GET',
+      url: `/api/campanhas/${campanha.id}/escudo`,
+      cookies: ana.cookies,
+    });
+    expect(recarregado.json<{ notas: typeof atualizadas }>().notas).toEqual(atualizadas);
+
+    const proibidoGet = await a.inject({
+      method: 'GET',
+      url: `/api/campanhas/${campanha.id}/escudo`,
+      cookies: bia.cookies,
+    });
+    expect(proibidoGet.statusCode).toBe(403);
+
+    const proibidoPut = await a.inject({
+      method: 'PUT',
+      url: `/api/campanhas/${campanha.id}/escudo/notas`,
+      cookies: bia.cookies,
+      payload: atualizadas,
+    });
+    expect(proibidoPut.statusCode).toBe(403);
+  });
+});

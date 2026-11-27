@@ -1,7 +1,14 @@
 // Rotas do Escudo do mestre (#82, #83, #87): lê e edita salas, POIs e pistas usando a mesma
 // `Mesa` em memória, então qualquer edição aqui vai na hora para quem está na mesa ao vivo.
 import type { FastifyInstance } from 'fastify';
-import { podeEditarCampanha } from '@membrana/shared';
+import { eq } from 'drizzle-orm';
+import {
+  esquemaNotasDoEscudo,
+  modeloPadraoDoEscudo,
+  podeEditarCampanha,
+  type NotasDoEscudo,
+} from '@membrana/shared';
+import { gmNotes } from '../../db/schema.ts';
 import { personagensNaMesa } from '../../mesa/dados.ts';
 import { projetarEstado } from '../../mesa/projecao.ts';
 import { usuarioLogado } from '../auth/sessao.ts';
@@ -15,6 +22,15 @@ function exigirMestreDoCaso(app: FastifyInstance, campanhaId: string, usuario: {
     throw new ErroDaApi(403, 'SO_O_MESTRE', 'Só o mestre deste caso abre o escudo.');
   }
   return encontrada;
+}
+
+function carregarNotas(app: FastifyInstance, campanhaId: string): NotasDoEscudo {
+  const linha = app.db
+    .select({ notas: gmNotes.notas })
+    .from(gmNotes)
+    .where(eq(gmNotes.campaignId, campanhaId))
+    .get();
+  return linha ? linha.notas : modeloPadraoDoEscudo();
 }
 
 export function rotaEscudo(app: FastifyInstance) {
@@ -34,7 +50,32 @@ export function rotaEscudo(app: FastifyInstance) {
       pistas: visao.pistas,
       inventario: visao.inventario,
       personagens: personagensNaMesa(app.db, campanha.id),
+      notas: carregarNotas(app, campanha.id),
     };
+  });
+
+  app.put<{ Params: { id: string } }>('/:id/escudo/notas', (request) => {
+    const usuario = usuarioLogado(request);
+    const { id } = request.params;
+    exigirMestreDoCaso(app, id, usuario);
+    const lido = esquemaNotasDoEscudo.safeParse(request.body);
+    if (!lido.success) {
+      throw new ErroDaApi(
+        400,
+        'DADOS_INVALIDOS',
+        lido.error.issues[0]?.message ?? 'Dados inválidos.',
+      );
+    }
+    const agora = new Date();
+    app.db
+      .insert(gmNotes)
+      .values({ campaignId: id, notas: lido.data, atualizadoEm: agora })
+      .onConflictDoUpdate({
+        target: gmNotes.campaignId,
+        set: { notas: lido.data, atualizadoEm: agora },
+      })
+      .run();
+    return { notas: lido.data, atualizadoEm: agora.toISOString() };
   });
 
   app.post<{ Params: { id: string } }>('/:id/escudo/comandos', async (request) => {

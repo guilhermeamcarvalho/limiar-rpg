@@ -221,4 +221,34 @@ describe('Escudo do mestre', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(screen.queryByRole('button', { name: 'Cancelar' })).toBeNull();
   });
+
+  it('avança relógio, marca segredo na sessão, vira escudo e restaura modelo (#92, #93)', async () => {
+    abrirEscudo();
+    expect(await screen.findByText('A Membrana afina')).toBeDefined();
+    expect(screen.getByText('0/6 segmentos')).toBeDefined();
+
+    pedirMock.mockResolvedValue({ notas: {} });
+    fireEvent.click(screen.getByRole('button', { name: 'Avançar A Membrana afina' }));
+    expect(screen.getByText('1/6 segmentos')).toBeDefined();
+    expect(await screen.findByText('Salvo')).toBeDefined();
+
+    // Marca segredo como revelado na sessão 3.
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Editar O transmissor nunca foi desligado' }),
+    );
+    fireEvent.change(screen.getByLabelText('Revelado na sessão'), { target: { value: '3' } });
+    expect(screen.getByText('Revelado na sessão 3')).toBeDefined();
+
+    // Virar o escudo oculta salas/segredos e deixa só Regras na mão.
+    fireEvent.click(screen.getByRole('button', { name: 'Virar o escudo' }));
+    expect(screen.queryByText('A Membrana afina')).toBeNull();
+    expect(screen.getByText(/Escudo virado/)).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Desvirar escudo' }));
+    expect(screen.getByText('A Membrana afina')).toBeDefined();
+
+    // Restaurar modelo volta relógio para 0/6.
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurar modelo' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar restauração' }));
+    expect(screen.getByText('0/6 segmentos')).toBeDefined();
+  });
 });
