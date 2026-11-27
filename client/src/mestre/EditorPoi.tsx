@@ -17,6 +17,7 @@ import {
   Field,
   Icon,
   Input,
+  Modal,
   Select,
   Tag,
   Textarea,
@@ -357,6 +358,7 @@ export function EditorPoi({
   aoExecutar,
   aoEscolherNoMapa,
   centroPadrao,
+  criarEmModal = false,
 }: {
   salas: readonly SalaNaMesa[];
   pois: readonly PoiNaMesa[];
@@ -364,51 +366,138 @@ export function EditorPoi({
   aoExecutar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
   aoEscolherNoMapa?: (aoClicar: (ponto: Ponto) => void) => void;
   centroPadrao?: Ponto;
+  criarEmModal?: boolean;
 }) {
   const avisos = useToast();
+  const [modalAberto, setModalAberto] = useState(false);
   const [nomeNovo, setNomeNovo] = useState('');
+  const [salaNova, setSalaNova] = useState('');
+  const [descricaoNova, setDescricaoNova] = useState('');
+  const [contextoNovo, setContextoNovo] = useState('');
 
   async function criarEm(ponto: Ponto) {
     const nome = nomeNovo.trim() || `Ponto ${String(pois.length + 1)}`;
-    const r = await aoExecutar({ type: 'poi.create', nome, x: ponto.x, y: ponto.y });
-    if (r.ok) setNomeNovo('');
-    else avisos.show({ type: 'err', title: 'Não deu para criar o ponto', text: r.motivo });
+    const r = await aoExecutar({
+      type: 'poi.create',
+      nome,
+      ...(salaNova && { salaId: salaNova }),
+      ...(descricaoNova.trim() && { descricao: descricaoNova.trim() }),
+      ...(contextoNovo.trim() && { contextoMestre: contextoNovo.trim() }),
+      x: ponto.x,
+      y: ponto.y,
+    });
+    if (r.ok) {
+      setNomeNovo('');
+      setSalaNova('');
+      setDescricaoNova('');
+      setContextoNovo('');
+      setModalAberto(false);
+    } else {
+      avisos.show({ type: 'err', title: 'Não deu para criar o ponto', text: r.motivo });
+    }
   }
 
   const ordenados = [...pois].sort((a, b) => a.numero - b.numero);
+
+  const formularioNovoPoi = (
+    <div className="col" style={{ gap: 8 }}>
+      <Field label="Nome do ponto de interesse">
+        <Input
+          placeholder="Ex.: Mesa de som, Armário…"
+          value={nomeNovo}
+          onChange={(e) => {
+            setNomeNovo(e.target.value);
+          }}
+        />
+      </Field>
+      {criarEmModal && (
+        <>
+          <Field label="Sala">
+            <Select
+              value={salaNova}
+              onChange={(e) => {
+                setSalaNova(e.target.value);
+              }}
+            >
+              <option value="">Sem sala definida</option>
+              {salas.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.nome}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Descrição para cena">
+            <Textarea
+              rows={2}
+              placeholder="O que aparece no cartão do ponto…"
+              value={descricaoNova}
+              onChange={(e) => {
+                setDescricaoNova(e.target.value);
+              }}
+            />
+          </Field>
+          <Field label="Contexto do mestre (secreto)">
+            <Textarea
+              rows={2}
+              placeholder="Só você lê este campo…"
+              value={contextoNovo}
+              onChange={(e) => {
+                setContextoNovo(e.target.value);
+              }}
+            />
+          </Field>
+        </>
+      )}
+      <Button
+        size="sm"
+        variant="primary"
+        icon={<Icon name="pin" size="sm" />}
+        onClick={() => {
+          if (aoEscolherNoMapa) {
+            aoEscolherNoMapa((ponto) => {
+              void criarEm(ponto);
+            });
+          } else {
+            void criarEm(centroPadrao ?? { x: 200, y: 200 });
+          }
+        }}
+      >
+        {aoEscolherNoMapa ? 'Marcar novo ponto no mapa' : 'Adicionar ponto no mapa'}
+      </Button>
+    </div>
+  );
 
   return (
     <div className="col" style={{ gap: 10 }}>
       {!temMapa ? (
         <p className="small muted">Ponha um mapa na mesa para criar pontos de interesse.</p>
-      ) : (
-        <div className="col" style={{ gap: 6 }}>
-          <Field label="Novo ponto de interesse">
-            <Input
-              placeholder="Ex.: Mesa de som, Armário…"
-              value={nomeNovo}
-              onChange={(e) => {
-                setNomeNovo(e.target.value);
+      ) : criarEmModal ? (
+        <>
+          <div className="row">
+            <Button
+              size="sm"
+              variant="primary"
+              icon={<Icon name="plus" size="sm" />}
+              onClick={() => {
+                setModalAberto(true);
               }}
-            />
-          </Field>
-          <Button
-            size="sm"
-            variant="primary"
-            icon={<Icon name="pin" size="sm" />}
-            onClick={() => {
-              if (aoEscolherNoMapa) {
-                aoEscolherNoMapa((ponto) => {
-                  void criarEm(ponto);
-                });
-              } else {
-                void criarEm(centroPadrao ?? { x: 200, y: 200 });
-              }
+            >
+              Adicionar ponto
+            </Button>
+          </div>
+          <Modal
+            open={modalAberto}
+            onClose={() => {
+              setModalAberto(false);
             }}
+            title="Novo ponto de interesse"
           >
-            {aoEscolherNoMapa ? 'Marcar novo ponto no mapa' : 'Novo ponto de interesse'}
-          </Button>
-        </div>
+            {formularioNovoPoi}
+          </Modal>
+        </>
+      ) : (
+        formularioNovoPoi
       )}
 
       {ordenados.length === 0 ? (

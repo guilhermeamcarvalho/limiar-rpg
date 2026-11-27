@@ -285,6 +285,56 @@ describe('imagem de prop', () => {
   });
 });
 
+describe('imagem de pista', () => {
+  it('só o mestre envia (até 1600 px) e o jogador só lê o arquivo quando a pista fica visível para ele', async () => {
+    const { a, pasta, caso, ana, bia } = await montar();
+    const enviar = async (quem: Pessoa) =>
+      a.inject({
+        method: 'POST',
+        url: `/api/campanhas/${caso}/imagens`,
+        cookies: quem.cookies,
+        ...formulario({ uso: 'pista' }, await jpeg(2400, 1800)),
+      });
+    const doJogador = await enviar(bia);
+    expect(doJogador.statusCode).toBe(403);
+    expect(doJogador.json<{ erro: { mensagem: string } }>().erro.mensagem).toBe(
+      'Só o mestre põe imagens em pistas.',
+    );
+
+    const r = await enviar(ana);
+    expect(r.statusCode).toBe(201);
+    const { nome } = r.json<{ nome: string }>();
+    const salvo = await sharp(join(pasta, nome)).metadata();
+    expect([salvo.format, salvo.width, salvo.height]).toEqual(['webp', 1600, 1200]);
+
+    mapaDeTeste(a, caso, { ativo: true });
+    const mesa = a.mesas.obter(caso);
+    expect(
+      mesa.aplicar(ana, {
+        type: 'clue.create',
+        titulo: 'Foto da escada',
+        texto: 'Tirada antes do incêndio.',
+        imagem: nome,
+        x: 40,
+        y: 40,
+        visivel: true,
+        descoberta: false,
+      }).ok,
+    ).toBe(true);
+    const pistaId = mesa.estado.pistas[0]?.id ?? '';
+
+    const ver = (quem: Pessoa) =>
+      a.inject({ method: 'GET', url: urlDoArquivo(nome), cookies: quem.cookies });
+    // Mestre vê na hora; jogador ainda não vê arquivo de pista não descoberta.
+    expect((await ver(ana)).statusCode).toBe(200);
+    expect((await ver(bia)).statusCode).toBe(404);
+
+    // Quando a pista é descoberta no mapa, o jogador passa a poder ler o anexo.
+    expect(mesa.aplicar(ana, { type: 'clue.update', pistaId, descoberta: true }).ok).toBe(true);
+    expect((await ver(bia)).statusCode).toBe(200);
+  });
+});
+
 describe('mapas prontos', () => {
   const usarPronto = (a: FastifyInstance, quem: Pessoa, caso: string, id: unknown) =>
     a.inject({

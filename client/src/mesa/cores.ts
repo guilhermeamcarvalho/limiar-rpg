@@ -18,6 +18,9 @@ const NOMES = [
   'bg',
   'text',
   'white',
+  'black',
+  'paper',
+  'ink',
 ] as const;
 
 export type NomeDaCor = (typeof NOMES)[number];

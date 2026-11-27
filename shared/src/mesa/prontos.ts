@@ -127,6 +127,30 @@ export const NPCS_PRONTOS = [
 
 export const CATEGORIAS_DE_NPCS = ['Pessoas', 'Autoridades', 'Criaturas', 'Animais'] as const;
 
+/** Ilustrações genéricas de pistas (#87): anexos de dossiê prontos quando o mestre não sobe foto. */
+export const PISTAS_PRONTAS = [
+  { id: 'pista:carta', nome: 'Carta manchada', categoria: 'Documentos' },
+  { id: 'pista:recorte-jornal', nome: 'Recorte de jornal', categoria: 'Documentos' },
+  { id: 'pista:prontuario', nome: 'Prontuário médico', categoria: 'Documentos' },
+  { id: 'pista:cracha', nome: 'Crachá de acesso', categoria: 'Documentos' },
+  { id: 'pista:mapa-rabiscado', nome: 'Mapa rabiscado', categoria: 'Documentos' },
+  { id: 'pista:fotografia', nome: 'Fotografia antiga', categoria: 'Mídia e registros' },
+  { id: 'pista:fita-cassete', nome: 'Fita cassete', categoria: 'Mídia e registros' },
+  { id: 'pista:celular', nome: 'Celular trincado', categoria: 'Mídia e registros' },
+  { id: 'pista:pendrive', nome: 'Pendrive marcado', categoria: 'Mídia e registros' },
+  { id: 'pista:diario', nome: 'Diário encadernado', categoria: 'Objetos e vestígios' },
+  { id: 'pista:chave', nome: 'Chave antiga', categoria: 'Objetos e vestígios' },
+  { id: 'pista:amuleto', nome: 'Objeto ritualístico', categoria: 'Objetos e vestígios' },
+  { id: 'pista:simbolo-ritual', nome: 'Símbolo ocultista', categoria: 'Objetos e vestígios' },
+  { id: 'pista:vestigio-sangue', nome: 'Vestígio de sangue', categoria: 'Objetos e vestígios' },
+] as const;
+
+export const CATEGORIAS_DE_PISTAS = [
+  'Documentos',
+  'Mídia e registros',
+  'Objetos e vestígios',
+] as const;
+
 /** Mapas prontos (RF-14): medidas em pixels do mapa e a célula da grade que bate com o desenho. */
 export const MAPAS_PRONTOS = [
   {

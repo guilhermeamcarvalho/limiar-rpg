@@ -6,7 +6,9 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { and, eq, inArray, or } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { characters, maps, memberships, props, tokens } from '../../db/schema.ts';
+import { characters, clues, maps, memberships, props, tokens } from '../../db/schema.ts';
+import { donoDoPersonagemNoCaso } from '../../mesa/dados.ts';
+import { pistaParaJogador } from '../../mesa/projecao.ts';
 import { usuarioLogado } from '../auth/sessao.ts';
 import { ErroDaApi } from '../erros.ts';
 import { campanhasDo } from '../personagens/dados.ts';
@@ -43,6 +45,45 @@ function casosDaMesa(app: FastifyInstance, nome: string): string[] {
   return [...doMapa, ...deToken, ...deProp].map((l) => l.caso).concat(app.mesas.casosQueUsam(nome));
 }
 
+/** Imagem anexada a uma pista: o mestre vê sempre; o jogador, só quando a pista já está ao alcance dele. */
+function podeVerImagemDePista(app: FastifyInstance, userId: string, nome: string): boolean {
+  const doBanco = app.db
+    .select({ caso: maps.campaignId })
+    .from(clues)
+    .innerJoin(maps, eq(maps.id, clues.mapId))
+    .where(eq(clues.imagem, nome))
+    .all()
+    .map((l) => l.caso);
+  const casos = [...new Set([...doBanco, ...app.mesas.casosComPistaQueUsa(nome)])];
+  if (casos.length === 0) return false;
+
+  const vinculos = app.db
+    .select({ campaignId: memberships.campaignId, papel: memberships.papel })
+    .from(memberships)
+    .where(and(eq(memberships.userId, userId), inArray(memberships.campaignId, casos)))
+    .all();
+  if (vinculos.length === 0) return false;
+  if (vinculos.some((v) => v.papel === 'mestre')) return true;
+
+  for (const v of vinculos) {
+    const mesa = app.mesas.obter(v.campaignId);
+    const visivelNoMapa = mesa.estado.pistas.some(
+      (p) => p.imagem === nome && pistaParaJogador(p, mesa.estado)?.descoberta === true,
+    );
+    if (visivelNoMapa) return true;
+
+    const visivelNoInventario = mesa.estado.comAlguem.some((posse) => {
+      const pista = mesa.estado.pistas.find((p) => p.id === posse.pistaId);
+      const img = pista !== undefined ? (pista.imagem ?? null) : (posse.imagem ?? null);
+      if (img !== nome) return false;
+      if (posse.apresentada) return true;
+      return donoDoPersonagemNoCaso(app.db, v.campaignId, posse.personagemId)?.donoId === userId;
+    });
+    if (visivelNoInventario) return true;
+  }
+  return false;
+}
+
 /** Quem pode ver o arquivo: o dono de um personagem que o usa, ou alguém de um caso onde ele está. */
 function podeVerArquivo(app: FastifyInstance, userId: string, nome: string): boolean {
   const usam = app.db
@@ -54,13 +95,15 @@ function podeVerArquivo(app: FastifyInstance, userId: string, nome: string): boo
   const casos = [
     ...new Set([...usam.flatMap((p) => campanhasDo(app.db, p)), ...casosDaMesa(app, nome)]),
   ];
-  if (casos.length === 0) return false;
-  const membro = app.db
-    .select({ campaignId: memberships.campaignId })
-    .from(memberships)
-    .where(and(eq(memberships.userId, userId), inArray(memberships.campaignId, casos)))
-    .get();
-  return membro !== undefined;
+  if (casos.length > 0) {
+    const membro = app.db
+      .select({ campaignId: memberships.campaignId })
+      .from(memberships)
+      .where(and(eq(memberships.userId, userId), inArray(memberships.campaignId, casos)))
+      .get();
+    if (membro !== undefined) return true;
+  }
+  return podeVerImagemDePista(app, userId, nome);
 }
 
 export function rotasDeArquivos(app: FastifyInstance) {

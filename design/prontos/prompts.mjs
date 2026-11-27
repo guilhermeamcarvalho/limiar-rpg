@@ -15,6 +15,10 @@ const NPC =
   'Retrato de busto, enquadramento quadrado, rosto no terço de cima, olhando para frente, fundo escuro ' +
   'liso com leve vinheta, sem moldura, legível pequeno (vai virar um token redondo de 64 px).';
 
+const PISTA =
+  'Anexo de investigação sobre mesa de madeira escura (proporção 4:3), foco de luz quente vindo de cima, ' +
+  'objeto ou documento centralizado com leve vinheta, sem texto legível.';
+
 const MAPA =
   'Mapa de batalha para RPG de mesa, vista de cima perfeitamente ortográfica, sem grade desenhada, sem ' +
   'texto ou legendas, iluminação noturna com poças de luz, cômodos e móveis em escala humana (uma célula ' +
@@ -22,7 +26,7 @@ const MAPA =
 
 const linha = (id, nome, extra) => `- **\`${id}\`** — ${nome}${extra ? ` · ${extra}` : ''}`;
 
-export function escreverPrompts({ props, npcs, mapas }) {
+export function escreverPrompts({ props, npcs, pistas = [], mapas }) {
   const porCategoria = (lista) =>
     Object.entries(Object.groupBy(lista, (i) => i.categoria))
       .map(([cat, itens]) => `### ${cat}\n\n${itens.map((i) => linha(i.id, i.nome)).join('\n')}`)
@@ -52,6 +56,14 @@ ${porCategoria(props)}
 Exemplo: _"${ESTILO} ${NPC} Personagem: ${npcs[0]?.nome.toLowerCase() ?? 'policial'}."_
 
 ${porCategoria(npcs)}
+
+## Pistas (${pistas.length}) — \`externos/pistas/<id>.png\`
+
+> ${PISTA}
+
+Exemplo: _"${ESTILO} ${PISTA} Evidência: ${pistas[0]?.nome.toLowerCase() ?? 'carta manchada'}."_
+
+${porCategoria(pistas)}
 
 ## Mapas (${mapas.length}) — \`externos/mapas/<id>.png\`
 

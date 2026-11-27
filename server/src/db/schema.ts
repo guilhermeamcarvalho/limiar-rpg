@@ -409,10 +409,52 @@ export const poiChallenges = sqliteTable(
   (t) => [primaryKey({ columns: [t.campaignId, t.poiId] })],
 );
 
-/** O que a mesa guarda além do mapa ativo (este fica em `maps`, `tokens`, `props`, `rooms` e `pois`). */
+/** Pistas colocadas no mapa pelo mestre (#87). */
+export const clues = sqliteTable(
+  'clues',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => novoId('pst')),
+    mapId: text('map_id')
+      .notNull()
+      .references(() => maps.id, { onDelete: 'cascade' }),
+    titulo: text('titulo').notNull(),
+    texto: text('texto').notNull().default(''),
+    imagem: text('imagem'),
+    tamanho: real('tamanho').notNull().default(1),
+    notaMestre: text('nota_mestre').notNull().default(''),
+    x: real('x').notNull(),
+    y: real('y').notNull(),
+    visivel: integer('visivel', { mode: 'boolean' }).notNull().default(false),
+    descoberta: integer('descoberta', { mode: 'boolean' }).notNull().default(false),
+  },
+  (t) => [index('clues_map').on(t.mapId)],
+);
+
+/** Quem tem cada pista no inventário e se já foi apresentada ao grupo (#87, #89). */
+export const clueHolders = sqliteTable(
+  'clue_holders',
+  {
+    clueId: text('clue_id')
+      .notNull()
+      .references(() => clues.id, { onDelete: 'cascade' }),
+    characterId: text('character_id')
+      .notNull()
+      .references(() => characters.id, { onDelete: 'cascade' }),
+    apresentada: integer('apresentada', { mode: 'boolean' }).notNull().default(false),
+    em: text('em').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.clueId, t.characterId] }),
+    index('clue_holders_character').on(t.characterId),
+  ],
+);
+
+/** O que a mesa guarda além do mapa ativo e das pistas (estes ficam em tabelas próprias). */
 export type RestoDaMesa = Omit<
   EstadoDaMesa,
-  'mapa' | 'tokens' | 'props' | 'breu' | 'salas' | 'pois'
+  'mapa' | 'tokens' | 'props' | 'breu' | 'salas' | 'pois' | 'pistas' | 'comAlguem'
 >;
 
 /**

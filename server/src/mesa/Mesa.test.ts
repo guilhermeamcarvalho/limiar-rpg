@@ -920,3 +920,183 @@ describe('salas e pontos de interesse (#82, #83)', () => {
     expect(m.mesa.estado.pois[0]?.estadoDesafio?.travado).toBe(false);
   });
 });
+
+describe('pistas: criar, enviar, pegar no mapa e apresentar (#87, #88, #89)', () => {
+  it('mestre cria, edita, envia, recolhe e remove pistas; jogador não mexe (#87)', () => {
+    const m = montar();
+    expect(
+      motivo(
+        m.mesa.aplicar(m.bia, {
+          type: 'clue.create',
+          titulo: 'Bilhete',
+          texto: '3h33',
+          x: 100,
+          y: 100,
+        }),
+      ),
+    ).toBe('Só o mestre mexe nas pistas.');
+
+    const [criada] = eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'clue.create',
+        titulo: 'Fita 33',
+        texto: 'Gravada de madrugada.',
+        notaMestre: 'Encontrada atrás do rádio.',
+        x: 120,
+        y: 140,
+      }),
+    );
+    expect(criada).toMatchObject({
+      type: 'clue.changed',
+      pista: {
+        titulo: 'Fita 33',
+        notaMestre: 'Encontrada atrás do rádio.',
+        visivel: false,
+        descoberta: false,
+      },
+    });
+    const pistaId = m.mesa.estado.pistas[0]?.id ?? '';
+    expect(pistaId).toMatch(/^pst_/);
+
+    // Enviar e recolher de um personagem do caso.
+    const [recebida] = eventos(
+      m.mesa.aplicar(m.ana, { type: 'clue.send', pistaId, personagemId: m.davi }),
+    );
+    expect(recebida).toMatchObject({
+      type: 'clue.received',
+      item: { pistaId, personagemId: m.davi, apresentada: false, titulo: 'Fita 33' },
+    });
+    // Enviar de novo para quem já tem não duplica.
+    expect(
+      eventos(m.mesa.aplicar(m.ana, { type: 'clue.send', pistaId, personagemId: m.davi })),
+    ).toEqual([]);
+
+    // Editar título/texto atualiza quem já está com a pista.
+    const editada = eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'clue.update',
+        pistaId,
+        titulo: 'Fita 33 (lado B)',
+        visivel: true,
+      }),
+    );
+    expect(editada).toMatchObject([
+      { type: 'clue.changed', pistaId, pista: { titulo: 'Fita 33 (lado B)', visivel: true } },
+      { type: 'clue.received', item: { pistaId, titulo: 'Fita 33 (lado B)' } },
+    ]);
+
+    // Recolher tira do inventário.
+    expect(
+      eventos(m.mesa.aplicar(m.ana, { type: 'clue.revoke', pistaId, personagemId: m.davi })),
+    ).toMatchObject([{ type: 'clue.revoked', pistaId, personagemId: m.davi }]);
+    expect(m.mesa.estado.comAlguem).toEqual([]);
+
+    // Excluir remove do mapa e revoga de quem tivesse.
+    eventos(m.mesa.aplicar(m.ana, { type: 'clue.send', pistaId, personagemId: m.davi }));
+    const removida = eventos(m.mesa.aplicar(m.ana, { type: 'clue.delete', pistaId }));
+    expect(removida).toMatchObject([
+      { type: 'clue.changed', pistaId, pista: null },
+      { type: 'clue.revoked', pistaId, personagemId: m.davi },
+    ]);
+    expect(m.mesa.estado.pistas).toEqual([]);
+    expect(m.mesa.estado.comAlguem).toEqual([]);
+  });
+
+  it('clue.take exige pista visível fora do breu e token a até 1 célula; ao pegar, some do mapa (#88)', () => {
+    const m = montar();
+    criarToken(m, { personagemId: m.davi, x: 300, y: 300 });
+    eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'clue.create',
+        titulo: 'Chave enferrujada',
+        texto: 'Abre o armário do porão.',
+        x: 100,
+        y: 100,
+        visivel: false,
+      }),
+    );
+    const pistaId = m.mesa.estado.pistas[0]?.id ?? '';
+
+    // Oculta: não dá para pegar.
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'clue.take', pistaId }))).toBe(
+      'Essa pista não está visível neste mapa.',
+    );
+
+    // Visível, mas longe (300,300 vs 100,100 com célula 50): recusa explicando o alcance.
+    eventos(m.mesa.aplicar(m.ana, { type: 'clue.update', pistaId, visivel: true }));
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'clue.take', pistaId }))).toBe(
+      'Seu token está longe demais: chegue a até 1 célula da pista para guardá-la.',
+    );
+
+    // Move para 1 célula de distância (150, 100) e guarda.
+    const tokenId = m.mesa.estado.tokens[0]?.id ?? '';
+    eventos(m.mesa.aplicar(m.bia, { type: 'token.move', tokenId, x: 150, y: 100 }));
+    const pegou = eventos(m.mesa.aplicar(m.bia, { type: 'clue.take', pistaId }));
+    expect(pegou).toMatchObject([
+      { type: 'clue.changed', pistaId, pista: { visivel: false, descoberta: true } },
+      {
+        type: 'clue.received',
+        item: { pistaId, personagemId: m.davi, titulo: 'Chave enferrujada', apresentada: false },
+      },
+    ]);
+    expect(m.mesa.estado.pistas[0]?.visivel).toBe(false);
+    expect(m.mesa.estado.comAlguem).toHaveLength(1);
+  });
+
+  it('clue.present grava no registro, torna visível ao grupo e mantém com quem apresentou; persiste no banco (#89)', () => {
+    const m = montar();
+    eventos(
+      m.mesa.aplicar(m.ana, {
+        type: 'clue.create',
+        titulo: 'Recibo do hotel',
+        texto: 'Quarto 204, pago em dinheiro.',
+        imagem: 'pista:carta',
+        notaMestre: 'Assinatura falsa.',
+        x: 80,
+        y: 80,
+      }),
+    );
+    const pistaId = m.mesa.estado.pistas[0]?.id ?? '';
+    eventos(m.mesa.aplicar(m.ana, { type: 'clue.send', pistaId, personagemId: m.davi }));
+
+    // Outro jogador que não tem a pista não pode apresentá-la.
+    expect(motivo(m.mesa.aplicar(m.caio, { type: 'clue.present', pistaId }))).toBe(
+      'Você não tem esta pista para apresentar ao grupo.',
+    );
+
+    const [apresentada] = eventos(m.mesa.aplicar(m.bia, { type: 'clue.present', pistaId }));
+    expect(apresentada).toMatchObject({
+      type: 'clue.presented',
+      item: {
+        pistaId,
+        personagemId: m.davi,
+        apresentada: true,
+        titulo: 'Recibo do hotel',
+        texto: 'Quarto 204, pago em dinheiro.',
+        imagem: 'pista:carta',
+      },
+    });
+    // Quem apresentou continua com ela.
+    expect(m.mesa.estado.comAlguem).toMatchObject([
+      { pistaId, personagemId: m.davi, apresentada: true },
+    ]);
+    // Foi gravada em session_log.
+    const registrados = m.db
+      .select()
+      .from(sessionLog)
+      .where(eq(sessionLog.campaignId, m.caso))
+      .all();
+    expect(registrados.map((r) => r.tipo)).toContain('clue.presented');
+
+    // Não apresenta duas vezes.
+    expect(motivo(m.mesa.aplicar(m.bia, { type: 'clue.present', pistaId }))).toBe(
+      'Esta pista já foi apresentada ao grupo.',
+    );
+
+    // Persiste em clues e clue_holders após salvar e recarregar do banco.
+    m.mesas.salvarTudo();
+    const recarregada = new Mesas(m.db).obter(m.caso);
+    expect(recarregada.estado.pistas).toEqual(m.mesa.estado.pistas);
+    expect(recarregada.estado.comAlguem).toEqual(m.mesa.estado.comAlguem);
+  });
+});

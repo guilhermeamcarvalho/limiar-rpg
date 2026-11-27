@@ -91,6 +91,8 @@ export interface PalcoProps {
   aoMarcarPonto?: (ponto: Ponto) => void;
   /** Clique em um marcador de ponto de interesse para abrir seu cartão (#85). */
   aoAbrirPoi?: (poiId: string) => void;
+  /** Clique em um marcador de pista no mapa para guardá-la ou editá-la (#87, #88). */
+  aoAbrirPista?: (pistaId: string) => void;
 }
 
 /** Os dois toques, na tela, relativos ao palco. */
@@ -125,6 +127,7 @@ export function Palco({
   ultimoPulso = null,
   aoMarcarPonto,
   aoAbrirPoi,
+  aoAbrirPista,
 }: PalcoProps) {
   const { mapa } = visao;
   const avisos = useToast();
@@ -489,12 +492,24 @@ export function Palco({
           />
           {visao.salas && <CamadaDeSalas salas={visao.salas} />}
           <CamadaDoBreu breu={visao.breu} mapa={mapa} mestre={mestre} />
-          <CamadaDePistas pistas={visao.pistas} celula={celula} />
+          <CamadaDePistas
+            pistas={visao.pistas}
+            mestre={mestre}
+            bloqueado={bloqueado}
+            {...(aoAbrirPista && { aoAbrirPista })}
+            aoMoverPista={(pistaId, ponto) => {
+              void enviar({ type: 'clue.update', pistaId, ...dentroDoMapa(ponto, mapa) });
+            }}
+          />
           <CamadaDePois
             pois={visao.pois}
             escala={camera.escala}
+            mestre={mestre}
             bloqueado={bloqueado}
             {...(aoAbrirPoi && { aoAbrirPoi })}
+            aoMoverPoi={(poiId, ponto) => {
+              void enviar({ type: 'poi.update', poiId, ...dentroDoMapa(ponto, mapa) });
+            }}
           />
           <CamadaDeTokens
             tokens={visao.tokens}

@@ -36,12 +36,28 @@ export function propVisivel(quem: Espectador, prop: PropNaMesa, estado: EstadoDa
   return quem.papel === 'mestre' || !sobBreu(estado.breu, prop);
 }
 
-/** Pista no mapa para o jogador: oculta some; não descoberta, só a tarja; nunca a nota do mestre. */
-export function pistaParaJogador(pista: PistaNaMesa): PistaParaJogador | null {
+/** Pista no mapa para o jogador: oculta ou sob o breu some; não descoberta, só a tarja; nunca a nota do mestre. */
+export function pistaParaJogador(
+  pista: PistaNaMesa,
+  estado?: Pick<EstadoDaMesa, 'breu'>,
+): PistaParaJogador | null {
   if (!pista.visivel) return null;
+  if (estado && sobBreu(estado.breu, pista)) return null;
   const { id, x, y } = pista;
-  if (!pista.descoberta) return { id, x, y, descoberta: false };
-  return { id, x, y, descoberta: true, titulo: pista.titulo, texto: pista.texto };
+  const tamanho = pista.tamanho;
+  if (!pista.descoberta) {
+    return { id, x, y, ...(tamanho !== undefined && { tamanho }), descoberta: false };
+  }
+  return {
+    id,
+    x,
+    y,
+    ...(tamanho !== undefined && { tamanho }),
+    descoberta: true,
+    titulo: pista.titulo,
+    texto: pista.texto,
+    imagem: pista.imagem ?? null,
+  };
 }
 
 /** Ponto de interesse para o jogador: sem contextoMestre e com informações ocultas como tarjas. */
@@ -75,7 +91,20 @@ function inventario(estado: EstadoDaMesa): ItemDoInventario[] {
   const itens: ItemDoInventario[] = [];
   for (const posse of estado.comAlguem) {
     const pista = estado.pistas.find((p) => p.id === posse.pistaId);
-    if (pista) itens.push({ ...posse, titulo: pista.titulo, texto: pista.texto });
+    const titulo = pista?.titulo ?? posse.titulo;
+    const texto = pista?.texto ?? posse.texto;
+    const imagem = pista !== undefined ? (pista.imagem ?? null) : (posse.imagem ?? null);
+    if (titulo !== undefined && texto !== undefined) {
+      itens.push({
+        pistaId: posse.pistaId,
+        personagemId: posse.personagemId,
+        apresentada: posse.apresentada,
+        em: posse.em,
+        titulo,
+        texto,
+        imagem,
+      });
+    }
   }
   return itens;
 }
@@ -114,7 +143,7 @@ export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaM
     tokens: estado.tokens.filter((t) => tokenVisivel(quem, t, estado)),
     props: estado.props.filter((p) => propVisivel(quem, p, estado)),
     pois: estado.pois.map(poiParaJogador),
-    pistas: estado.pistas.map(pistaParaJogador).filter((p) => p !== null),
+    pistas: estado.pistas.map((p) => pistaParaJogador(p, estado)).filter((p) => p !== null),
     inventario: inventario(estado).filter((i) => itemVisivel(quem, i)),
   };
 }
@@ -282,7 +311,18 @@ function projetarParaJogador(
         prop: item,
         seq: evento.seq,
       }));
-      return [evento, ...tokens, ...props];
+      const pistas = quemMudouDeVista(
+        antes.pistas,
+        depois.pistas,
+        (p) => pistaParaJogador(p, antes) !== null,
+        (p) => pistaParaJogador(p, depois) !== null,
+      ).map(({ id, item }) => ({
+        type: 'clue.changed' as const,
+        pistaId: id,
+        pista: item ? pistaParaJogador(item, depois) : null,
+        seq: evento.seq,
+      }));
+      return [evento, ...tokens, ...props, ...pistas];
     }
 
     case 'room.updated':
@@ -295,10 +335,10 @@ function projetarParaJogador(
 
     case 'clue.changed': {
       const agora = depois.pistas.find((p) => p.id === evento.pistaId);
-      const visivel = agora ? pistaParaJogador(agora) : null;
+      const visivel = agora ? pistaParaJogador(agora, depois) : null;
       if (visivel) return [{ ...evento, pista: visivel }];
       const via = antes.pistas.find((p) => p.id === evento.pistaId);
-      if (via && pistaParaJogador(via)) return [{ ...evento, pista: null }];
+      if (via && pistaParaJogador(via, antes)) return [{ ...evento, pista: null }];
       return [];
     }
 
@@ -306,10 +346,16 @@ function projetarParaJogador(
     case 'clue.presented':
       return itemVisivel(quem, evento.item) ? [evento] : [];
 
-    case 'clue.revoked':
-      return quem.personagemId !== null && evento.personagemId === quem.personagemId
+    case 'clue.revoked': {
+      const eraApresentada = antes.comAlguem.some(
+        (c) =>
+          c.pistaId === evento.pistaId && c.personagemId === evento.personagemId && c.apresentada,
+      );
+      return eraApresentada ||
+        (quem.personagemId !== null && evento.personagemId === quem.personagemId)
         ? [evento]
         : [];
+    }
 
     case 'dice.rolled':
       return !evento.secreta || evento.autorId === quem.id ? [evento] : [];

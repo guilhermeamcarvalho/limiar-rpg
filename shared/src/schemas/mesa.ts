@@ -4,7 +4,7 @@
 // Comando novo? Entra aqui, no `esquemaComando`; o servidor recusa o que não estiver no contrato.
 import { z } from 'zod';
 import type { Papel } from '../permissoes.ts';
-import { MAPAS_PRONTOS, NPCS_PRONTOS, PROPS_PRONTOS } from '../mesa/prontos.ts';
+import { MAPAS_PRONTOS, NPCS_PRONTOS, PISTAS_PRONTAS, PROPS_PRONTOS } from '../mesa/prontos.ts';
 import type { PerfilOp2 } from './ficha-op2.ts';
 import type { EstadoDoDesafio } from '../regras/op2/desafios.ts';
 import { esquemaPedidoDeTeste, esquemaTesteInformado, type RegistroDeTeste } from './teste-op2.ts';
@@ -22,19 +22,23 @@ const coordenada = z
   .min(0, { error: 'A posição não pode ser negativa.' })
   .max(LIMITE_DO_MAPA, { error: 'A posição está fora do mapa.' });
 
-// A arte pronta do app (props, modelos de NPC e mapas) vem com o client; o servidor só guarda o id.
+// A arte pronta do app (props, modelos de NPC, pistas e mapas) vem com o client; o servidor só guarda o id.
 export type IdDePropPronto = (typeof PROPS_PRONTOS)[number]['id'];
 export type IdDeNpcPronto = (typeof NPCS_PRONTOS)[number]['id'];
+export type IdDePistaPronta = (typeof PISTAS_PRONTAS)[number]['id'];
 export type IdDeMapaPronto = (typeof MAPAS_PRONTOS)[number]['id'];
 const IDS_DE_PROPS: ReadonlySet<string> = new Set(PROPS_PRONTOS.map((p) => p.id));
 const IDS_DE_NPCS: ReadonlySet<string> = new Set(NPCS_PRONTOS.map((n) => n.id));
+const IDS_DE_PISTAS: ReadonlySet<string> = new Set(PISTAS_PRONTAS.map((p) => p.id));
 const IDS_DE_MAPAS: ReadonlySet<string> = new Set(MAPAS_PRONTOS.map((m) => m.id));
 export const ehPropPronto = (imagem: string): imagem is IdDePropPronto => IDS_DE_PROPS.has(imagem);
 export const ehNpcPronto = (imagem: string): imagem is IdDeNpcPronto => IDS_DE_NPCS.has(imagem);
+export const ehPistaPronta = (imagem: string): imagem is IdDePistaPronta =>
+  IDS_DE_PISTAS.has(imagem);
 export const ehMapaPronto = (imagem: string): imagem is IdDeMapaPronto => IDS_DE_MAPAS.has(imagem);
 /** Arte que vem com o app (não é um arquivo enviado). */
 export const ehImagemPronta = (imagem: string) =>
-  ehPropPronto(imagem) || ehNpcPronto(imagem) || ehMapaPronto(imagem);
+  ehPropPronto(imagem) || ehNpcPronto(imagem) || ehPistaPronta(imagem) || ehMapaPronto(imagem);
 /** A imagem de um token: uma enviada ou um modelo de NPC (RF-19). */
 const imagemDeToken = z.string().refine((v) => ehNpcPronto(v) || NOME_DE_ARQUIVO.test(v), {
   error: 'Use uma imagem enviada pelo app ou um modelo de NPC.',
@@ -42,6 +46,10 @@ const imagemDeToken = z.string().refine((v) => ehNpcPronto(v) || NOME_DE_ARQUIVO
 /** A imagem de um prop: um dos prontos ou uma enviada pelo mestre. */
 const imagemDeProp = z.string().refine((v) => ehPropPronto(v) || NOME_DE_ARQUIVO.test(v), {
   error: 'Use um prop pronto ou uma imagem enviada pelo app.',
+});
+/** A imagem de uma pista: uma das ilustrações genéricas ou uma foto enviada pelo mestre. */
+const imagemDePista = z.string().refine((v) => ehPistaPronta(v) || NOME_DE_ARQUIVO.test(v), {
+  error: 'Use uma pista pronta ou uma imagem enviada pelo app.',
 });
 const tamanhoDeToken = z
   .int({ error: 'O tamanho vai de 1 a 3.' })
@@ -247,15 +255,20 @@ const poiDelete = comando('poi.delete', { poiId: id });
 const clueCreate = comando('clue.create', {
   titulo: nomeCurto,
   texto: textoLongo,
+  imagem: imagemDePista.nullable().optional(),
+  tamanho: tamanhoDeProp.optional(),
   notaMestre: textoLongo.optional(),
   x: coordenada,
   y: coordenada,
   visivel: z.boolean().optional(),
+  descoberta: z.boolean().optional(),
 });
 const clueUpdate = comando('clue.update', {
   pistaId: id,
   titulo: nomeCurto.optional(),
   texto: textoLongo.optional(),
+  imagem: imagemDePista.nullable().optional(),
+  tamanho: tamanhoDeProp.optional(),
   notaMestre: textoLongo.optional(),
   x: coordenada.optional(),
   y: coordenada.optional(),
@@ -524,6 +537,10 @@ export interface PistaNaMesa {
   id: string;
   titulo: string;
   texto: string;
+  /** Ilustração pronta (`pista:...`) ou foto enviada (`<hash>.webp`); opcional. */
+  imagem?: string | null;
+  /** Escala do marcador no mapa (padrão 1). */
+  tamanho?: number;
   /** Nunca vai para o jogador. */
   notaMestre: string;
   x: number;
@@ -541,6 +558,21 @@ export interface PistaComAlguem {
   /** Apresentada ao grupo: todos passam a ver. */
   apresentada: boolean;
   /** ISO. */
+  em: string;
+  /** Guardados para manter o conteúdo no inventário mesmo quando a mesa troca de mapa. */
+  titulo?: string;
+  texto?: string;
+  imagem?: string | null;
+}
+
+/** Uma pista no inventário de um personagem para a Ficha (GET /api/personagens/:id/pistas, #89). */
+export interface PistaDoPersonagem {
+  id: string;
+  campanhaId: string;
+  titulo: string;
+  texto: string;
+  imagem?: string | null;
+  apresentada: boolean;
   em: string;
 }
 
@@ -596,13 +628,23 @@ export function estadoVazioDaMesa(): EstadoDaMesa {
 
 /** Uma pista no mapa como o jogador recebe: sem a nota do mestre; não descoberta, só a tarja. */
 export type PistaParaJogador =
-  | { id: string; x: number; y: number; descoberta: false }
-  | { id: string; x: number; y: number; descoberta: true; titulo: string; texto: string };
+  | { id: string; x: number; y: number; tamanho?: number; descoberta: false }
+  | {
+      id: string;
+      x: number;
+      y: number;
+      tamanho?: number;
+      descoberta: true;
+      titulo: string;
+      texto: string;
+      imagem: string | null;
+    };
 
 /** Uma pista na mão de alguém, com o conteúdo (sem a nota do mestre). */
 export interface ItemDoInventario extends PistaComAlguem {
   titulo: string;
   texto: string;
+  imagem?: string | null;
 }
 
 /**
@@ -755,9 +797,10 @@ export interface MapaDoCaso {
 
 /**
  * As imagens que a mesa recebe além do mapa: a de um token (vira 256 × 256; soltar sobre o mapa,
- * RF-24) e a de um prop (até 1024 px, com o fundo transparente; só o mestre).
+ * RF-24), a de um prop (até 1024 px, com o fundo transparente; só o mestre) e a de uma pista
+ * (até 1600 px, legível ao ampliar; só o mestre).
  */
-export const USOS_DE_IMAGEM_DA_MESA = ['token', 'prop'] as const;
+export const USOS_DE_IMAGEM_DA_MESA = ['token', 'prop', 'pista'] as const;
 export type UsoDeImagemDaMesa = (typeof USOS_DE_IMAGEM_DA_MESA)[number];
 
 /* ---------- Registro da sessão (GET /api/campanhas/:id/registro) ---------- */

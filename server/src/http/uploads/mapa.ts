@@ -15,7 +15,7 @@ import {
   USOS_DE_IMAGEM_DA_MESA,
   type MapaDoCaso,
 } from '@membrana/shared';
-import { maps, props, tokens } from '../../db/schema.ts';
+import { clues, maps, props, tokens } from '../../db/schema.ts';
 import { usuarioLogado } from '../auth/sessao.ts';
 import { campanhaVisivel } from '../campanhas/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
@@ -23,6 +23,7 @@ import {
   apagarSeLivre,
   converterImagem,
   converterMapa,
+  converterPista,
   converterProp,
   salvarImagem,
 } from './imagens.ts';
@@ -218,6 +219,12 @@ export function rotasDeMapas(app: FastifyInstance) {
           .where(eq(props.mapId, mapaId))
           .all()
           .map((p) => p.imagem),
+        ...app.db
+          .select({ imagem: clues.imagem })
+          .from(clues)
+          .where(eq(clues.mapId, mapaId))
+          .all()
+          .flatMap((c) => (c.imagem ? [c.imagem] : [])),
       ]);
       app.db.delete(maps).where(eq(maps.id, mapaId)).run();
       for (const imagem of imagens) {
@@ -233,14 +240,20 @@ export function rotasDeMapas(app: FastifyInstance) {
     const { usuario, comMembros } = casoDe(app, request);
     const envio = await lerMultipart(request, { grandeDemais: IMAGEM_GRANDE });
     const { uso } = validar(esquemaDaImagem, envio.campos);
-    if (uso === 'prop' && !podeConduzirMesa(usuario, comMembros)) {
-      throw new ErroDaApi(403, 'SO_O_MESTRE', 'Só o mestre põe props na mesa.');
+    if ((uso === 'prop' || uso === 'pista') && !podeConduzirMesa(usuario, comMembros)) {
+      throw new ErroDaApi(
+        403,
+        'SO_O_MESTRE',
+        uso === 'pista' ? 'Só o mestre põe imagens em pistas.' : 'Só o mestre põe props na mesa.',
+      );
     }
     if (!envio.arquivo || envio.arquivo.length === 0) throw SEM_ARQUIVO;
     const imagem =
       uso === 'prop'
         ? await converterProp(envio.arquivo)
-        : await converterImagem(envio.arquivo, 'token');
+        : uso === 'pista'
+          ? await converterPista(envio.arquivo)
+          : await converterImagem(envio.arquivo, 'token');
     const nome = await salvarImagem(app.config.UPLOADS_DIR, imagem);
     return reply.status(201).send({ nome });
   });

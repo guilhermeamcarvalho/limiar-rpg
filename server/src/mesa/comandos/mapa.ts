@@ -21,6 +21,7 @@ export const tratadoresDoMapa: Tratadores = {
     ctx.estado.breu = conteudo.breu;
     ctx.estado.salas = conteudo.salas;
     ctx.estado.pois = conteudo.pois;
+    ctx.estado.pistas = conteudo.pistas;
     return [{ type: 'map.activated', mapa: conteudo.mapa }];
   },
 

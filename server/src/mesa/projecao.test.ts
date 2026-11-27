@@ -19,6 +19,7 @@ const SEGREDOS = {
   nomeDaSala: 'SEGREDO-NOME-DA-SALA',
   pistaNaoDescoberta: 'SEGREDO-PISTA-NAO-DESCOBERTA',
   textoNaoDescoberto: 'SEGREDO-TEXTO-NAO-DESCOBERTO',
+  imagemDaPistaSecreta: 'SEGREDO-IMAGEM-PISTA',
   pistaOculta: 'SEGREDO-PISTA-OCULTA',
   notaDoMestre: 'SEGREDO-NOTA-DO-MESTRE',
   pistaDeOutro: 'SEGREDO-PISTA-DE-OUTRO',
@@ -101,6 +102,7 @@ function mesaCheiaDeSegredos(): EstadoDaMesa {
         id: 'pst_aberta',
         titulo: 'Carta rasgada',
         texto: 'Faltam as últimas linhas.',
+        imagem: 'pista:carta',
         notaMestre: SEGREDOS.notaDoMestre,
         x: 10,
         y: 10,
@@ -111,6 +113,7 @@ function mesaCheiaDeSegredos(): EstadoDaMesa {
         id: 'pst_tarja',
         titulo: SEGREDOS.pistaNaoDescoberta,
         texto: SEGREDOS.textoNaoDescoberto,
+        imagem: SEGREDOS.imagemDaPistaSecreta,
         notaMestre: SEGREDOS.notaDoMestre,
         x: 20,
         y: 20,
@@ -121,6 +124,7 @@ function mesaCheiaDeSegredos(): EstadoDaMesa {
         id: SEGREDOS.pistaOculta,
         titulo: SEGREDOS.pistaOculta,
         texto: SEGREDOS.pistaOculta,
+        imagem: SEGREDOS.imagemDaPistaSecreta,
         notaMestre: SEGREDOS.notaDoMestre,
         x: 30,
         y: 30,
@@ -131,6 +135,7 @@ function mesaCheiaDeSegredos(): EstadoDaMesa {
         id: 'pst_do_caio',
         titulo: SEGREDOS.pistaDeOutro,
         texto: SEGREDOS.pistaDeOutro,
+        imagem: SEGREDOS.imagemDaPistaSecreta,
         notaMestre: SEGREDOS.notaDoMestre,
         x: 40,
         y: 40,
@@ -278,6 +283,7 @@ describe('o que o jogador recebe', () => {
         descoberta: true,
         titulo: 'Carta rasgada',
         texto: 'Faltam as últimas linhas.',
+        imagem: 'pista:carta',
       },
       { id: 'pst_tarja', x: 20, y: 20, descoberta: false },
     ]);
@@ -392,6 +398,72 @@ describe('tokens que entram e saem da vista', () => {
       seq: 4,
     };
     expect(projetarEventos(BIA, [evento], base, escondida)).toEqual([{ ...evento, pista: null }]);
+  });
+
+  it('pista visível sob o breu não aparece para o jogador e surge ao revelar (#87, RF-41)', () => {
+    const pistaNoBreu = {
+      id: 'pst_breu',
+      titulo: 'Diário queimado',
+      texto: 'Página arrancada.',
+      notaMestre: SEGREDOS.notaDoMestre,
+      x: 600,
+      y: 600,
+      visivel: true,
+      descoberta: true,
+    };
+    const coberta: EstadoDaMesa = {
+      ...estadoVazioDaMesa(),
+      breu: [BREU],
+      pistas: [pistaNoBreu],
+    };
+    const revelada: EstadoDaMesa = { ...coberta, breu: [] };
+
+    expect(projetarEstado(BIA, coberta).pistas).toEqual([]);
+    expect(vazados(projetarEstado(BIA, coberta))).toEqual([]);
+
+    const mudou = (estado: EstadoDaMesa): EventoDaMesa[] => [
+      { type: 'darkness.changed', breu: estado.breu, seq: 11 },
+    ];
+    expect(projetarEventos(BIA, mudou(revelada), coberta, revelada)).toEqual([
+      ...mudou(revelada),
+      {
+        type: 'clue.changed',
+        pistaId: 'pst_breu',
+        pista: {
+          id: 'pst_breu',
+          x: 600,
+          y: 600,
+          descoberta: true,
+          titulo: 'Diário queimado',
+          texto: 'Página arrancada.',
+          imagem: null,
+        },
+        seq: 11,
+      },
+    ]);
+    expect(projetarEventos(BIA, mudou(coberta), revelada, coberta)).toEqual([
+      ...mudou(coberta),
+      { type: 'clue.changed', pistaId: 'pst_breu', pista: null, seq: 11 },
+    ]);
+  });
+
+  it('clue.presented chega a todos os jogadores sem vazar nota do mestre (#89)', () => {
+    const estado = mesaCheiaDeSegredos();
+    const apresentada: EventoDaMesa = {
+      type: 'clue.presented',
+      item: {
+        pistaId: 'pst_da_bia',
+        personagemId: 'chr_davi',
+        apresentada: true,
+        em: '2026-11-27T12:00:00.000Z',
+        titulo: 'Chave pequena',
+        texto: 'Tem um número gravado.',
+      },
+      seq: 15,
+    };
+    expect(projetarEventos(BIA, [apresentada], estado, estado)).toEqual([apresentada]);
+    expect(projetarEventos(CAIO, [apresentada], estado, estado)).toEqual([apresentada]);
+    expect(projetarRegistro(CAIO, [apresentada])).toEqual([apresentada]);
   });
 });
 

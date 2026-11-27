@@ -1,7 +1,9 @@
-// Rotas do Escudo do mestre (#82, #83): lê e edita salas e POIs usando a mesma `Mesa` em
-// memória, então qualquer edição aqui vai na hora para quem está na mesa ao vivo.
+// Rotas do Escudo do mestre (#82, #83, #87): lê e edita salas, POIs e pistas usando a mesma
+// `Mesa` em memória, então qualquer edição aqui vai na hora para quem está na mesa ao vivo.
 import type { FastifyInstance } from 'fastify';
 import { podeEditarCampanha } from '@membrana/shared';
+import { personagensNaMesa } from '../../mesa/dados.ts';
+import { projetarEstado } from '../../mesa/projecao.ts';
 import { usuarioLogado } from '../auth/sessao.ts';
 import { ErroDaApi } from '../erros.ts';
 import { campanhaVisivel } from './dados.ts';
@@ -19,11 +21,18 @@ export function rotaEscudo(app: FastifyInstance) {
     const usuario = usuarioLogado(request);
     const { campanha } = exigirMestreDoCaso(app, request.params.id, usuario);
     const mesa = app.mesas.obter(request.params.id);
+    const visao = projetarEstado(
+      { id: usuario.id, papel: 'mestre', personagemId: null },
+      mesa.estado,
+    );
     return {
       campanha: { id: campanha.id, nome: campanha.nome },
-      mapa: mesa.estado.mapa,
-      salas: mesa.estado.salas,
-      pois: mesa.estado.pois,
+      mapa: visao.mapa,
+      salas: visao.salas ?? [],
+      pois: visao.pois,
+      pistas: visao.pistas,
+      inventario: visao.inventario,
+      personagens: personagensNaMesa(app.db, campanha.id),
     };
   });
 
@@ -41,10 +50,16 @@ export function rotaEscudo(app: FastifyInstance) {
       antes: r.antes,
       depois: r.depois,
     });
+    const visao = projetarEstado(
+      { id: usuario.id, papel: 'mestre', personagemId: null },
+      mesa.estado,
+    );
     return {
-      mapa: mesa.estado.mapa,
-      salas: mesa.estado.salas,
-      pois: mesa.estado.pois,
+      mapa: visao.mapa,
+      salas: visao.salas ?? [],
+      pois: visao.pois,
+      pistas: visao.pistas,
+      inventario: visao.inventario,
     };
   });
 }

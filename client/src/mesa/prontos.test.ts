@@ -1,7 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MAPAS_PRONTOS, NPCS_PRONTOS, PROPS_PRONTOS, urlDoArquivo } from '@membrana/shared';
+import {
+  MAPAS_PRONTOS,
+  NPCS_PRONTOS,
+  PISTAS_PRONTAS,
+  PROPS_PRONTOS,
+  urlDoArquivo,
+} from '@membrana/shared';
 import { IMAGENS_PRONTAS } from './imagens-prontas.ts';
 import { filtrarProntos } from './painel/SeletorDePronto.tsx';
 import { urlDaImagem } from './prontos.ts';
@@ -31,10 +37,13 @@ function medidasDoWebp(arquivo: Buffer): { largura: number; altura: number } {
 
 describe('arte pronta: catálogo e arquivos', () => {
   it('todo id do catálogo tem imagem, e toda imagem está no catálogo', () => {
-    const ids = [...PROPS_PRONTOS, ...NPCS_PRONTOS, ...MAPAS_PRONTOS].map((i) => i.id).sort();
+    const ids = [...PROPS_PRONTOS, ...NPCS_PRONTOS, ...PISTAS_PRONTAS, ...MAPAS_PRONTOS]
+      .map((i) => i.id)
+      .sort();
     expect(Object.keys(IMAGENS_PRONTAS).sort()).toEqual(ids);
     expect(imagens('props-prontos')).toEqual(PROPS_PRONTOS.map((p) => p.id.slice(7)).sort());
     expect(imagens('npcs-prontos')).toEqual(NPCS_PRONTOS.map((n) => n.id.slice(4)).sort());
+    expect(imagens('pistas-prontas')).toEqual(PISTAS_PRONTAS.map((p) => p.id.slice(6)).sort());
     expect(imagens('mapas-prontos')).toEqual(MAPAS_PRONTOS.map((m) => m.id.slice(5)).sort());
   });
 
@@ -62,6 +71,7 @@ describe('arte pronta: catálogo e arquivos', () => {
 
   it('urlDaImagem: o arquivo da arte pronta ou a rota de arquivos enviados', () => {
     expect(urlDaImagem('npc:cultista')).toBe(IMAGENS_PRONTAS['npc:cultista']);
+    expect(urlDaImagem('pista:carta')).toBe(IMAGENS_PRONTAS['pista:carta']);
     expect(urlDaImagem('mapa:radio')).toContain('radio');
     const enviado = `${'a'.repeat(64)}.webp`;
     expect(urlDaImagem(enviado)).toBe(urlDoArquivo(enviado));

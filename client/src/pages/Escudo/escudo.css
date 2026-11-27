@@ -38,6 +38,25 @@
   font: 700 var(--t-lg) var(--f-ui);
 }
 
+.escudo-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-top: 0;
+  padding-inline: 0;
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.escudo-toggle:hover {
+  color: var(--white);
+}
+
 .escudo-bloco {
   padding: var(--s4);
   gap: var(--s3);

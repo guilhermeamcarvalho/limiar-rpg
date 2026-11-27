@@ -1,17 +1,21 @@
 // /campanhas/:id/escudo (artboard "13 · Sala do mestre", #82, #83): só o mestre vê.
 // Lê e edita a mesma tabela de salas e pontos de interesse da mesa ao vivo.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import {
   tituloDaPagina,
   type ComandoDaMesa,
+  type ItemDoInventario,
   type MapaNaMesa,
+  type PersonagemNaMesa,
+  type PistaNaMesa,
   type PoiNaMesa,
   type RespostaDoComando,
   type SalaNaMesa,
 } from '@membrana/shared';
 import { ErroDaApi, pedir } from '../../auth/api.ts';
 import { linkDaCampanha } from '../../casos/formatos.ts';
+import { FerramentaDePistas } from '../../mesa/painel/Pistas.tsx';
 import { EditorPoi } from '../../mestre/EditorPoi.tsx';
 import {
   Async,
@@ -33,6 +37,9 @@ interface DadosDoEscudo {
   mapa: MapaNaMesa | null;
   salas: SalaNaMesa[];
   pois: PoiNaMesa[];
+  pistas?: PistaNaMesa[];
+  inventario?: ItemDoInventario[];
+  personagens?: PersonagemNaMesa[];
 }
 
 function SalaNoEscudo({
@@ -108,6 +115,37 @@ function SalaNoEscudo({
   );
 }
 
+function SecaoEscudo({
+  id,
+  titulo,
+  abertaPorPadrao = true,
+  children,
+}: {
+  id: string;
+  titulo: string;
+  abertaPorPadrao?: boolean;
+  children: ReactNode;
+}) {
+  const [aberta, setAberta] = useState(abertaPorPadrao);
+  return (
+    <section className="col escudo-coluna" aria-labelledby={id}>
+      <button
+        type="button"
+        id={id}
+        className="escudo-faixa escudo-toggle"
+        aria-expanded={aberta}
+        onClick={() => {
+          setAberta((v) => !v);
+        }}
+      >
+        <span>{titulo}</span>
+        <Icon name={aberta ? 'down' : 'next'} size="sm" />
+      </button>
+      {aberta && children}
+    </section>
+  );
+}
+
 export function Escudo() {
   const { id = '' } = useParams();
   const [atual, setAtual] = useState<DadosDoEscudo | null>(null);
@@ -128,6 +166,8 @@ export function Escudo() {
         mapa: MapaNaMesa | null;
         salas: SalaNaMesa[];
         pois: PoiNaMesa[];
+        pistas?: PistaNaMesa[];
+        inventario?: ItemDoInventario[];
       }>(`/api/campanhas/${encodeURIComponent(id)}/escudo/comandos`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -173,32 +213,56 @@ export function Escudo() {
               </div>
 
               <div className="escudo-grade">
-                <section className="col escudo-coluna" aria-labelledby="escudo-salas">
-                  <h2 id="escudo-salas" className="escudo-faixa">
-                    Salas ({escudo.salas.length})
-                  </h2>
-                  <p className="small muted">
-                    Áreas demarcadas no mapa. Só você vê os contornos e as notas de cada sala.
-                  </p>
-                  {escudo.salas.length === 0 ? (
-                    <div className="card">
-                      <EmptyState icon={<Icon name="door" size="xl" />} title="Nenhuma sala ainda">
-                        Abra a ferramenta Salas (S) na mesa para demarcar áreas no mapa.
-                      </EmptyState>
-                    </div>
-                  ) : (
-                    <div className="col" style={{ gap: 10 }}>
-                      {escudo.salas.map((sala) => (
-                        <SalaNoEscudo key={sala.id} sala={sala} aoExecutar={executar} />
-                      ))}
-                    </div>
-                  )}
-                </section>
+                <div className="col" style={{ gap: 24 }}>
+                  <SecaoEscudo id="escudo-salas" titulo={`Salas (${String(escudo.salas.length)})`}>
+                    <p className="small muted">
+                      Áreas demarcadas no mapa. Só você vê os contornos e as notas de cada sala.
+                    </p>
+                    {escudo.salas.length === 0 ? (
+                      <div className="card">
+                        <EmptyState
+                          icon={<Icon name="door" size="xl" />}
+                          title="Nenhuma sala ainda"
+                        >
+                          Abra a ferramenta Salas (S) na mesa para demarcar áreas no mapa.
+                        </EmptyState>
+                      </div>
+                    ) : (
+                      <div className="col" style={{ gap: 10 }}>
+                        {escudo.salas.map((sala) => (
+                          <SalaNoEscudo key={sala.id} sala={sala} aoExecutar={executar} />
+                        ))}
+                      </div>
+                    )}
+                  </SecaoEscudo>
 
-                <section className="col escudo-coluna" aria-labelledby="escudo-pois">
-                  <h2 id="escudo-pois" className="escudo-faixa">
-                    Pontos de interesse ({escudo.pois.length})
-                  </h2>
+                  <SecaoEscudo
+                    id="escudo-pistas"
+                    titulo={`Pistas (${String((escudo.pistas ?? []).length)})`}
+                  >
+                    <div className="card col" style={{ padding: 16, gap: 12 }}>
+                      <FerramentaDePistas
+                        campanhaId={id}
+                        pistas={escudo.pistas ?? []}
+                        inventario={escudo.inventario ?? []}
+                        personagens={escudo.personagens ?? []}
+                        temMapa={Boolean(escudo.mapa)}
+                        enviar={executar}
+                        criarEmModal
+                        centroPadrao={
+                          escudo.mapa
+                            ? { x: escudo.mapa.largura / 2, y: escudo.mapa.altura / 2 }
+                            : { x: 200, y: 200 }
+                        }
+                      />
+                    </div>
+                  </SecaoEscudo>
+                </div>
+
+                <SecaoEscudo
+                  id="escudo-pois"
+                  titulo={`Pontos de interesse (${String(escudo.pois.length)})`}
+                >
                   <p className="small muted">
                     Lugares clicáveis no mapa. Cada ponto pode pedir perícias e liberar informações
                     conforme a DT alcançada.
@@ -209,6 +273,7 @@ export function Escudo() {
                       pois={escudo.pois}
                       temMapa={Boolean(escudo.mapa)}
                       aoExecutar={executar}
+                      criarEmModal
                       centroPadrao={
                         escudo.mapa
                           ? { x: escudo.mapa.largura / 2, y: escudo.mapa.altura / 2 }
@@ -216,12 +281,9 @@ export function Escudo() {
                       }
                     />
                   </div>
-                </section>
+                </SecaoEscudo>
 
-                <section className="col escudo-coluna" aria-labelledby="escudo-regras">
-                  <h2 id="escudo-regras" className="escudo-faixa">
-                    Regras na mão
-                  </h2>
+                <SecaoEscudo id="escudo-regras" titulo="Regras na mão">
                   <div className="card col escudo-bloco">
                     <span className="lab">Dificuldade (DT)</span>
                     <div className="kv">
@@ -251,7 +313,7 @@ export function Escudo() {
                       pretas até passarem no teste.
                     </p>
                   </div>
-                </section>
+                </SecaoEscudo>
               </div>
             </div>
           );

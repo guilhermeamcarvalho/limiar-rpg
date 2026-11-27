@@ -6,7 +6,7 @@
 import { eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { confirmaExclusao, esquemaExclusaoDeCampanha, podeEditarCampanha } from '@membrana/shared';
-import { campaigns, maps, props, tokens } from '../../db/schema.ts';
+import { campaigns, clues, maps, props, tokens } from '../../db/schema.ts';
 import { usuarioLogado } from '../auth/sessao.ts';
 import { ErroDaApi, validar } from '../erros.ts';
 import { apagarSeLivre } from '../uploads/imagens.ts';
@@ -36,12 +36,21 @@ function imagensDoCaso(app: FastifyInstance, campanhaId: string): Set<string> {
       .all()) {
       imagens.add(p.imagem);
     }
+    for (const c of app.db
+      .select({ imagem: clues.imagem })
+      .from(clues)
+      .where(inArray(clues.mapId, ids))
+      .all()) {
+      if (c.imagem) imagens.add(c.imagem);
+    }
   }
   // O que ainda não foi salvo (até 1 s) só está na mesa.
   const estado = app.mesas.existente(campanhaId)?.estado;
   if (estado?.mapa) imagens.add(estado.mapa.imagem);
   for (const t of estado?.tokens ?? []) if (t.imagem) imagens.add(t.imagem);
   for (const p of estado?.props ?? []) imagens.add(p.imagem);
+  for (const c of estado?.pistas ?? []) if (c.imagem) imagens.add(c.imagem);
+  for (const c of estado?.comAlguem ?? []) if (c.imagem) imagens.add(c.imagem);
   return imagens;
 }
 

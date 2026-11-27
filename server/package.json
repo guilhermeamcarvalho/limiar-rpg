@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch --env-file-if-exists=.env src/index.ts",
+    "dev": "node --watch --watch-path=src --watch-path=../shared/src --env-file-if-exists=.env src/index.ts",
     "start": "node --env-file-if-exists=.env src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env src/db/migrar.ts",

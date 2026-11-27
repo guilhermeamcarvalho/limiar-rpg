@@ -13,7 +13,7 @@ import {
   type TipoDeImagem,
 } from '@membrana/shared';
 import type { Banco } from '../../db/index.ts';
-import { characters, maps, props, tokens } from '../../db/schema.ts';
+import { characters, clues, maps, props, tokens } from '../../db/schema.ts';
 import { ErroDaApi } from '../erros.ts';
 
 /** A foto da ficha fica com no máximo isto no lado maior. */
@@ -129,6 +129,8 @@ export async function converterMapa(
 
 /** O prop do mestre: até 1024 px no lado maior, em WebP, mantendo o fundo transparente. */
 export const LADO_MAXIMO_DO_PROP = 1024;
+/** A foto ou documento da pista: até 1600 px no lado maior (legível ao ampliar), sem metadados. */
+export const LADO_MAXIMO_DA_PISTA = 1600;
 
 export async function converterProp(entrada: Buffer): Promise<Buffer> {
   await conferir(entrada);
@@ -136,6 +138,22 @@ export async function converterProp(entrada: Buffer): Promise<Buffer> {
     return await sharp(entrada, { limitInputPixels: PIXELS_MAXIMOS })
       .autoOrient()
       .resize(LADO_MAXIMO_DO_PROP, LADO_MAXIMO_DO_PROP, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: QUALIDADE, alphaQuality: 100 })
+      .toBuffer();
+  } catch {
+    throw NAO_E_IMAGEM;
+  }
+}
+
+export async function converterPista(entrada: Buffer): Promise<Buffer> {
+  await conferir(entrada);
+  try {
+    return await sharp(entrada, { limitInputPixels: PIXELS_MAXIMOS })
+      .autoOrient()
+      .resize(LADO_MAXIMO_DA_PISTA, LADO_MAXIMO_DA_PISTA, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
       .webp({ quality: QUALIDADE, alphaQuality: 100 })
       .toBuffer();
   } catch {
@@ -177,6 +195,7 @@ export async function apagarSeLivre(
     db.select({ id: maps.id }).from(maps).where(eq(maps.imagem, nome)).get(),
     db.select({ id: tokens.id }).from(tokens).where(eq(tokens.imagem, nome)).get(),
     db.select({ id: props.id }).from(props).where(eq(props.imagem, nome)).get(),
+    db.select({ id: clues.id }).from(clues).where(eq(clues.imagem, nome)).get(),
   ];
   if (usos.every((uso) => uso === undefined))
     await rm(join(pasta, basename(nome)), { force: true });

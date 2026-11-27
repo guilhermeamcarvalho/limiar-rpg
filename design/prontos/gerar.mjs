@@ -17,6 +17,12 @@ import { join } from 'node:path';
 import { FILTROS } from './acabamento.mjs';
 import { CELULA, criarMapa, MAPAS } from './arte-mapas.mjs';
 import { LADO_DO_RETRATO, LUZ_DO_RETRATO, NPCS } from './arte-npcs.mjs';
+import {
+  ACABAMENTO_DA_PISTA,
+  ALTURA_DA_PISTA,
+  LARGURA_DA_PISTA,
+  PISTAS,
+} from './arte-pistas.mjs';
 import { acabar, ACABAMENTO, PROPS } from './arte-props.mjs';
 
 const RAIZ = join(import.meta.dirname, '../..');
@@ -26,6 +32,7 @@ const sharp = createRequire(join(RAIZ, 'server/package.json'))('sharp');
 const PASTA = {
   props: join(RAIZ, 'client/src/mesa/props-prontos'),
   npcs: join(RAIZ, 'client/src/mesa/npcs-prontos'),
+  pistas: join(RAIZ, 'client/src/mesa/pistas-prontas'),
   mapas: join(RAIZ, 'client/src/mesa/mapas-prontos'),
 };
 const EXTERNOS = join(import.meta.dirname, 'externos');
@@ -56,7 +63,7 @@ function novos(tipo) {
   return lista;
 }
 
-const QUALIDADE = { props: 86, npcs: 86, mapas: 78 };
+const QUALIDADE = { props: 86, npcs: 86, pistas: 86, mapas: 78 };
 const svg = (w, h, miolo, { saidaW = w, saidaH = h, viewBox = `0 0 ${w} ${h}` } = {}) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${saidaW}" height="${saidaH}" viewBox="${viewBox}"><defs>${FILTROS}</defs>${miolo}</svg>`;
 
@@ -162,6 +169,37 @@ for (const item of novos('npcs')) {
   catalogoDeNpcs.push({ id: item.id, nome: item.nome, categoria: item.categoria });
 }
 
+/* ---------- Pistas ---------- */
+
+const catalogoDePistas = [];
+async function gravarPistaExterna(origem, destino) {
+  const quadro = await sharp(origem)
+    .resize(LARGURA_DA_PISTA, ALTURA_DA_PISTA, { fit: 'cover', position: sharp.strategy.attention })
+    .png()
+    .toBuffer();
+  await gravar(quadro, destino, QUALIDADE.pistas, false);
+}
+for (const pista of PISTAS) {
+  catalogoDePistas.push({ id: pista.id, nome: pista.nome, categoria: pista.categoria });
+  const destino = join(PASTA.pistas, `${pista.id}.webp`);
+  const fora = externo('pistas', pista.id);
+  if (fora) {
+    await gravarPistaExterna(fora, destino);
+    continue;
+  }
+  const miolo = `${pista.arte()}${ACABAMENTO_DA_PISTA}`;
+  await gravar(
+    Buffer.from(svg(LARGURA_DA_PISTA, ALTURA_DA_PISTA, miolo)),
+    destino,
+    QUALIDADE.pistas,
+    false,
+  );
+}
+for (const item of novos('pistas')) {
+  await gravarPistaExterna(externo('pistas', item.id), join(PASTA.pistas, `${item.id}.webp`));
+  catalogoDePistas.push({ id: item.id, nome: item.nome, categoria: item.categoria });
+}
+
 /* ---------- Mapas ---------- */
 
 const LADO_MAXIMO = 4096;
@@ -228,6 +266,13 @@ ${catalogoDeNpcs.map((n) => `  { id: ${q(`npc:${n.id}`)}, nome: ${q(n.nome)}, ca
 
 export const CATEGORIAS_DE_NPCS = [${unicas(catalogoDeNpcs.map((n) => q(n.categoria))).join(', ')}] as const;
 
+/** Ilustrações genéricas de pistas (#87): anexos de dossiê prontos quando o mestre não sobe foto. */
+export const PISTAS_PRONTAS = [
+${catalogoDePistas.map((p) => `  { id: ${q(`pista:${p.id}`)}, nome: ${q(p.nome)}, categoria: ${q(p.categoria)} },`).join('\n')}
+] as const;
+
+export const CATEGORIAS_DE_PISTAS = [${unicas(catalogoDePistas.map((p) => q(p.categoria))).join(', ')}] as const;
+
 /** Mapas prontos (RF-14): medidas em pixels do mapa e a célula da grade que bate com o desenho. */
 export const MAPAS_PRONTOS = [
 ${catalogoDeMapas.map((m) => `  {\n    id: ${q(`mapa:${m.id}`)},\n    nome: ${q(m.nome)},\n    descricao: ${q(m.descricao)},\n    largura: ${m.largura},\n    altura: ${m.altura},\n    celula: ${m.celula},\n  },`).join('\n')}
@@ -241,6 +286,7 @@ const variavel = (prefixo, id) => `${prefixo}_${id.replaceAll('-', '_')}`;
 const entradas = [
   ...catalogoDeProps.map((p) => ({ id: `pronto:${p.id}`, v: variavel('prop', p.id), arquivo: `./props-prontos/${p.id}.webp` })),
   ...catalogoDeNpcs.map((n) => ({ id: `npc:${n.id}`, v: variavel('npc', n.id), arquivo: `./npcs-prontos/${n.id}.webp` })),
+  ...catalogoDePistas.map((p) => ({ id: `pista:${p.id}`, v: variavel('pista', p.id), arquivo: `./pistas-prontas/${p.id}.webp` })),
   ...catalogoDeMapas.map((m) => ({ id: `mapa:${m.id}`, v: variavel('mapa', m.id), arquivo: `./mapas-prontos/${m.id}.webp` })),
 ];
 writeFileSync(
@@ -258,7 +304,7 @@ ${entradas.map((e) => `  ${q(e.id)}: ${e.v},`).join('\n')}
 /* ---------- Prompts e prévia ---------- */
 
 const { escreverPrompts } = await import('./prompts.mjs');
-writeFileSync(join(import.meta.dirname, 'prompts.md'), escreverPrompts({ props: catalogoDeProps, npcs: catalogoDeNpcs, mapas: catalogoDeMapas }));
+writeFileSync(join(import.meta.dirname, 'prompts.md'), escreverPrompts({ props: catalogoDeProps, npcs: catalogoDeNpcs, pistas: catalogoDePistas, mapas: catalogoDeMapas }));
 
 const cartao = (titulo, src, largura) =>
   `<figure><img src="${src}" style="width:${largura}px"/><figcaption>${titulo}</figcaption></figure>`;
@@ -268,7 +314,8 @@ writeFileSync(
 <style>body{background:#1a1614;color:#ddd;font:14px sans-serif;margin:16px}section{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px}figure{margin:0;background:#2a2420;padding:8px;text-align:center}img{display:block;max-height:440px;object-fit:contain}h2{margin:8px 0}</style>
 <h2>Props (${catalogoDeProps.length})</h2><section>${catalogoDeProps.map((p) => cartao(p.nome, `../../client/src/mesa/props-prontos/${p.id}.webp`, 110)).join('')}</section>
 <h2>NPCs (${catalogoDeNpcs.length})</h2><section>${catalogoDeNpcs.map((n) => cartao(n.nome, `../../client/src/mesa/npcs-prontos/${n.id}.webp`, 110)).join('')}</section>
+<h2>Pistas (${catalogoDePistas.length})</h2><section>${catalogoDePistas.map((p) => cartao(p.nome, `../../client/src/mesa/pistas-prontas/${p.id}.webp`, 160)).join('')}</section>
 <h2>Mapas (${catalogoDeMapas.length})</h2><section>${catalogoDeMapas.map((m) => cartao(m.nome, `../../client/src/mesa/mapas-prontos/${m.id}.webp`, 640)).join('')}</section>`,
 );
 
-console.log(`props: ${catalogoDeProps.length} · npcs: ${catalogoDeNpcs.length} · mapas: ${catalogoDeMapas.length}`);
+console.log(`props: ${catalogoDeProps.length} · npcs: ${catalogoDeNpcs.length} · pistas: ${catalogoDePistas.length} · mapas: ${catalogoDeMapas.length}`);

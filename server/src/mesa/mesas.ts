@@ -91,8 +91,20 @@ export class Mesas {
     return casos;
   }
 
+  /** Os casos cuja mesa em memória usa o arquivo numa pista (no mapa ou no inventário). */
+  casosComPistaQueUsa(nome: string): string[] {
+    const casos: string[] = [];
+    for (const mesa of this.#mesas.values()) {
+      const { pistas, comAlguem } = mesa.estado;
+      if (pistas.some((p) => p.imagem === nome) || comAlguem.some((c) => c.imagem === nome)) {
+        casos.push(mesa.campanhaId);
+      }
+    }
+    return casos;
+  }
+
   usaArquivo(nome: string): boolean {
-    return this.casosQueUsam(nome).length > 0;
+    return this.casosQueUsam(nome).length > 0 || this.casosComPistaQueUsa(nome).length > 0;
   }
 
   /** Salva agora o que estiver pendente. Chame ao fechar o servidor. */

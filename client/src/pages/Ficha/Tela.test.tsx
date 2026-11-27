@@ -616,4 +616,52 @@ describe('Ficha no celular (#56)', () => {
     await abrirDavi({}, {}, { campanhaId: null, campanha: null });
     expect(within(barra()).getByRole('button', { name: 'Mesa' })).toHaveProperty('disabled', true);
   });
+
+  it('carrega pistas da mesa e permite Apresentar ao grupo mantendo a pista na ficha (#89)', async () => {
+    const { chamadas } = await abrirDavi(
+      {},
+      {
+        'GET /api/personagens/chr_davi/pistas': json(200, {
+          pistas: [
+            {
+              id: 'pst_1',
+              campanhaId: 'cmp_1',
+              titulo: 'Fita “33”',
+              texto: 'Última transmissão.',
+              apresentada: false,
+              em: '2026-11-27T10:00:00.000Z',
+            },
+          ],
+        }),
+        'POST /api/personagens/chr_davi/pistas/pst_1/apresentar': json(200, {
+          pista: {
+            id: 'pst_1',
+            campanhaId: 'cmp_1',
+            titulo: 'Fita “33”',
+            texto: 'Última transmissão.',
+            apresentada: true,
+            em: '2026-11-27T10:05:00.000Z',
+          },
+        }),
+      },
+    );
+
+    // Abre a aba Pistas pela barra inferior do celular.
+    fireEvent.click(within(barra()).getByRole('button', { name: 'Pistas' }));
+    const botao = await screen.findByRole('button', { name: 'Apresentar ao grupo' });
+    expect(botao).toHaveProperty('disabled', false);
+
+    fireEvent.click(botao);
+
+    await waitFor(() => {
+      expect(
+        chamadas.some(
+          (c) =>
+            c.metodo === 'POST' && c.url === '/api/personagens/chr_davi/pistas/pst_1/apresentar',
+        ),
+      ).toBe(true);
+    });
+    expect(await screen.findByText('Fita “33” · apresentada')).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Apresentar ao grupo' })).toBeNull();
+  });
 });
