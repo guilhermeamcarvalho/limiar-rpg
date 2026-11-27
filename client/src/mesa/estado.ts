@@ -59,6 +59,14 @@ export interface MesaNoCliente {
   eventos: EventoDaMesa[];
   /** O último teste resolvido ao vivo na mesa, para o cartão no canto do mapa (#70). */
   ultimoTeste: { seq: number; registro: RegistroDeTeste } | null;
+  /** A última rolagem livre ao vivo ("2d6+1"), para o pop-up de quem rolou. */
+  ultimaRolagem: {
+    seq: number;
+    autorId: string;
+    expressao: string;
+    dados: number[];
+    total: number;
+  } | null;
   /** O último ponto marcado no mapa ao vivo (#79). */
   ultimoPulso: { seq: number; autorId: string; x: number; y: number } | null;
   /** Informações recém-reveladas em um POI, para dar destaque no cartão (#86). */
@@ -74,6 +82,7 @@ export const MESA_VAZIA: MesaNoCliente = {
   arrastando: {},
   eventos: [],
   ultimoTeste: null,
+  ultimaRolagem: null,
   ultimoPulso: null,
   ultimasDescobertas: null,
   versaoPersonagens: {},
@@ -118,6 +127,16 @@ export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNo
       seq: Math.max(mesa.seq, evento.seq),
       eventos,
       ultimoTeste: { seq: evento.seq, registro: evento.registro },
+    };
+  }
+
+  if (evento.type === 'dice.rolled') {
+    const { autorId, expressao, dados, total } = evento;
+    return {
+      ...mesa,
+      seq: Math.max(mesa.seq, evento.seq),
+      eventos,
+      ultimaRolagem: { seq: evento.seq, autorId, expressao, dados, total },
     };
   }
 

@@ -31,6 +31,8 @@ import {
   Icon,
   ModalDadosFisicos,
   ResultadoTeste,
+  RevelacaoDoDado,
+  revelacaoDoTeste,
   Tag,
   useToast,
   type DadoDoResultado,
@@ -108,6 +110,8 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
   const [ajuda, setAjuda] = useState(false);
   const [armados, setArmados] = useState<Armados>(NADA_ARMADO);
   const [ultimo, setUltimo] = useState<RegistroDeTeste | null>(null);
+  /** O teste que acabou de sair, para o pop-up do resultado; some depois de visto. */
+  const [revelar, setRevelar] = useState<RegistroDeTeste | null>(null);
   const [versaoDoHistorico, setVersaoDoHistorico] = useState(0);
   const [editando, setEditando] = useState(false);
   /** A perícia do modal de dados físicos aberto. */
@@ -150,6 +154,7 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
     const registro = await vivo.testar(pedido);
     if (!registro) return;
     setUltimo(registro);
+    setRevelar(registro);
     setArmados((a) => depoisDoTeste(a, pedido));
     setVersaoDoHistorico((v) => v + 1);
   }
@@ -161,6 +166,7 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
     try {
       const registro = await vivo.informar({ ...pedido, ...relato });
       setUltimo(registro);
+      setRevelar(registro);
       setArmados((a) => depoisDoTeste(a, pedido));
       setVersaoDoHistorico((v) => v + 1);
       setFisico(null);
@@ -334,6 +340,15 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
               </p>
             )}
             {ultimo && <ResultadoDoRegistro registro={ultimo} quando="agora" />}
+            {revelar && (
+              <RevelacaoDoDado
+                key={revelar.id}
+                revelacao={revelacaoDoTeste(revelar)}
+                aoFechar={() => {
+                  setRevelar(null);
+                }}
+              />
+            )}
             <AbasDaFicha
               personagemId={personagem.id}
               ficha={ficha}

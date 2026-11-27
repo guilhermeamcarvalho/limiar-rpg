@@ -1173,3 +1173,39 @@ describe('layout recolhível, painel do jogador e ordem da rodada', () => {
     });
   });
 });
+
+describe('pop-up do resultado', () => {
+  it('a rolagem de quem está olhando abre o pop-up; a dos outros, não', async () => {
+    await naMesa(visao());
+
+    act(() => {
+      socket().receber({
+        type: 'dice.rolled',
+        seq: 5,
+        autorId: 'usr_outro',
+        expressao: 'd20',
+        dados: [17],
+        total: 17,
+        secreta: false,
+      });
+    });
+    expect(screen.queryByRole('region', { name: 'Resultado da rolagem' })).toBeNull();
+
+    act(() => {
+      socket().receber({
+        type: 'dice.rolled',
+        seq: 6,
+        autorId: MARTA.id,
+        expressao: '2d6',
+        dados: [3, 5],
+        total: 8,
+        secreta: false,
+      });
+    });
+    const popup = await screen.findByRole('region', { name: 'Resultado da rolagem' });
+    expect(await within(popup).findByText('2d6: 8')).toBeDefined();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('region', { name: 'Resultado da rolagem' })).toBeNull();
+  });
+});
