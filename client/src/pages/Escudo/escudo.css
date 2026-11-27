@@ -29,13 +29,13 @@
   gap: var(--s3);
 }
 
+/* Título de cada painel do escudo: discreto, com o número do painel em vermelho. */
 .escudo-faixa {
   margin: 0;
-  padding: var(--s3) var(--s4);
-  background: var(--red);
-  color: var(--white);
-  font-size: 22px;
-  clip-path: polygon(0 0, 100% 4%, 98% 100%, 1% 92%);
+  padding-bottom: var(--s2);
+  border-bottom: 2px solid var(--red);
+  color: var(--text);
+  font: 700 var(--t-lg) var(--f-ui);
 }
 
 .escudo-bloco {
@@ -44,7 +44,7 @@
 }
 
 .escudo-bloco .kv {
-  border-color: var(--paper-line);
+  border-color: var(--line-2);
 }
 
 .escudo-sala {

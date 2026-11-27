@@ -1,6 +1,7 @@
 /* Estrutura das páginas fora da mesa: cabeçalho, conteúdo e barra do celular. */
 
 .app {
+  --lateral: 248px;
   min-height: 100vh;
   background: var(--bg);
   display: flex;
@@ -8,6 +9,7 @@
 }
 .app-conteudo {
   flex: 1;
+  padding-bottom: var(--s7);
 }
 .split {
   display: flex;
@@ -38,68 +40,121 @@
   transform: none;
 }
 
-/* ---------- Cabeçalho global ---------- */
+/* ---------- Barra lateral (computador) ----------
+   Fica fixa à esquerda, com o nome de cada tela sempre visível: ninguém precisa adivinhar ícone.
+   Em telas médias, recolhe para só os ícones (o nome vira dica). */
 
 .top {
-  position: relative;
+  position: fixed;
+  inset: 0 auto 0 0;
   z-index: var(--z-panel);
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--s5);
-  min-height: 72px;
-  padding: 0 var(--s6);
+  width: var(--lateral);
+  padding: var(--s5) var(--s3) var(--s4);
   background: var(--bg-2);
-  border-bottom: 1px solid var(--line);
-  box-shadow: 0 1px 0 var(--red-a35);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.top > .brand {
+  padding: 0 var(--s2);
+}
+.app:has(> .top) > .app-conteudo {
+  margin-left: var(--lateral);
 }
 .nav {
   display: flex;
+  flex-direction: column;
   gap: 2px;
-  flex-wrap: wrap;
 }
 .nav a {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--s2);
+  gap: var(--s3);
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 var(--s3);
+  border-radius: var(--r);
   color: var(--muted);
   text-decoration: none;
-  font: 800 11.5px var(--f-ui);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font: 700 var(--t-md) var(--f-ui);
   white-space: nowrap;
-  border-bottom: 2px solid transparent;
 }
-.nav a:hover,
-.nav a.on {
+.nav a:hover {
+  background: var(--panel-2);
   color: var(--white);
 }
 .nav a.on {
-  border-bottom-color: var(--red);
+  background: var(--panel-3);
+  color: var(--white);
+  box-shadow: inset 3px 0 0 var(--red-hi);
+}
+.nav a.on .ic {
+  color: var(--red-soft);
 }
 .nav a:focus-visible,
-.m-tabbar a:focus-visible {
+.m-tabbar a:focus-visible,
+.top-perfil:focus-visible {
   outline: 2px solid var(--red-hi);
   outline-offset: -2px;
 }
+.top-codigo {
+  justify-content: flex-start;
+  padding: 0 var(--s3);
+}
 .top .end {
-  margin-left: auto;
+  margin-top: auto;
   display: flex;
   align-items: center;
-  gap: var(--s2);
+  gap: var(--s1);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line);
 }
+.top-perfil {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: 48px;
+  padding: 0 var(--s2);
+  border-radius: var(--r);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+}
+.top-perfil:hover {
+  background: var(--panel-2);
+}
+.top-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Faixa do caso: aparece acima das páginas de um caso (Escudo, Ficha do caso). */
 .ctx {
   display: flex;
   align-items: center;
-  gap: var(--s2);
-  padding-left: 18px;
-  border-left: 1px solid var(--line-2);
-  font: 800 11px var(--f-ui);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: var(--s3);
+  min-height: 52px;
+  padding: 0 var(--s6);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
   color: var(--muted);
+  font-size: var(--t-sm);
+}
+.ctx-voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
   min-width: 0;
+  min-height: 44px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.ctx-voltar:hover {
+  color: var(--white);
 }
 .ctx b {
   color: var(--text);
@@ -116,8 +171,8 @@
 }
 .badge {
   position: absolute;
-  top: 6px;
-  right: 6px;
+  top: 8px;
+  right: 8px;
   width: 9px;
   height: 9px;
   border-radius: 50%;
@@ -152,7 +207,7 @@ a.av:focus-visible {
 }
 .li.on {
   background: var(--panel-3);
-  box-shadow: inset 3px 0 0 var(--red);
+  box-shadow: inset 3px 0 0 var(--red-hi);
 }
 a.li {
   text-decoration: none;
@@ -209,9 +264,7 @@ a.card:hover {
 }
 .step b {
   display: block;
-  font: 900 12.5px var(--f-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 700 var(--t-md) var(--f-ui);
   color: inherit;
 }
 .step small {
@@ -224,7 +277,8 @@ a.card:hover {
   height: 30px;
   flex: none;
   border: 1px solid var(--line-3);
-  font: 900 13px var(--f-ui);
+  border-radius: 50%;
+  font: 800 var(--t-sm) var(--f-ui);
 }
 .step.on {
   color: var(--white);
@@ -245,6 +299,7 @@ a.card:hover {
 .stepper i {
   flex: 1;
   height: 4px;
+  border-radius: 2px;
   background: var(--line-2);
 }
 .stepper i.on {
@@ -267,7 +322,6 @@ a.card:hover {
   padding: var(--s2) 14px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
-  box-shadow: 0 1px 0 var(--red-a35);
 }
 .m-top .t {
   flex: 1;
@@ -275,8 +329,7 @@ a.card:hover {
 }
 .m-top .t > b {
   display: block;
-  font: 400 22px/1 var(--f-disp);
-  text-transform: uppercase;
+  font: 700 var(--t-lg) / 1.2 var(--f-ui);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -326,9 +379,7 @@ a.card:hover {
   gap: var(--s1);
   min-height: 62px;
   color: var(--muted);
-  font: 800 10px var(--f-ui);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font: 700 var(--t-xs) var(--f-ui);
   text-decoration: none;
 }
 .m-tabbar .on {
@@ -344,20 +395,18 @@ a.card:hover {
   background: var(--red);
 }
 
-/* Notebook pequeno: o cabeçalho aperta para o menu caber numa linha só. O botão de código fica
-   só com o ícone, e o texto continua lá para o leitor de tela. */
-@media (min-width: 721px) and (max-width: 1180px) {
+/* Tela média: a barra lateral recolhe para os ícones. O nome continua lá para o leitor de tela,
+   e a dica (title) mostra para que serve cada item. */
+@media (min-width: 721px) and (max-width: 1100px) {
+  .app {
+    --lateral: 76px;
+  }
   .top {
-    gap: var(--s4);
-    padding: 0 var(--s5);
+    align-items: center;
+    padding-inline: var(--s2);
   }
-  .nav a {
-    padding: 0 10px;
-  }
-  .top-codigo {
-    padding: 0 var(--s3);
-  }
-  .top-rotulo {
+  .top > .brand > span,
+  .nav-rotulo {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -366,15 +415,38 @@ a.card:hover {
     clip-path: inset(50%);
     white-space: nowrap;
   }
+  .nav a,
+  .top-codigo {
+    justify-content: center;
+    width: 52px;
+    padding: 0;
+  }
+  .top .end {
+    flex-direction: column;
+  }
+  .top-perfil {
+    flex: none;
+    justify-content: center;
+    padding: 0;
+  }
 }
 
-/* No celular, o menu de cima some e a barra de baixo aparece. */
+/* No celular, a barra lateral some; entram o cabeçalho de cima e a barra de baixo. */
 @media (max-width: 720px) {
   .top {
     display: none;
   }
+  .app:has(> .top) > .app-conteudo {
+    margin-left: 0;
+  }
+  .ctx {
+    padding: 0 var(--s4);
+  }
   .m-top {
     display: flex;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-panel);
   }
   .m-tabbar {
     display: grid;

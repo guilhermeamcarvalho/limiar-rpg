@@ -34,7 +34,7 @@ import {
   Icon,
   Input,
   Modal,
-  Paper,
+  Note,
   Segmented,
   Skeleton,
   Tag,
@@ -44,6 +44,7 @@ import {
   useToast,
   type UsoDaCarga,
 } from '../ui/index.ts';
+import { EditarCaso } from './EditarCaso.tsx';
 import './casos.css';
 
 /* ---------- Filtros ---------- */
@@ -251,12 +252,11 @@ function ConvitesDoCaso({
   return (
     <section className="col dossie-secao" aria-labelledby="dossie-convites">
       <div className="row between">
-        <h3 id="dossie-convites" className="lab">
-          Convites
+        <h3 id="dossie-convites" className="h3">
+          Convidar jogadores
         </h3>
         <Button
           size="sm"
-          className="no-papel"
           icon={<Icon name="plus" size="sm" />}
           loading={gerar.enviando}
           onClick={() => void gerar.enviar()}
@@ -265,7 +265,7 @@ function ConvitesDoCaso({
         </Button>
       </div>
       {convites.length === 0 ? (
-        <p className="doc small dossie-texto">
+        <p className="small muted">
           Nenhum convite ainda. Gere um e mande o link ou o código para o grupo.
         </p>
       ) : (
@@ -280,7 +280,7 @@ function ConvitesDoCaso({
             return (
               <li key={c.codigo} className="dossie-convite">
                 <b className="type dossie-codigo">{c.codigo}</b>
-                <span className="small grow dossie-texto">
+                <span className="small grow muted">
                   {estado}
                   {c.entraram.length > 0 &&
                     ` · entraram: ${c.entraram.map((e) => e.nome).join(', ')}`}
@@ -288,7 +288,6 @@ function ConvitesDoCaso({
                 {!c.expirado && restam > 0 && (
                   <Button
                     size="sm"
-                    className="no-papel"
                     icon={<Icon name="copy" size="sm" />}
                     onClick={() => void copiar(c.codigo)}
                   >
@@ -331,7 +330,6 @@ function EncerrarCaso({ uso, caso }: { uso: UsoDaCarga<CampanhaDetalhe>; caso: C
       <Button
         size="sm"
         variant="ghost"
-        className="no-papel"
         onClick={() => {
           if (encerrar) setConfirmando(true);
           else void envio.enviar();
@@ -410,7 +408,6 @@ function ExcluirCaso({ caso, aoExcluir }: { caso: CampanhaDetalhe; aoExcluir: ()
       <Button
         size="sm"
         variant="ghost"
-        className="no-papel"
         icon={<Icon name="trash" size="sm" />}
         onClick={() => {
           setConfirmando(true);
@@ -483,12 +480,8 @@ function Dossie({ id, aoExcluir }: { id: string; aoExcluir: (id: string) => void
   const navegar = useNavigate();
 
   return (
-    <Paper className="casos-dossie" role="region" aria-label="Dossiê do caso">
-      <Link
-        className="btn sm no-papel casos-voltar"
-        to={voltar}
-        style={{ alignSelf: 'flex-start' }}
-      >
+    <Card className="casos-dossie" role="region" aria-label="Dossiê do caso">
+      <Link className="btn sm ghost casos-voltar" to={voltar} style={{ alignSelf: 'flex-start' }}>
         <Icon name="back" size="sm" />
         Todos os casos
       </Link>
@@ -514,7 +507,7 @@ function Dossie({ id, aoExcluir }: { id: string; aoExcluir: (id: string) => void
           />
         )}
       </Async>
-    </Paper>
+    </Card>
   );
 }
 
@@ -544,65 +537,87 @@ function ConteudoDoDossie({
     caso.fichasVisiveis ? 'fichas visíveis ao grupo' : 'cada um vê só a própria ficha',
   ];
 
+  const ficha: [string, string][] = [
+    ['Sistema', caso.sistema.nome],
+    ['Tom', TONS[caso.tom]],
+    ['Formato', FORMATOS[caso.formato]],
+    ['Agenda', caso.agenda ? agendaEmTexto(caso.agenda) : 'A combinar'],
+    [
+      'Grupo',
+      jogadores.length === 0 ? 'Ninguém entrou ainda' : jogadores.map((m) => m.nome).join(', '),
+    ],
+  ];
+
   return (
     <>
-      <div className="row between wrapx" style={{ alignItems: 'flex-start' }}>
+      <header className="dossie-cabeca">
         <div className="col" style={{ gap: 6 }}>
-          <span className="lab dossie-lab">
-            Dossiê · caso nº {numeroDoCaso(caso.numero)} · {papel.voce}
+          <span className="eyebrow dossie-lab">
+            Caso nº {numeroDoCaso(caso.numero)} · {papel.voce}
           </span>
           <h2 className="h1 dossie-titulo">{caso.nome}</h2>
-          <span className="doc dossie-linha">{linha.join(' · ')}</span>
+          <span className="muted dossie-linha">{linha.join(' · ')}</span>
         </div>
-        <span className="carimbo">
-          <Tag tone={caso.situacao === 'em-curso' ? 'red' : 'ink'}>
-            {ROTULO_DA_SITUACAO[caso.situacao]}
-          </Tag>
-        </span>
-      </div>
+        <Tag {...(caso.situacao === 'em-curso' && { tone: 'green' as const })}>
+          {ROTULO_DA_SITUACAO[caso.situacao]}
+        </Tag>
+      </header>
 
-      <div className="row wrapx">
+      <div className="row wrapx dossie-acoes">
         <Link className="btn red" to={linkDaCampanha(caso.id, 'mesa')}>
           <Icon name="map" size="sm" />
           {mestra ? 'Abrir mesa' : 'Entrar na mesa'}
         </Link>
-        <Link className="btn tinta" to={linkDaCampanha(caso.id, mestra ? 'escudo' : 'ficha')}>
+        <Link className="btn" to={linkDaCampanha(caso.id, mestra ? 'escudo' : 'ficha')}>
           <Icon name={mestra ? 'shield' : 'user'} size="sm" />
           {mestra ? 'Escudo' : 'Ficha'}
         </Link>
-        {mestra && <EncerrarCaso uso={uso} caso={caso} />}
-        {mestra && <ExcluirCaso caso={caso} aoExcluir={aoExcluir} />}
+        {mestra && <EditarCaso uso={uso} caso={caso} />}
       </div>
 
-      {caso.gancho && <p className="type dossie-texto">{caso.gancho}</p>}
+      {caso.gancho && <Note className="type dossie-gancho">{caso.gancho}</Note>}
 
       <section className="col dossie-secao" aria-labelledby="dossie-premissa">
-        <h3 id="dossie-premissa" className="lab">
+        <h3 id="dossie-premissa" className="h3">
           Premissa e regras
         </h3>
-        <p className="doc small dossie-texto">
-          {caso.sistema.nome} · {TONS[caso.tom]} · {FORMATOS[caso.formato]}
-          {caso.agenda && ` · ${agendaEmTexto(caso.agenda)}`}
-        </p>
-        <p className="doc small dossie-texto">{regras.join(' · ')}</p>
-      </section>
-
-      <section className="col dossie-secao" aria-labelledby="dossie-grupo">
-        <h3 id="dossie-grupo" className="lab">
-          Grupo
-        </h3>
-        <p className="doc small dossie-texto">
-          {jogadores.length === 0
-            ? 'Ninguém entrou ainda.'
-            : jogadores.map((m) => m.nome).join(', ')}
-        </p>
+        <dl className="dossie-ficha">
+          {ficha.map(([rotulo, valor]) => (
+            <div key={rotulo}>
+              <dt>{rotulo}</dt>
+              <dd>{valor}</dd>
+            </div>
+          ))}
+        </dl>
+        <ul className="dossie-regras" aria-label="Regras da mesa">
+          {regras.map((r) => (
+            <li key={r} className="chip">
+              {r}
+            </li>
+          ))}
+        </ul>
       </section>
 
       {mestra && <ConvitesDoCaso uso={uso} caso={caso} />}
 
-      <p className="small dossie-linha">
+      <p className="small muted">
         Resumo, quadro de pistas, diário, objetivos e linha do tempo entram aqui com as sessões.
       </p>
+
+      {mestra && (
+        <section className="col dossie-secao dossie-risco" aria-labelledby="dossie-gerenciar">
+          <h3 id="dossie-gerenciar" className="h3">
+            Gerenciar caso
+          </h3>
+          <p className="small muted">
+            Encerrar guarda o caso no arquivo e pode ser desfeito. Excluir apaga tudo para sempre.
+          </p>
+          <div className="row wrapx">
+            <EncerrarCaso uso={uso} caso={caso} />
+            <ExcluirCaso caso={caso} aoExcluir={aoExcluir} />
+          </div>
+        </section>
+      )}
     </>
   );
 }
@@ -635,8 +650,8 @@ export function Casos() {
     <div className={cx('wrap col casos', id && 'tem-caso')}>
       <section className="row between wrapx casos-cabeca" style={{ alignItems: 'flex-end' }}>
         <div className="col" style={{ gap: 6 }}>
-          <span className="lab">Arquivo pessoal</span>
           <h1 className="h1">Casos</h1>
+          <span className="muted">Suas campanhas, como mestre ou jogador.</span>
         </div>
         <div className="row wrapx">
           <div className="casos-busca">
@@ -711,11 +726,11 @@ export function Casos() {
             }}
           />
         ) : casos.carga.estado === 'pronto' && casos.carga.dados.length === 0 ? null : (
-          <Paper className="casos-dossie">
+          <Card className="casos-dossie casos-dossie-vazio">
             <EmptyState icon={<Icon name="folder" size="xl" />} title="Escolha um caso">
-              O dossiê do caso aparece aqui.
+              Clique num caso da lista para ver o dossiê, abrir a mesa e convidar jogadores.
             </EmptyState>
-          </Paper>
+          </Card>
         )}
       </div>
     </div>

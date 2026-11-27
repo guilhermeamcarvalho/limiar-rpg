@@ -75,7 +75,16 @@ export function OrdemDaRodada({
   rodadas,
 }: OrdemDaRodadaProps) {
   const jogadores = membros.filter((m) => m.papel === 'jogador');
-  if (jogadores.length === 0) return null;
+  if (jogadores.length === 0) {
+    return (
+      <div className="col jogador-secao">
+        <span className="lab">Ordem da rodada</span>
+        <p className="small muted">
+          Ninguém do grupo entrou ainda. Mande o convite pelo dossiê do caso.
+        </p>
+      </div>
+    );
+  }
 
   const onlineIds = new Set(online.map((p) => p.id));
   const agiramIds = new Set(rodada.agiram);

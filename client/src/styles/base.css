@@ -16,7 +16,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 500 14px/1.5 var(--f-ui);
+  font: 500 var(--t-md) / 1.55 var(--f-ui);
+  text-rendering: optimizelegibility;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -39,6 +40,7 @@ h4 {
 
 a {
   color: var(--text);
+  text-underline-offset: 3px;
 }
 
 a:hover {

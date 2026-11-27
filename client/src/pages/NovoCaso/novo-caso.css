@@ -5,11 +5,11 @@
   padding-bottom: var(--s8);
 }
 .novo-caso > .split {
-  gap: 40px;
+  gap: var(--s6);
 }
 .novo-passos {
-  flex: 0 1 240px;
-  min-width: 220px;
+  flex: 0 1 210px;
+  min-width: 190px;
 }
 .novo-corpo {
   flex: 999 1 560px;
@@ -17,8 +17,9 @@
   gap: 28px;
 }
 .novo-lado {
-  flex: 1 1 300px;
-  min-width: 280px;
+  flex: 1 1 280px;
+  min-width: 260px;
+  max-width: 380px;
   gap: var(--s3);
 }
 .novo-sistemas {
@@ -49,7 +50,6 @@
 }
 .novo-nome {
   font: 400 26px var(--f-disp);
-  text-transform: uppercase;
 }
 .novo-gancho {
   min-height: 110px;
@@ -86,9 +86,7 @@
 }
 .novo-revisao dt {
   flex: 0 0 140px;
-  font: 800 11px var(--f-ui);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font: 600 var(--t-sm) var(--f-ui);
   color: var(--muted);
 }
 .novo-revisao dd {

@@ -169,33 +169,37 @@ export function Arquivo() {
             ))}
           </div>
         )}
-        <ul className="card list arq-lista" aria-label={`Entradas de ${secao.titulo}`}>
-          {visiveis.map((e) => (
-            <li key={e.id}>
-              <button
-                type="button"
-                className={cx('li', 'arq-item', e === aberta && 'on')}
-                aria-current={e === aberta ? 'true' : undefined}
-                onClick={() => {
-                  setEscolhida(e.id);
-                  detalhe.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                }}
-              >
-                <span className="grow">
-                  <b>{e.titulo}</b>
-                  <span className="small muted arq-resumo">
-                    {[e.categoria, e.resumo].filter(Boolean).join(' · ')}
+        <div className="arq-duplo">
+          <ul className="card list arq-lista" aria-label={`Entradas de ${secao.titulo}`}>
+            {visiveis.map((e) => (
+              <li key={e.id}>
+                <button
+                  type="button"
+                  className={cx('li', 'arq-item', e === aberta && 'on')}
+                  aria-current={e === aberta ? 'true' : undefined}
+                  onClick={() => {
+                    setEscolhida(e.id);
+                    detalhe.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                  }}
+                >
+                  <span className="grow">
+                    <b>{e.titulo}</b>
+                    <span className="small muted arq-resumo">
+                      {[e.categoria, e.resumo].filter(Boolean).join(' · ')}
+                    </span>
                   </span>
-                </span>
-                {e.selo && (
-                  <Tag {...(tomDoSelo(e.selo) && { tone: 'gold' as const })}>{e.selo}</Tag>
-                )}
-                <Icon name="next" size="sm" className="arq-seta" />
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div ref={detalhe}>{aberta && <Detalhe entrada={aberta} secao={secao.titulo} />}</div>
+                  {e.selo && (
+                    <Tag {...(tomDoSelo(e.selo) && { tone: 'gold' as const })}>{e.selo}</Tag>
+                  )}
+                  <Icon name="next" size="sm" className="arq-seta" />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div ref={detalhe} className="arq-detalhe-lado">
+            {aberta && <Detalhe entrada={aberta} secao={secao.titulo} />}
+          </div>
+        </div>
       </>
     );
   }
@@ -204,8 +208,10 @@ export function Arquivo() {
     <div className="wrap col arq">
       <section className="row between wrapx arq-cabeca">
         <div className="col arq-titulo">
-          <span className="lab">Biblioteca de referência</span>
           <h1 className="h1">Arquivo</h1>
+          <span className="muted">
+            Regras, perícias, itens e ameaças para consultar a qualquer hora.
+          </span>
         </div>
         <div className="arq-busca">
           <label htmlFor="arq-busca" className="sr-only">
@@ -228,41 +234,42 @@ export function Arquivo() {
         </div>
       </section>
 
-      <div className="split arq-split">
-        <nav className="card list arq-secoes" aria-label="Seções do Arquivo">
-          {SECOES.map((s) => {
-            const n = achados.get(s.id)?.length ?? 0;
-            const ativa = s === secao;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                className={cx('li', ativa && 'on')}
-                aria-current={ativa ? 'true' : undefined}
-                disabled={buscando && n === 0}
-                onClick={() => {
-                  abrirSecao(s.id);
-                }}
-              >
-                <Icon name={s.icone} size="sm" />
-                <span className="grow">{s.titulo}</span>
-                {(ativa || buscando) && (
-                  <span className="cnt" aria-label={plural(n, 'entrada', 'entradas')}>
-                    {n}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+      <div className="arq-split">
+        <div className="col arq-esquerda">
+          <nav className="card list arq-secoes" aria-label="Seções do Arquivo">
+            {SECOES.map((s) => {
+              const n = achados.get(s.id)?.length ?? 0;
+              const ativa = s === secao;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={cx('li', ativa && 'on')}
+                  aria-current={ativa ? 'true' : undefined}
+                  disabled={buscando && n === 0}
+                  onClick={() => {
+                    abrirSecao(s.id);
+                  }}
+                >
+                  <Icon name={s.icone} size="sm" />
+                  <span className="grow">{s.titulo}</span>
+                  {(ativa || buscando) && (
+                    <span className="cnt" aria-label={plural(n, 'entrada', 'entradas')}>
+                      {n}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+          <aside className="col arq-lado">
+            <TesteAvulso />
+          </aside>
+        </div>
 
         <section className="col arq-meio" aria-label={secao?.titulo ?? 'Arquivo'}>
           {corpo}
         </section>
-
-        <aside className="col arq-lado">
-          <TesteAvulso />
-        </aside>
       </div>
     </div>
   );

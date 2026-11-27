@@ -83,7 +83,6 @@ function SalaNoEscudo({
         <Button
           size="sm"
           variant="ghost"
-          className="no-papel"
           icon={<Icon name="trash" size="sm" />}
           aria-label={`Remover sala ${sala.nome}`}
           onClick={() => {
@@ -158,7 +157,6 @@ export function Escudo() {
                 <div className="col" style={{ gap: 6 }}>
                   <div className="row" style={{ gap: 8 }}>
                     <Tag tone="gold">Só você vê esta página</Tag>
-                    <span className="small muted">{escudo.campanha.nome}</span>
                   </div>
                   <h1 className="h1">Escudo do mestre</h1>
                   <p className="muted">
@@ -176,8 +174,8 @@ export function Escudo() {
 
               <div className="escudo-grade">
                 <section className="col escudo-coluna" aria-labelledby="escudo-salas">
-                  <h2 id="escudo-salas" className="disp escudo-faixa">
-                    I · Salas ({escudo.salas.length})
+                  <h2 id="escudo-salas" className="escudo-faixa">
+                    Salas ({escudo.salas.length})
                   </h2>
                   <p className="small muted">
                     Áreas demarcadas no mapa. Só você vê os contornos e as notas de cada sala.
@@ -198,8 +196,8 @@ export function Escudo() {
                 </section>
 
                 <section className="col escudo-coluna" aria-labelledby="escudo-pois">
-                  <h2 id="escudo-pois" className="disp escudo-faixa">
-                    II · Pontos de interesse ({escudo.pois.length})
+                  <h2 id="escudo-pois" className="escudo-faixa">
+                    Pontos de interesse ({escudo.pois.length})
                   </h2>
                   <p className="small muted">
                     Lugares clicáveis no mapa. Cada ponto pode pedir perícias e liberar informações
@@ -221,10 +219,10 @@ export function Escudo() {
                 </section>
 
                 <section className="col escudo-coluna" aria-labelledby="escudo-regras">
-                  <h2 id="escudo-regras" className="disp escudo-faixa">
-                    III · Regras na mão
+                  <h2 id="escudo-regras" className="escudo-faixa">
+                    Regras na mão
                   </h2>
-                  <div className="paper col escudo-bloco">
+                  <div className="card col escudo-bloco">
                     <span className="lab">Dificuldade (DT)</span>
                     <div className="kv">
                       <span>Fácil</span>
@@ -243,7 +241,7 @@ export function Escudo() {
                       <b>13</b>
                     </div>
                   </div>
-                  <div className="paper col escudo-bloco">
+                  <div className="card col escudo-bloco">
                     <span className="lab">Como funciona um ponto</span>
                     <p className="doc small">
                       <b>1.</b> Escolha as perícias e DTs que podem investigar o ponto.

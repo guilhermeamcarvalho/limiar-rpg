@@ -99,7 +99,6 @@
 }
 .acesso-topo b {
   font: 400 22px/1 var(--f-disp);
-  text-transform: uppercase;
 }
 
 @media (min-width: 901px) {
@@ -170,7 +169,6 @@
   padding: 16px 18px;
 }
 .campo-codigo {
-  letter-spacing: 0.12em;
 }
 
 @media (max-width: 900px) {
