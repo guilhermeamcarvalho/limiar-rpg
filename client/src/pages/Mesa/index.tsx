@@ -22,6 +22,7 @@ import { Chat, filtrarEventosDoChat } from '../../mesa/Chat.tsx';
 import { mesclarEventosRegistrados } from '../../mesa/estado.ts';
 import { enviarImagemDaMesa, nomeDoArquivoSemExtensao } from '../../mesa/imagens.ts';
 import { dentroDoMapa } from '../../mesa/interacao.ts';
+import { AbaPistasNaMesa, CartaoPista } from '../../mesa/CartaoPista.tsx';
 import { CartaoPoi } from '../../mesa/CartaoPoi.tsx';
 import { MapaUpload } from '../../mesa/MapaUpload.tsx';
 import type { ModoDoPalco } from '../../mesa/medicao.ts';
@@ -33,6 +34,7 @@ import { Jogador } from '../../mesa/painel/Jogador.tsx';
 import { FerramentaDaNevoa } from '../../mesa/painel/Nevoa.tsx';
 import { NovoProp } from '../../mesa/painel/NovoProp.tsx';
 import { Npcs } from '../../mesa/painel/Npcs.tsx';
+import { FerramentaDePistas } from '../../mesa/painel/Pistas.tsx';
 import { Palco } from '../../mesa/Palco.tsx';
 import { filtrarAcontecimentos, Registro } from '../../mesa/Registro.tsx';
 import { Resultado } from '../../mesa/Resultado.tsx';
@@ -48,7 +50,6 @@ import {
   cx,
   EmptyState,
   Icon,
-  Note,
   Skeleton,
   TabPanel,
   Tabs,
@@ -62,7 +63,8 @@ import {
 } from '../../ui/index.ts';
 import './mesa.css';
 
-type Ferramenta = 'dados' | 'tokens' | 'props' | 'breu' | 'salas' | 'guia' | 'nevoa' | 'mapa';
+type Ferramenta =
+  'dados' | 'tokens' | 'props' | 'breu' | 'salas' | 'guia' | 'pistas' | 'nevoa' | 'mapa';
 type AbaLateral = 'chat' | 'registro' | 'pistas' | 'itens';
 
 interface PaineisSalvos {
@@ -177,6 +179,16 @@ const FERRAMENTAS: DefinicaoDeFerramenta[] = [
     tecla: 'i',
     icone: 'pin',
     rotulo: 'Pontos de interesse, ferramenta do mestre',
+    soMestre: true,
+    comMapa: true,
+  },
+  {
+    id: 'pistas',
+    curto: 'Pistas',
+    titulo: 'Pistas',
+    tecla: 'c',
+    icone: 'clue',
+    rotulo: 'Pistas, ferramenta do mestre',
     soMestre: true,
     comMapa: true,
   },
@@ -312,7 +324,9 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const [seqRevelacaoFechada, setSeqRevelacaoFechada] = useState(0);
   const [escolhendoGrupo, setEscolhendoGrupo] = useState(false);
   const [escolhendoPoi, setEscolhendoPoi] = useState<((ponto: Ponto) => void) | null>(null);
+  const [escolhendoPista, setEscolhendoPista] = useState<((ponto: Ponto) => void) | null>(null);
   const [poiAbertoId, setPoiAbertoId] = useState<string | null>(null);
+  const [pistaAbertaId, setPistaAbertaId] = useState<string | null>(null);
   const [modo, setModo] = useState<ModoDoPalco>('mover');
   const [pincel, setPincel] = useState<PincelDoBreu>({ modo: 'cobrir', forma: 'retangulo' });
   const [tracoSala, setTracoSala] = useState<TracoDaSala>('retangulo');
@@ -406,10 +420,12 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
       const alvo = e.target as HTMLElement | null;
       if (alvo && ['INPUT', 'TEXTAREA', 'SELECT'].includes(alvo.tagName)) return;
       if (e.key === 'Escape') {
-        if (escolhendoGrupo || escolhendoPoi || poiAbertoId) {
+        if (escolhendoGrupo || escolhendoPoi || escolhendoPista || poiAbertoId || pistaAbertaId) {
           setEscolhendoGrupo(false);
           setEscolhendoPoi(null);
+          setEscolhendoPista(null);
           setPoiAbertoId(null);
+          setPistaAbertaId(null);
         } else if (modo !== 'mover') {
           setModo('mover');
         } else {
@@ -438,7 +454,17 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     return () => {
       window.removeEventListener('keydown', aoTeclar);
     };
-  }, [visao, mestre, temMapa, escolhendoGrupo, escolhendoPoi, poiAbertoId, modo]);
+  }, [
+    visao,
+    mestre,
+    temMapa,
+    escolhendoGrupo,
+    escolhendoPoi,
+    escolhendoPista,
+    poiAbertoId,
+    pistaAbertaId,
+    modo,
+  ]);
 
   /** RF-24: imagem solta sobre o mapa vira token ali (mestre) ou a imagem do próprio token. */
   async function aoSoltarImagem(
@@ -533,6 +559,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     !comMapa ||
     escolhendoGrupo ||
     escolhendoPoi !== null ||
+    escolhendoPista !== null ||
     aberta?.id === 'breu' ||
     aberta?.id === 'salas'
       ? null
@@ -784,7 +811,13 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                         setEscolhendoPoi(null);
                         aoClicar(ponto);
                       }
-                    : null
+                    : escolhendoPista
+                      ? (ponto) => {
+                          const aoClicar = escolhendoPista;
+                          setEscolhendoPista(null);
+                          aoClicar(ponto);
+                        }
+                      : null
               }
               aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
               pincelDoBreu={mestre && aberta?.id === 'breu' ? pincel : null}
@@ -795,7 +828,12 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               ultimoPulso={mesa.ultimoPulso}
               aoMarcarPonto={(ponto) => void marcarPonto(ponto)}
               aoAbrirPoi={(id) => {
+                setPistaAbertaId(null);
                 setPoiAbertoId(id);
+              }}
+              aoAbrirPista={(id) => {
+                setPoiAbertoId(null);
+                setPistaAbertaId(id);
               }}
             />
           ) : (
@@ -836,12 +874,14 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           )}
 
           {/* Flutua sobre o mapa: uma faixa no fluxo empurraria o mapa bem na hora do clique. */}
-          {(escolhendoGrupo || escolhendoPoi) && (
+          {(escolhendoGrupo || escolhendoPoi || escolhendoPista) && (
             <div className="mesa-dica" role="status">
               <span className="small">
                 {escolhendoGrupo
                   ? 'Clique no mapa onde o grupo deve ficar.'
-                  : 'Clique no mapa onde o ponto de interesse deve ficar.'}
+                  : escolhendoPoi
+                    ? 'Clique no mapa onde o ponto de interesse deve ficar.'
+                    : 'Clique no mapa onde a pista deve ficar.'}
               </span>
               <Button
                 size="sm"
@@ -849,6 +889,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 onClick={() => {
                   setEscolhendoGrupo(false);
                   setEscolhendoPoi(null);
+                  setEscolhendoPista(null);
                 }}
               >
                 Cancelar
@@ -874,6 +915,29 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   enviar={enviar}
                   aoFechar={() => {
                     setPoiAbertoId(null);
+                  }}
+                />
+              );
+            })()}
+
+          {visao &&
+            comMapa &&
+            pistaAbertaId &&
+            (() => {
+              const pistaAberta = visao.pistas.find((p) => p.id === pistaAbertaId);
+              if (!pistaAberta) return null;
+              const meuToken = visao.tokens.find((t) => t.donoId === meuId);
+              return (
+                <CartaoPista
+                  pista={pistaAberta}
+                  papel={visao.papel}
+                  meuToken={meuToken}
+                  celula={comMapa.mapa.grade.celula}
+                  inventario={visao.inventario}
+                  personagens={personagens}
+                  enviar={enviar}
+                  aoFechar={() => {
+                    setPistaAbertaId(null);
                   }}
                 />
               );
@@ -1082,6 +1146,20 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   }}
                 />
               )}
+              {mestre && aberta.id === 'pistas' && (
+                <FerramentaDePistas
+                  campanhaId={campanhaId}
+                  pistas={visao.pistas.filter((p) => 'notaMestre' in p)}
+                  inventario={visao.inventario}
+                  personagens={personagens}
+                  temMapa={Boolean(comMapa)}
+                  enviar={enviar}
+                  centroRef={centroRef}
+                  aoEscolherNoMapa={(aoClicar) => {
+                    setEscolhendoPista(() => aoClicar);
+                  }}
+                />
+              )}
               {mestre && aberta.id === 'nevoa' && (
                 <FerramentaDaNevoa nivel={visao.nevoa} enviar={enviar} />
               )}
@@ -1161,28 +1239,13 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   />
                 )}
                 {aba === 'pistas' && (
-                  <div className="mesa-aba-lista">
-                    {visao.inventario.length === 0 ? (
-                      <div className="registro-vazio">
-                        <EmptyState
-                          icon={<Icon name="clue" size="xl" />}
-                          title="Nenhuma pista ainda"
-                        >
-                          Pistas recebidas ou apresentadas aparecem aqui.
-                        </EmptyState>
-                      </div>
-                    ) : (
-                      <div className="col" style={{ gap: 10 }}>
-                        {visao.inventario.map((item) => (
-                          <Note key={`${item.pistaId}-${item.personagemId}`}>
-                            <b>{item.titulo}</b>
-                            <br />
-                            {item.texto}
-                          </Note>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <AbaPistasNaMesa
+                    inventario={visao.inventario}
+                    papel={visao.papel}
+                    meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
+                    nomesDePersonagens={nomesDePersonagens}
+                    enviar={enviar}
+                  />
                 )}
                 {aba === 'itens' && (
                   <AbaItens
@@ -1269,28 +1332,13 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                       />
                     )}
                     {aba === 'pistas' && (
-                      <div className="mesa-aba-lista">
-                        {visao.inventario.length === 0 ? (
-                          <div className="registro-vazio">
-                            <EmptyState
-                              icon={<Icon name="clue" size="xl" />}
-                              title="Nenhuma pista ainda"
-                            >
-                              Pistas recebidas ou apresentadas aparecem aqui.
-                            </EmptyState>
-                          </div>
-                        ) : (
-                          <div className="col" style={{ gap: 10 }}>
-                            {visao.inventario.map((item) => (
-                              <Note key={`${item.pistaId}-${item.personagemId}`}>
-                                <b>{item.titulo}</b>
-                                <br />
-                                {item.texto}
-                              </Note>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <AbaPistasNaMesa
+                        inventario={visao.inventario}
+                        papel={visao.papel}
+                        meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
+                        nomesDePersonagens={nomesDePersonagens}
+                        enviar={enviar}
+                      />
                     )}
                     {aba === 'itens' && (
                       <AbaItens

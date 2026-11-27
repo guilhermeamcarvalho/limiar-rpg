@@ -595,3 +595,96 @@ describe('PUT /api/campanhas/:id/meu-personagem', () => {
     expect(r.statusCode).toBe(404);
   });
 });
+
+describe('pistas do personagem na Ficha (#89, RF-47)', () => {
+  it('lista as pistas do dono, esconde não apresentadas de outros jogadores e apresenta ao grupo sem perder', async () => {
+    const { a, ana, bia, caio, caso, davi, eventos } = await mesaPronta();
+    await a.inject({
+      method: 'PUT',
+      url: `/api/campanhas/${caso}/meu-personagem`,
+      cookies: bia.cookies,
+      payload: { personagemId: davi.id },
+    });
+    await a.inject({
+      method: 'PATCH',
+      url: `/api/campanhas/${caso}`,
+      cookies: ana.cookies,
+      payload: { fichasVisiveis: true },
+    });
+
+    // Coloca um mapa e envia duas pistas para Davi.
+    const { mapaDeTeste } = await import('../../teste/apoio.ts');
+    mapaDeTeste({ db: a.db }, caso, { ativo: true });
+    const mesa = a.mesas.obter(caso);
+    mesa.aplicar(ana, {
+      type: 'clue.create',
+      titulo: 'Fita 33',
+      texto: 'Sinal às 3h33.',
+      notaMestre: 'SEGREDO-MESTRE-FICHA',
+      x: 100,
+      y: 100,
+    });
+    const pistaId = mesa.estado.pistas[0]?.id ?? '';
+    mesa.aplicar(ana, { type: 'clue.send', pistaId, personagemId: davi.id });
+
+    // Dono vê a pista (sem notaMestre).
+    const doDono = await a.inject({
+      method: 'GET',
+      url: `/api/personagens/${davi.id}/pistas`,
+      cookies: bia.cookies,
+    });
+    expect(doDono.statusCode).toBe(200);
+    expect(JSON.stringify(doDono.json())).not.toContain('SEGREDO-MESTRE-FICHA');
+    expect(doDono.json()).toMatchObject({
+      pistas: [{ id: pistaId, titulo: 'Fita 33', apresentada: false }],
+    });
+
+    // Outro jogador (mesmo com fichasVisiveis: true) NÃO vê pista ainda não apresentada!
+    const doCaioAntes = await a.inject({
+      method: 'GET',
+      url: `/api/personagens/${davi.id}/pistas`,
+      cookies: caio.cookies,
+    });
+    expect(doCaioAntes.statusCode).toBe(200);
+    expect(doCaioAntes.json()).toEqual({ pistas: [] });
+
+    // Outro jogador não pode apresentar pista alheia.
+    const tentativaCaio = await a.inject({
+      method: 'POST',
+      url: `/api/personagens/${davi.id}/pistas/${pistaId}/apresentar`,
+      cookies: caio.cookies,
+    });
+    expect(tentativaCaio.statusCode).toBe(403);
+
+    // Dono apresenta pela Ficha: emite evento na mesa, grava apresentada e continua com ela.
+    eventos.length = 0;
+    const apresentou = await a.inject({
+      method: 'POST',
+      url: `/api/personagens/${davi.id}/pistas/${pistaId}/apresentar`,
+      cookies: bia.cookies,
+    });
+    expect(apresentou.statusCode).toBe(200);
+    expect(apresentou.json()).toMatchObject({
+      pista: { id: pistaId, titulo: 'Fita 33', apresentada: true },
+    });
+    expect(eventos).toMatchObject([{ type: 'mesa.aplicados', campanhaId: caso }]);
+
+    // Agora tanto quem apresentou quanto os outros jogadores veem a pista apresentada.
+    const doDonoDepois = await a.inject({
+      method: 'GET',
+      url: `/api/personagens/${davi.id}/pistas`,
+      cookies: bia.cookies,
+    });
+    expect(doDonoDepois.json()).toMatchObject({
+      pistas: [{ id: pistaId, titulo: 'Fita 33', apresentada: true }],
+    });
+    const doCaioDepois = await a.inject({
+      method: 'GET',
+      url: `/api/personagens/${davi.id}/pistas`,
+      cookies: caio.cookies,
+    });
+    expect(doCaioDepois.json()).toMatchObject({
+      pistas: [{ id: pistaId, titulo: 'Fita 33', apresentada: true }],
+    });
+  });
+});

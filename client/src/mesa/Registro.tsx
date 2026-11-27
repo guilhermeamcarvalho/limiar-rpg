@@ -10,6 +10,7 @@ import {
   type PersonagemNaMesa,
 } from '@membrana/shared';
 import { cx, EmptyState, Icon, Note, textoDoVeredito, type NomeDoIcone } from '../ui/index.ts';
+import { ImagemDaPista } from './ImagemDaPista.tsx';
 
 export type FiltroDoRegistro = 'todos' | 'testes' | 'pistas' | 'cenas' | 'trilha';
 
@@ -203,11 +204,17 @@ export function Registro({ eventos, papel, membros, personagens }: RegistroProps
                       </span>
                       <span className="small muted">{horarioCurto(item.item.em)}</span>
                     </div>
-                    <Note className="registro-pista">
+                    <div className="note registro-pista col" style={{ gap: 6 }}>
                       <b>{item.item.titulo}</b>
-                      <br />
-                      {item.item.texto}
-                    </Note>
+                      {item.item.imagem && (
+                        <ImagemDaPista
+                          imagem={item.item.imagem}
+                          titulo={item.item.titulo}
+                          compacta
+                        />
+                      )}
+                      {item.item.texto && <span>{item.item.texto}</span>}
+                    </div>
                   </>
                 )}
 

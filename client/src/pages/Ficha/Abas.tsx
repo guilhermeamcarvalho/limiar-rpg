@@ -12,6 +12,7 @@ import {
 } from '@membrana/shared';
 import { pedir } from '../../auth/api.ts';
 import { quandoCurto } from '../../casos/formatos.ts';
+import { ImagemDaPista } from '../../mesa/ImagemDaPista.tsx';
 import {
   Async,
   Button,
@@ -35,6 +36,7 @@ export interface PistaDaFicha {
   id: string;
   titulo: string;
   texto: string;
+  imagem?: string | null;
   /** Recebida e ainda não vista. */
   nova: boolean;
   /** Já mostrada ao grupo. */
@@ -149,7 +151,15 @@ function Itens({
   );
 }
 
-export function ListaDePistas({ pistas }: { pistas: readonly PistaDaFicha[] }) {
+export function ListaDePistas({
+  pistas,
+  aoApresentar,
+  apresentandoId = null,
+}: {
+  pistas: readonly PistaDaFicha[];
+  aoApresentar?: (pistaId: string) => void;
+  apresentandoId?: string | null;
+}) {
   if (pistas.length === 0) {
     return (
       <EmptyState icon={<Icon name="clue" size="xl" />} title="Nenhuma pista ainda">
@@ -166,13 +176,22 @@ export function ListaDePistas({ pistas }: { pistas: readonly PistaDaFicha[] }) {
             {p.nova && ' · nova'}
             {p.apresentada && ' · apresentada'}
           </span>
-          <p>{p.texto}</p>
+          {p.imagem && <ImagemDaPista imagem={p.imagem} titulo={p.titulo} />}
+          {p.texto && <p>{p.texto}</p>}
           {!p.apresentada && (
             <Button
               size="sm"
               className="ficha-apresentar"
-              disabled
-              title="Apresentar ao grupo liga junto com a mesa"
+              disabled={!aoApresentar || apresentandoId === p.id}
+              loading={apresentandoId === p.id}
+              title={
+                aoApresentar
+                  ? 'Mostra esta pista no Registro e na aba Pistas para todos'
+                  : 'Apresentar ao grupo liga junto com a mesa'
+              }
+              onClick={() => {
+                aoApresentar?.(p.id);
+              }}
             >
               Apresentar ao grupo
             </Button>
@@ -279,8 +298,11 @@ export interface AbasProps {
   ficha: FichaOp2;
   podeEditar: boolean;
   mudar: Mudar;
-  /** O inventário de pistas da mesa. Vazio até a Fase 2. */
+  /** O inventário de pistas da mesa (#89, RF-47). */
   pistas?: readonly PistaDaFicha[];
+  /** Chamado quando o dono clica em "Apresentar ao grupo" (#89). */
+  aoApresentarPista?: (pistaId: string) => void;
+  apresentandoPistaId?: string | null;
   /** Muda a cada teste feito na tela, para o histórico buscar de novo. */
   versaoDoHistorico: number;
   /** A aba aberta, quando quem usa quer escolher (a barra da Ficha no celular). */
@@ -296,6 +318,8 @@ export function AbasDaFicha({
   podeEditar,
   mudar,
   pistas = SEM_PISTAS,
+  aoApresentarPista,
+  apresentandoPistaId = null,
   versaoDoHistorico,
   aba: abaDeFora,
   aoMudarAba,
@@ -329,7 +353,13 @@ export function AbasDaFicha({
       />
       <TabPanel idBase={idBase} id={aba} className="card-b col ficha-aba">
         {aba === 'itens' && <Itens ficha={ficha} podeEditar={podeEditar} mudar={mudar} />}
-        {aba === 'pistas' && <ListaDePistas pistas={pistas} />}
+        {aba === 'pistas' && (
+          <ListaDePistas
+            pistas={pistas}
+            {...(aoApresentarPista && { aoApresentar: aoApresentarPista })}
+            apresentandoId={apresentandoPistaId}
+          />
+        )}
         {aba === 'anotacoes' && <Anotacoes ficha={ficha} podeEditar={podeEditar} mudar={mudar} />}
         {aba === 'historico' && (
           <Historico personagemId={personagemId} versao={versaoDoHistorico} />

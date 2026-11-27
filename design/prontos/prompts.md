@@ -148,6 +148,35 @@ Exemplo: _"Ilustração digital pintada, horror investigativo contemporâneo no 
 - **`gato`** — Gato preto
 - **`rato`** — Rato
 
+## Pistas (14) — `externos/pistas/<id>.png`
+
+> Anexo de investigação sobre mesa de madeira escura (proporção 4:3), foco de luz quente vindo de cima, objeto ou documento centralizado com leve vinheta, sem texto legível.
+
+Exemplo: _"Ilustração digital pintada, horror investigativo contemporâneo no Brasil, paleta escura e dessaturada (marrons, cinzas, verdes apagados) com acentos de vermelho-sangue e luz âmbar, iluminação dramática de cima, textura sutil, sem texto, sem marca d’água. Anexo de investigação sobre mesa de madeira escura (proporção 4:3), foco de luz quente vindo de cima, objeto ou documento centralizado com leve vinheta, sem texto legível. Evidência: carta manchada."_
+
+### Documentos
+
+- **`carta`** — Carta manchada
+- **`recorte-jornal`** — Recorte de jornal
+- **`prontuario`** — Prontuário médico
+- **`cracha`** — Crachá de acesso
+- **`mapa-rabiscado`** — Mapa rabiscado
+
+### Mídia e registros
+
+- **`fotografia`** — Fotografia antiga
+- **`fita-cassete`** — Fita cassete
+- **`celular`** — Celular trincado
+- **`pendrive`** — Pendrive marcado
+
+### Objetos e vestígios
+
+- **`diario`** — Diário encadernado
+- **`chave`** — Chave antiga
+- **`amuleto`** — Objeto ritualístico
+- **`simbolo-ritual`** — Símbolo ocultista
+- **`vestigio-sangue`** — Vestígio de sangue
+
 ## Mapas (12) — `externos/mapas/<id>.png`
 
 > Mapa de batalha para RPG de mesa, vista de cima perfeitamente ortográfica, sem grade desenhada, sem texto ou legendas, iluminação noturna com poças de luz, cômodos e móveis em escala humana (uma célula de 1,5 m), bordas do mapa preenchidas até o fim.

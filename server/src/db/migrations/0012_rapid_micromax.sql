@@ -1,0 +1,1 @@
+ALTER TABLE `clues` ADD `imagem` text;

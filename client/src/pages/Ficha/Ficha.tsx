@@ -16,9 +16,11 @@ import {
   type PedidoDeTeste,
   type PericiaOp2,
   type Personagem,
+  type PistaDoPersonagem,
   type RegistroDeTeste,
   type RelatoDeTesteOp2,
 } from '@membrana/shared';
+import { pedir } from '../../auth/api.ts';
 import { useMe } from '../../auth/sessao.tsx';
 import { TopoDoCelular, useCelularProprio } from '../../app/celular.tsx';
 import { iniciais, linkDaCampanha, linkDoDossie } from '../../casos/formatos.ts';
@@ -37,7 +39,7 @@ import {
   useToast,
   type DadoDoResultado,
 } from '../../ui/index.ts';
-import { AbasDaFicha, type Aba } from './Abas.tsx';
+import { AbasDaFicha, type Aba, type PistaDaFicha } from './Abas.tsx';
 import { useSalvar } from './comum.tsx';
 import { EdicaoDaFicha } from './Edicao.tsx';
 import { depoisDoTeste, NADA_ARMADO, previaDoTeste, type Armados } from './extras.ts';
@@ -95,8 +97,9 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
   const avisos = useToast();
   const { sessao } = useMe();
   const eu = sessao.estado === 'logado' ? sessao.usuario.id : null;
+  const ehDono = inicial.donoId === eu;
   // O dono ou o mestre do caso; o servidor confere de novo em cada gravação.
-  const podeEditar = inicial.donoId === eu || caso?.papel === 'mestre';
+  const podeEditar = ehDono || caso?.papel === 'mestre';
 
   const falhar = (texto: string) => {
     avisos.show({ type: 'err', title: 'Não deu certo', text: texto });
@@ -119,6 +122,53 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
   const [informando, setInformando] = useState(false);
   const [erroFisico, setErroFisico] = useState<string | null>(null);
   const [imagens, setImagens] = useState(false);
+  const [pistas, setPistas] = useState<PistaDaFicha[]>([]);
+  const [apresentandoPistaId, setApresentandoPistaId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    pedir<{ pistas: PistaDoPersonagem[] }>(
+      `/api/personagens/${encodeURIComponent(personagem.id)}/pistas`,
+      { signal: ctrl.signal },
+    )
+      .then((r) => {
+        setPistas(
+          r.pistas.map((p) => ({
+            id: p.id,
+            titulo: p.titulo,
+            texto: p.texto,
+            imagem: p.imagem ?? null,
+            nova: false,
+            apresentada: p.apresentada,
+          })),
+        );
+      })
+      .catch(() => {
+        // Sem pistas ou rota indisponível nos testes sem caso: mantém lista vazia.
+      });
+    return () => {
+      ctrl.abort();
+    };
+  }, [personagem.id]);
+
+  async function apresentarPista(pistaId: string) {
+    if (apresentandoPistaId) return;
+    setApresentandoPistaId(pistaId);
+    try {
+      const { pista } = await pedir<{ pista: PistaDoPersonagem }>(
+        `/api/personagens/${encodeURIComponent(personagem.id)}/pistas/${encodeURIComponent(pistaId)}/apresentar`,
+        { method: 'POST' },
+      );
+      setPistas((atuais) =>
+        atuais.map((p) => (p.id === pistaId ? { ...p, apresentada: true, nova: false } : p)),
+      );
+      avisos.show({ type: 'ok', title: 'Pista apresentada ao grupo', text: pista.titulo });
+    } catch (e) {
+      falhar(mensagemDe(e));
+    } finally {
+      setApresentandoPistaId(null);
+    }
+  }
 
   const envio = useSalvar(async (nova) => {
     const salvo = await vivo.salvarFicha(nova);
@@ -354,6 +404,13 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
               ficha={ficha}
               podeEditar={podeMudar}
               mudar={vivo.mudar}
+              pistas={pistas}
+              {...(ehDono && {
+                aoApresentarPista: (id) => {
+                  void apresentarPista(id);
+                },
+              })}
+              apresentandoPistaId={apresentandoPistaId}
               versaoDoHistorico={versaoDoHistorico}
               aba={aba}
               aoMudarAba={setAba}

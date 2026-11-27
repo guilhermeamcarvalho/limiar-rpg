@@ -12,6 +12,7 @@ import { characters, gameSystems } from '../../db/schema.ts';
 import { exigirLogin, usuarioLogado } from '../auth/sessao.ts';
 import { campanhaVisivel } from '../campanhas/dados.ts';
 import { ErroDaApi, validar } from '../erros.ts';
+import { rotasDePistasDoPersonagem } from './pistas.ts';
 import { rotasDeTestes } from './testes.ts';
 import {
   acessoAo,
@@ -50,6 +51,7 @@ function sistema(app: FastifyInstance, id: string) {
 export const rotas: FastifyPluginAsync = (app) => {
   app.addHook('preHandler', exigirLogin);
   rotasDeTestes(app);
+  rotasDePistasDoPersonagem(app);
 
   app.post('/personagens', (request, reply) => {
     const usuario = usuarioLogado(request);

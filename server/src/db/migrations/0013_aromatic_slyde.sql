@@ -1,0 +1,1 @@
+ALTER TABLE `clues` ADD `tamanho` real DEFAULT 1 NOT NULL;

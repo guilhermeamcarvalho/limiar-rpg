@@ -51,9 +51,9 @@ function TokenKonva({
     >
       {selecionado && (
         <Circle
-          radius={raio + 6}
+          radius={raio + 4}
           stroke={c['red-hi']}
-          strokeWidth={2}
+          strokeWidth={1.5}
           dash={[6, 4]}
           strokeScaleEnabled={false}
           listening={false}
@@ -70,7 +70,7 @@ function TokenKonva({
             }
           : { fill: npc ? c['av-npc'] : c['av-red'] })}
         stroke={anel}
-        strokeWidth={meu ? 4 : 3}
+        strokeWidth={meu ? 2 : 1.5}
         strokeScaleEnabled={false}
         // Oculto: o mestre vê com o contorno dourado tracejado.
         {...(token.oculto && { dash: [6, 4], stroke: c.gold })}

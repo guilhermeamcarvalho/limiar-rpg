@@ -95,6 +95,20 @@ import npc_lobo from './npcs-prontos/lobo.webp';
 import npc_corvo from './npcs-prontos/corvo.webp';
 import npc_gato from './npcs-prontos/gato.webp';
 import npc_rato from './npcs-prontos/rato.webp';
+import pista_carta from './pistas-prontas/carta.webp';
+import pista_recorte_jornal from './pistas-prontas/recorte-jornal.webp';
+import pista_prontuario from './pistas-prontas/prontuario.webp';
+import pista_cracha from './pistas-prontas/cracha.webp';
+import pista_mapa_rabiscado from './pistas-prontas/mapa-rabiscado.webp';
+import pista_fotografia from './pistas-prontas/fotografia.webp';
+import pista_fita_cassete from './pistas-prontas/fita-cassete.webp';
+import pista_celular from './pistas-prontas/celular.webp';
+import pista_pendrive from './pistas-prontas/pendrive.webp';
+import pista_diario from './pistas-prontas/diario.webp';
+import pista_chave from './pistas-prontas/chave.webp';
+import pista_amuleto from './pistas-prontas/amuleto.webp';
+import pista_simbolo_ritual from './pistas-prontas/simbolo-ritual.webp';
+import pista_vestigio_sangue from './pistas-prontas/vestigio-sangue.webp';
 import mapa_radio from './mapas-prontos/radio.webp';
 import mapa_hospital from './mapas-prontos/hospital.webp';
 import mapa_casa from './mapas-prontos/casa.webp';
@@ -204,6 +218,20 @@ export const IMAGENS_PRONTAS: Readonly<Record<string, string>> = {
   'npc:corvo': npc_corvo,
   'npc:gato': npc_gato,
   'npc:rato': npc_rato,
+  'pista:carta': pista_carta,
+  'pista:recorte-jornal': pista_recorte_jornal,
+  'pista:prontuario': pista_prontuario,
+  'pista:cracha': pista_cracha,
+  'pista:mapa-rabiscado': pista_mapa_rabiscado,
+  'pista:fotografia': pista_fotografia,
+  'pista:fita-cassete': pista_fita_cassete,
+  'pista:celular': pista_celular,
+  'pista:pendrive': pista_pendrive,
+  'pista:diario': pista_diario,
+  'pista:chave': pista_chave,
+  'pista:amuleto': pista_amuleto,
+  'pista:simbolo-ritual': pista_simbolo_ritual,
+  'pista:vestigio-sangue': pista_vestigio_sangue,
   'mapa:radio': mapa_radio,
   'mapa:hospital': mapa_hospital,
   'mapa:casa': mapa_casa,

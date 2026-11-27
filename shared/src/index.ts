@@ -24,4 +24,5 @@ export * from './regras/rolagem-livre.ts';
 export * from './regras/op2/index.ts';
 export * from './schemas/mesa.ts';
 export * from './mesa/breu.ts';
+export * from './mesa/pistas.ts';
 export * from './mesa/prontos.ts';

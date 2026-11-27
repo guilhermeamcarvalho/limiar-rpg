@@ -1,7 +1,7 @@
 // Consultas da mesa ao vivo: o estado salvo, os mapas, o registro da sessão e os personagens.
 // O mapa ativo (com tokens, props e breu) mora em `maps`, `tokens` e `props`; o resto do estado
 // (rodada, trilha, salas, pistas...) em `table_states`. Os dois são gravados juntos.
-import { and, asc, desc, eq, inArray, isNull, max, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, max, ne, notInArray, or, sql } from 'drizzle-orm';
 import {
   atributoDaPericia,
   esquemaFichaOp2,
@@ -16,6 +16,8 @@ import {
   type PerfilOp2,
   type PericiaOp2,
   type PersonagemNaMesa,
+  type PistaComAlguem,
+  type PistaNaMesa,
   type PoiNaMesa,
   type PropNaMesa,
   type RegistroDeTeste,
@@ -27,6 +29,8 @@ import type { Banco } from '../db/index.ts';
 import {
   campaigns,
   characters,
+  clueHolders,
+  clues,
   gameSystems,
   maps,
   memberships,
@@ -57,6 +61,7 @@ export interface ConteudoDoMapa {
   breu: AreaDoBreu[];
   salas: SalaNaMesa[];
   pois: PoiNaMesa[];
+  pistas: PistaNaMesa[];
 }
 
 type Transacao = Parameters<Parameters<Banco['transaction']>[0]>[0];
@@ -130,6 +135,23 @@ export function lerMapa(db: Banco, campanhaId: string, mapaId: string): Conteudo
     .where(eq(pois.mapId, mapaId))
     .orderBy(asc(pois.numero), sql`"pois"."rowid"`)
     .all();
+  const pistasDoMapa = db
+    .select({
+      id: clues.id,
+      titulo: clues.titulo,
+      texto: clues.texto,
+      imagem: clues.imagem,
+      tamanho: clues.tamanho,
+      notaMestre: clues.notaMestre,
+      x: clues.x,
+      y: clues.y,
+      visivel: clues.visivel,
+      descoberta: clues.descoberta,
+    })
+    .from(clues)
+    .where(eq(clues.mapId, mapaId))
+    .orderBy(sql`"clues"."rowid"`)
+    .all();
   return {
     mapa: {
       id: linha.id,
@@ -144,6 +166,7 @@ export function lerMapa(db: Banco, campanhaId: string, mapaId: string): Conteudo
     breu: linha.breu,
     salas: salasDoMapa,
     pois: poisDoMapa,
+    pistas: pistasDoMapa,
   };
 }
 
@@ -156,13 +179,35 @@ function semOMapa(salvo: Partial<EstadoDaMesa>): Partial<RestoDaMesa> {
   delete resto.breu;
   delete resto.salas;
   delete resto.pois;
+  delete resto.pistas;
+  delete resto.comAlguem;
   return resto;
 }
 
 /** O que vai para `table_states`: campo a campo, para um campo novo no estado não ficar de fora. */
 function restoDe(estado: EstadoDaMesa): RestoDaMesa {
-  const { nevoa, pistas, comAlguem, rodada, trilha, guia, escudo } = estado;
-  return { nevoa, pistas, comAlguem, rodada, trilha, guia, escudo };
+  const { nevoa, rodada, trilha, guia, escudo } = estado;
+  return { nevoa, rodada, trilha, guia, escudo };
+}
+
+/** Quem guarda cada pista no caso (`clue_holders`), já com título, texto e imagem para sobreviver à troca de mapa. */
+export function lerPosseDasPistas(db: Banco, campanhaId: string): PistaComAlguem[] {
+  return db
+    .select({
+      pistaId: clueHolders.clueId,
+      personagemId: clueHolders.characterId,
+      apresentada: clueHolders.apresentada,
+      em: clueHolders.em,
+      titulo: clues.titulo,
+      texto: clues.texto,
+      imagem: clues.imagem,
+    })
+    .from(clueHolders)
+    .innerJoin(clues, eq(clues.id, clueHolders.clueId))
+    .innerJoin(maps, eq(maps.id, clues.mapId))
+    .where(eq(maps.campaignId, campanhaId))
+    .orderBy(sql`"clue_holders"."rowid"`)
+    .all();
 }
 
 export function lerEstadoSalvo(db: Banco, campanhaId: string): EstadoSalvo | null {
@@ -215,6 +260,8 @@ export function lerEstadoSalvo(db: Banco, campanhaId: string): EstadoSalvo | nul
       breu: conteudo?.breu ?? [],
       salas: conteudo?.salas ?? [],
       pois: poisComEstado,
+      pistas: conteudo?.pistas ?? [],
+      comAlguem: lerPosseDasPistas(db, campanhaId),
     },
     seq: resto?.seq ?? 0,
   };
@@ -318,12 +365,107 @@ function escreverMapa(tx: Transacao, estado: EstadoDaMesa) {
       )
       .run();
   }
+
+  // Atualiza `clues` sem apagar as que continuam existindo: assim `ON DELETE CASCADE` só roda
+  // para pistas realmente excluídas e não apaga `clue_holders` por acidente.
+  if (estado.pistas.length === 0) {
+    tx.delete(clues).where(eq(clues.mapId, mapa.id)).run();
+  } else {
+    const idsDePistas = estado.pistas.map((p) => p.id);
+    tx.delete(clues)
+      .where(and(eq(clues.mapId, mapa.id), notInArray(clues.id, idsDePistas)))
+      .run();
+    for (const p of estado.pistas) {
+      tx.insert(clues)
+        .values({
+          id: p.id,
+          mapId: mapa.id,
+          titulo: p.titulo,
+          texto: p.texto,
+          imagem: p.imagem ?? null,
+          tamanho: p.tamanho ?? 1,
+          notaMestre: p.notaMestre,
+          x: p.x,
+          y: p.y,
+          visivel: p.visivel,
+          descoberta: p.descoberta,
+        })
+        .onConflictDoUpdate({
+          target: clues.id,
+          set: {
+            mapId: mapa.id,
+            titulo: p.titulo,
+            texto: p.texto,
+            imagem: p.imagem ?? null,
+            tamanho: p.tamanho ?? 1,
+            notaMestre: p.notaMestre,
+            x: p.x,
+            y: p.y,
+            visivel: p.visivel,
+            descoberta: p.descoberta,
+          },
+        })
+        .run();
+    }
+  }
+}
+
+function escreverPosseDasPistas(
+  tx: Transacao,
+  campanhaId: string,
+  comAlguem: readonly PistaComAlguem[],
+) {
+  const pistasDoCaso = new Set(
+    tx
+      .select({ id: clues.id })
+      .from(clues)
+      .innerJoin(maps, eq(maps.id, clues.mapId))
+      .where(eq(maps.campaignId, campanhaId))
+      .all()
+      .map((c) => c.id),
+  );
+  if (pistasDoCaso.size === 0) return;
+  const todasIds = [...pistasDoCaso];
+  tx.delete(clueHolders).where(inArray(clueHolders.clueId, todasIds)).run();
+  if (comAlguem.length === 0) return;
+  const charIds = [...new Set(comAlguem.map((c) => c.personagemId))];
+  const personagensExistentes = new Set(
+    tx
+      .select({ id: characters.id })
+      .from(characters)
+      .where(inArray(characters.id, charIds))
+      .all()
+      .map((c) => c.id),
+  );
+  const validas = comAlguem.filter(
+    (c) => pistasDoCaso.has(c.pistaId) && personagensExistentes.has(c.personagemId),
+  );
+  if (validas.length > 0) {
+    tx.insert(clueHolders)
+      .values(
+        validas.map((c) => ({
+          clueId: c.pistaId,
+          characterId: c.personagemId,
+          apresentada: c.apresentada,
+          em: c.em,
+        })),
+      )
+      .run();
+  }
 }
 
 /** Grava o mapa de saída antes de uma troca de mapa: o novo vai ser lido do banco. */
 export function gravarMapa(db: Banco, estado: EstadoDaMesa) {
   db.transaction((tx) => {
     escreverMapa(tx, estado);
+    if (estado.mapa) {
+      const linha = tx
+        .select({ campaignId: maps.campaignId })
+        .from(maps)
+        .where(eq(maps.id, estado.mapa.id))
+        .get();
+      if (linha) escreverPosseDasPistas(tx, linha.campaignId, estado.comAlguem);
+    }
   });
 }
 
@@ -338,6 +480,7 @@ export function gravarEstado(
   const resto = restoDe(estado);
   db.transaction((tx) => {
     escreverMapa(tx, estado);
+    escreverPosseDasPistas(tx, campanhaId, estado.comAlguem);
     // Desliga os outros antes de ligar este: nunca há dois ativos (índice único no banco).
     const outros = estado.mapa
       ? and(eq(maps.campaignId, campanhaId), eq(maps.ativo, true), ne(maps.id, estado.mapa.id))

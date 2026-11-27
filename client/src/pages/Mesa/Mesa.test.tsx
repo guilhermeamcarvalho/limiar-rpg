@@ -1209,3 +1209,149 @@ describe('pop-up do resultado', () => {
     expect(screen.queryByRole('region', { name: 'Resultado da rolagem' })).toBeNull();
   });
 });
+
+describe('pistas na mesa (#87, #88, #89)', () => {
+  it('mestre: ferramenta Pistas (C) cria pista no mapa e envia ou recolhe de um jogador (#87)', async () => {
+    await naMesa(
+      visao({
+        papel: 'mestre',
+        pistas: [
+          {
+            id: 'pst_1',
+            titulo: 'Fita 33',
+            texto: 'Gravada às 3h33.',
+            notaMestre: 'Segredo do mestre',
+            x: 100,
+            y: 100,
+            visivel: false,
+            descoberta: false,
+          },
+        ],
+      }),
+      {
+        'GET /api/campanhas/cmp_1/registro': json(200, {
+          eventos: [],
+          personagens: [{ id: 'chr_davi', donoId: 'usr_bia', nome: 'Davi', perfil: 'executor' }],
+        }),
+      },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pistas, ferramenta do mestre' }));
+    const painel = await screen.findByRole('complementary', { name: 'Pistas' });
+    expect(within(painel).getByText('Fita 33')).toBeDefined();
+
+    // Envia para Davi com um clique.
+    fireEvent.click(within(painel).getByRole('button', { name: 'Enviar pista Fita 33 para Davi' }));
+    await waitFor(() => {
+      expect(socket().comandos).toContainEqual({
+        type: 'clue.send',
+        pistaId: 'pst_1',
+        personagemId: 'chr_davi',
+      });
+    });
+
+    // Escolhe ilustração genérica e marca nova pista no mapa.
+    fireEvent.click(within(painel).getByRole('button', { name: 'Ilustração genérica' }));
+    fireEvent.click(within(painel).getByRole('button', { name: /Chave antiga/i }));
+    fireEvent.change(within(painel).getByLabelText('Título da nova pista'), {
+      target: { value: 'Chave do porão' },
+    });
+    fireEvent.click(within(painel).getByRole('button', { name: 'Marcar no mapa' }));
+    expect(await screen.findByText('Clique no mapa onde a pista deve ficar.')).toBeDefined();
+    act(() => {
+      palco().aoEscolherPonto?.({ x: 240, y: 180 });
+    });
+    await waitFor(() => {
+      expect(socket().comandos).toContainEqual({
+        type: 'clue.create',
+        titulo: 'Chave do porão',
+        texto: '',
+        imagem: 'pista:chave',
+        notaMestre: '',
+        x: 240,
+        y: 180,
+        visivel: false,
+      });
+    });
+  });
+
+  it('jogador: abre pista visível no mapa, envia clue.take e vê recusa se estiver longe (#88)', async () => {
+    await naMesa(
+      visao({
+        tokens: [token({ x: 300, y: 300 })],
+        pistas: [{ id: 'pst_2', x: 100, y: 100, descoberta: false }],
+      }),
+    );
+
+    act(() => {
+      palco().aoAbrirPista?.('pst_2');
+    });
+    const cartao = await screen.findByRole('dialog', { name: 'Pista no mapa' });
+    expect(
+      within(cartao).getByText('Aproxime seu token (até 1 célula) para guardar esta pista.'),
+    ).toBeDefined();
+
+    socket().responder = () => ({
+      ok: false,
+      motivo: 'Seu token está longe demais: chegue a até 1 célula da pista para guardá-la.',
+    });
+    fireEvent.click(within(cartao).getByRole('button', { name: 'Guardar pista' }));
+    expect(await within(cartao).findByRole('alert')).toBeDefined();
+    expect(socket().comandos).toContainEqual({ type: 'clue.take', pistaId: 'pst_2' });
+  });
+
+  it('jogador: Apresentar ao grupo na aba Pistas envia clue.present e entra no Registro (#89)', async () => {
+    await naMesa(
+      visao({
+        inventario: [
+          {
+            pistaId: 'pst_1',
+            personagemId: 'chr_davi',
+            apresentada: false,
+            em: '2026-11-27T10:00:00.000Z',
+            titulo: 'Fita 33',
+            texto: 'Gravada às 3h33.',
+            imagem: 'pista:fita-cassete',
+          },
+        ],
+      }),
+      {
+        'GET /api/campanhas/cmp_1': json(200, {
+          campanha: detalhe({ meuPersonagem: { id: 'chr_davi', nome: 'Davi Rocha' } }),
+        }),
+      },
+    );
+
+    fireEvent.click(await screen.findByRole('tab', { name: /Pistas/ }));
+    // Amplia a imagem da pista em modal e fecha.
+    fireEvent.click(await screen.findByRole('button', { name: 'Ampliar imagem da pista Fita 33' }));
+    const modal = await screen.findByRole('dialog', { name: 'Fita 33' });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Fechar' }));
+
+    const apresentar = await screen.findByRole('button', { name: 'Apresentar ao grupo' });
+    fireEvent.click(apresentar);
+    await waitFor(() => {
+      expect(socket().comandos).toContainEqual({ type: 'clue.present', pistaId: 'pst_1' });
+    });
+
+    act(() => {
+      socket().receber({
+        type: 'clue.presented',
+        seq: 7,
+        item: {
+          pistaId: 'pst_1',
+          personagemId: 'chr_davi',
+          apresentada: true,
+          em: '2026-11-27T10:02:00.000Z',
+          titulo: 'Fita 33',
+          texto: 'Gravada às 3h33.',
+        },
+      });
+    });
+
+    // Continua na aba Pistas como apresentada, e entra no Registro.
+    expect(await screen.findByText(/apresentada/)).toBeDefined();
+    fireEvent.click(screen.getByRole('tab', { name: /Registro/ }));
+    expect(await screen.findByText(/compartilhou uma pista/)).toBeDefined();
+  });
+});
