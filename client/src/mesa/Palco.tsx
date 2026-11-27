@@ -58,7 +58,7 @@ import { CamadaDeTokens, raioDoToken } from './Tokens.tsx';
 
 Konva.pixelRatio = Math.min(typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1, 2);
 
-export type Selecao = { tipo: 'token' | 'prop'; id: string } | null;
+export type Selecao = { tipo: 'token' | 'prop' | 'pista'; id: string } | null;
 
 export interface PalcoProps {
   visao: VisaoDaMesa & { mapa: MapaNaMesa };
@@ -496,9 +496,21 @@ export function Palco({
             pistas={visao.pistas}
             mestre={mestre}
             bloqueado={bloqueado}
+            selecionado={selecao?.tipo === 'pista' ? selecao.id : null}
+            aoSelecionar={(pistaId) => {
+              if (mestre && !bloqueado) setSelecao({ tipo: 'pista', id: pistaId });
+            }}
             {...(aoAbrirPista && { aoAbrirPista })}
             aoMoverPista={(pistaId, ponto) => {
               void enviar({ type: 'clue.update', pistaId, ...dentroDoMapa(ponto, mapa) });
+            }}
+            aoRedimensionarPista={(pistaId, dados) => {
+              void enviar({
+                type: 'clue.update',
+                pistaId,
+                ...dentroDoMapa(dados, mapa),
+                tamanho: dados.tamanho,
+              });
             }}
           />
           <CamadaDePois

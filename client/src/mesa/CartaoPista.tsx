@@ -19,7 +19,6 @@ import {
   Field,
   Icon,
   Input,
-  Select,
   Tag,
   useToast,
 } from '../ui/index.ts';
@@ -125,23 +124,23 @@ export function CartaoPista({
               }}
             />
             <Field label="Tamanho no mapa">
-              <Select
+              <Input
+                type="number"
+                min={0.25}
+                max={20}
+                step={0.1}
                 value={String(pista.tamanho ?? 1)}
                 onChange={(e) => {
-                  void enviar({
-                    type: 'clue.update',
-                    pistaId: pista.id,
-                    tamanho: Number(e.target.value),
-                  });
+                  const v = Number(e.target.value);
+                  if (Number.isFinite(v) && v >= 0.25 && v <= 20) {
+                    void enviar({
+                      type: 'clue.update',
+                      pistaId: pista.id,
+                      tamanho: v,
+                    });
+                  }
                 }}
-              >
-                <option value="0.5">0.5× · Pequena</option>
-                <option value="1">1× · Padrão</option>
-                <option value="1.5">1.5× · Média</option>
-                <option value="2">2× · Grande</option>
-                <option value="3">3× · Enorme</option>
-                <option value="4">4× · Muito grande</option>
-              </Select>
+              />
             </Field>
             {personagens.length > 0 && (
               <div className="col" style={{ gap: 4 }}>

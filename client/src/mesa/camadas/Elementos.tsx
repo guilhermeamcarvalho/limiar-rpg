@@ -1,7 +1,8 @@
 // Camadas que só mostram: salas (só o mestre recebe) e pistas. As ferramentas delas chegam na
 // Fase 3. Tokens e props, que se arrastam, ficam em Tokens.tsx e Props.tsx.
-import { memo } from 'react';
-import { Circle, Group, Image, Layer, Line, Path, Rect, Text } from 'react-konva';
+import { memo, useEffect, useRef } from 'react';
+import type Konva from 'konva';
+import { Circle, Group, Image, Layer, Line, Path, Rect, Text, Transformer } from 'react-konva';
 import type {
   PistaNaMesa,
   PistaParaJogador,
@@ -60,14 +61,19 @@ function MarcadorDePista({
   pista,
   interativo,
   arrastavel,
+  aoSelecionar,
   aoAbrirPista,
   aoMoverPista,
+  aoRedimensionarPista,
 }: {
   pista: PistaNaMesa | PistaParaJogador;
   interativo: boolean;
   arrastavel: boolean;
+  aoSelecionar?: ((pistaId: string) => void) | undefined;
   aoAbrirPista?: ((pistaId: string) => void) | undefined;
   aoMoverPista?: ((pistaId: string, ponto: { x: number; y: number }) => void) | undefined;
+  aoRedimensionarPista?:
+    ((pistaId: string, dados: { x: number; y: number; tamanho: number }) => void) | undefined;
 }) {
   const c = cores();
   const oculta = 'visivel' in pista && !pista.visivel;
@@ -77,6 +83,7 @@ function MarcadorDePista({
 
   return (
     <Group
+      id={pista.id}
       x={pista.x}
       y={pista.y}
       scaleX={tamanho}
@@ -92,21 +99,37 @@ function MarcadorDePista({
         definirCursor(e.target, '');
       }}
       onDragStart={(e) => {
-        if (arrastavel) definirCursor(e.target, 'grabbing');
+        if (arrastavel) {
+          aoSelecionar?.(pista.id);
+          definirCursor(e.target, 'grabbing');
+        }
       }}
       onDragEnd={(e) => {
         if (!arrastavel) return;
         definirCursor(e.target, 'grab');
         aoMoverPista?.(pista.id, { x: e.target.x(), y: e.target.y() });
       }}
+      onTransformEnd={(e) => {
+        if (!arrastavel || !aoRedimensionarPista) return;
+        const no = e.target;
+        const escalaNova = Math.min(20, Math.max(0.25, Number(Math.abs(no.scaleX()).toFixed(2))));
+        no.scale({ x: escalaNova, y: escalaNova });
+        aoRedimensionarPista(pista.id, {
+          x: no.x(),
+          y: no.y(),
+          tamanho: escalaNova,
+        });
+      }}
       onClick={(e) => {
-        if (!interativo) return;
+        if (!interativo && !arrastavel) return;
         e.cancelBubble = true;
+        aoSelecionar?.(pista.id);
         aoAbrirPista?.(pista.id);
       }}
       onTap={(e) => {
-        if (!interativo) return;
+        if (!interativo && !arrastavel) return;
         e.cancelBubble = true;
+        aoSelecionar?.(pista.id);
         aoAbrirPista?.(pista.id);
       }}
     >
@@ -181,30 +204,71 @@ export const CamadaDePistas = memo(function CamadaDePistas({
   pistas,
   mestre = false,
   bloqueado = false,
+  selecionado = null,
+  aoSelecionar,
   aoAbrirPista,
   aoMoverPista,
+  aoRedimensionarPista,
 }: {
   pistas: (PistaNaMesa | PistaParaJogador)[];
   mestre?: boolean;
   bloqueado?: boolean;
+  selecionado?: string | null;
+  aoSelecionar?: (pistaId: string) => void;
   aoAbrirPista?: (pistaId: string) => void;
   aoMoverPista?: (pistaId: string, ponto: { x: number; y: number }) => void;
+  aoRedimensionarPista?: (
+    pistaId: string,
+    dados: { x: number; y: number; tamanho: number },
+  ) => void;
 }) {
-  if (pistas.length === 0) return null;
+  const c = cores();
+  const camada = useRef<Konva.Layer>(null);
+  const alcas = useRef<Konva.Transformer>(null);
+
   const interativo = Boolean(!bloqueado && aoAbrirPista);
   const arrastavel = Boolean(mestre && !bloqueado && aoMoverPista);
+  const comAlcas =
+    mestre && !bloqueado && selecionado ? pistas.find((p) => p.id === selecionado) : undefined;
+
+  useEffect(() => {
+    const transformador = alcas.current;
+    if (!transformador) return;
+    const no = comAlcas ? camada.current?.findOne(`#${comAlcas.id}`) : undefined;
+    transformador.nodes(no ? [no] : []);
+    transformador.getLayer()?.batchDraw();
+  });
+
+  if (pistas.length === 0) return null;
   return (
-    <Layer listening={interativo || arrastavel}>
+    <Layer ref={camada} listening={interativo || arrastavel}>
       {pistas.map((pista) => (
         <MarcadorDePista
           key={pista.id}
           pista={pista}
           interativo={interativo}
           arrastavel={arrastavel}
+          aoSelecionar={aoSelecionar}
           aoAbrirPista={aoAbrirPista}
           aoMoverPista={aoMoverPista}
+          aoRedimensionarPista={aoRedimensionarPista}
         />
       ))}
+      {mestre && (
+        <Transformer
+          ref={alcas}
+          keepRatio
+          rotateEnabled={false}
+          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
+          borderStroke={c['red-hi']}
+          anchorStroke={c['red-hi']}
+          anchorFill={c.bg}
+          anchorSize={9}
+          boundBoxFunc={(antes, depois) =>
+            depois.width < 10 || depois.width > 800 ? antes : depois
+          }
+        />
+      )}
     </Layer>
   );
 });
