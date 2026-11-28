@@ -106,7 +106,8 @@ export function Modal({
   children,
   footer,
   closeLabel = 'Fechar',
-}: JanelaProps & { footer?: ReactNode }) {
+  size = 'md',
+}: JanelaProps & { footer?: ReactNode; size?: 'md' | 'lg' }) {
   const { ref, aoTeclar } = useJanela(open, onClose);
   const idTitulo = useId();
   if (!open) return null;
@@ -120,7 +121,7 @@ export function Modal({
     >
       <div
         ref={ref}
-        className="modal"
+        className={size === 'lg' ? 'modal lg' : 'modal'}
         role="dialog"
         aria-modal="true"
         aria-labelledby={idTitulo}

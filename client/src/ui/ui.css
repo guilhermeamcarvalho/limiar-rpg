@@ -96,6 +96,16 @@
   color: var(--red-soft);
   background: transparent;
 }
+.btn.btn-excluir {
+  margin-left: 4px;
+  padding-left: 4px;
+  border-left: 1px solid var(--line);
+}
+.btn.btn-excluir:hover:not(:disabled) {
+  border-left-color: var(--line);
+  background: var(--red-a12);
+  color: var(--red-soft);
+}
 .btn.sm {
   min-height: 36px;
   padding: 0 12px;
@@ -334,9 +344,23 @@ textarea.fld {
   cursor: pointer;
   white-space: nowrap;
 }
+.tabs.tight {
+  gap: 6px;
+}
 .tabs.tight button {
-  padding: 0 10px;
+  gap: 4px;
+  padding: 0 8px;
   font-size: var(--t-sm);
+}
+.tabs.tight .cnt {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-left: 2px;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .tabs button:hover {
   color: var(--white);
@@ -413,38 +437,47 @@ textarea.fld {
   font: 400 13.5px/1.45 var(--f-doc);
 }
 
-/* Etiquetas */
+/* Etiquetas (translúcidas no tema escuro, sem competir com CTAs) */
 .tag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 22px;
   padding: 2px 9px;
+  border: 1px solid var(--line-2);
   border-radius: var(--r-sm);
-  background: var(--panel-4);
+  background: var(--panel-3);
   color: var(--text);
   font: 700 var(--t-xs) / 1.2 var(--f-ui);
   white-space: nowrap;
 }
 .tag.red {
-  background: var(--red);
-  color: var(--white);
+  border-color: var(--red-a35);
+  background: var(--red-a12);
+  color: var(--red-pale);
 }
 .tag.blue {
-  background: var(--blue);
-  color: var(--white);
+  border-color: var(--blue-a35);
+  background: var(--blue-a14);
+  color: var(--blue-hi);
 }
 .tag.green {
-  background: var(--green-mid);
-  color: var(--white);
+  border-color: var(--green-a50);
+  background: var(--green-a10);
+  color: var(--green-hi);
 }
 .tag.gold {
-  background: var(--gold);
-  color: var(--ink);
+  border-color: var(--gold-dark);
+  background: var(--gold-a08);
+  color: var(--gold);
 }
 .tag.ink {
-  background: var(--ink);
-  color: var(--paper);
+  border-color: var(--line-2);
+  background: var(--panel-2);
+  color: var(--muted);
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 .chip {
   display: inline-flex;
@@ -537,11 +570,13 @@ textarea.fld {
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   background: var(--red);
   color: var(--white);
-  font: 900 12px/1 var(--f-ui);
+  font: 900 11px/1 var(--f-ui);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   flex: none;
 }
 .dz.d4 {
@@ -600,14 +635,17 @@ textarea.fld {
   gap: 10px;
 }
 .boxes {
-  display: grid;
-  grid-template-columns: repeat(20, minmax(0, 12px));
+  display: flex;
+  width: 100%;
   gap: 3px;
 }
 .boxes i {
   display: block;
-  height: 12px;
-  background: var(--text);
+  flex: 1;
+  min-width: 4px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--red-soft);
 }
 .boxes i.o {
   background: transparent;
@@ -855,6 +893,9 @@ textarea.fld {
   border: 1px solid var(--line-2);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-xl);
+}
+.modal.lg {
+  width: min(1040px, 100%);
 }
 .modal-h {
   display: flex;
@@ -1314,7 +1355,7 @@ textarea.fld {
 .revelacao-veu {
   position: fixed;
   inset: 0;
-  z-index: var(--z-modal);
+  z-index: calc(var(--z-modal) + 10);
   display: grid;
   place-items: center;
   padding: var(--s4);

@@ -58,10 +58,10 @@ Subir ou descer um passo troca o dado pelo vizinho na escada d4, d6, d8, d10, d1
 ## Ajuda
 
 categoria: Dados
-resumo: quem é ajudado sobe a perícia um passo
-etiquetas: +1 passo na perícia
+resumo: aliado com d6+ sobe a perícia em +1 ou +2 passos
+etiquetas: +1 passo (d4–d8); +2 passos (d10–d12)
 
-Um aliado que ajuda faz o dado da perícia de quem testa subir um passo. A ajuda não soma dados: ela troca o dado.
+Um aliado com pelo menos **d6** na perícia pode ajudar: quem testa sobe a perícia em **+1 passo** (se estiver em d4, d6 ou d8) ou **+2 passos** (se estiver em d10 ou d12). A ajuda troca o dado, não soma dados extras.
 
 ## Dados físicos
 

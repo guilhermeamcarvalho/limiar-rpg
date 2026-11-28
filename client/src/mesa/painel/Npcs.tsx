@@ -3,22 +3,29 @@
 // lista o que está no mapa, com ocultar,
 // revelar e remover. Tamanho e imagem de um token também mudam pela barra dele, no mapa.
 import { useRef, useState, type RefObject } from 'react';
+import { Link } from 'react-router';
 import {
   CATEGORIAS_DE_NPCS,
   NPCS_PRONTOS,
   type ComandoDaMesa,
+  type PersonagemNaLista,
   type RespostaDoComando,
   type TokenNaMesa,
   type VisaoDaMesa,
 } from '@membrana/shared';
+import { pedir } from '../../auth/api.ts';
 import { iniciais } from '../../casos/formatos.ts';
+import { linkDaFicha } from '../../personagens/formatos.ts';
 import {
+  Async,
   Button,
   Checkbox,
   Field,
   Icon,
   Input,
   Select,
+  Skeleton,
+  useCarga,
   useEnvio,
   useToast,
 } from '../../ui/index.ts';
@@ -234,6 +241,7 @@ function TokenNaLista({
         variant="ghost"
         icon={<Icon name={token.oculto ? 'eyeoff' : 'eye'} size="sm" />}
         aria-label={token.oculto ? `Revelar ${token.nome}` : `Ocultar ${token.nome}`}
+        title={token.oculto ? 'Revelar no mapa' : 'Ocultar dos jogadores'}
         aria-pressed={token.oculto}
         onClick={() =>
           void enviar({ type: 'token.update', tokenId: token.id, oculto: !token.oculto }).then(
@@ -244,11 +252,104 @@ function TokenNaLista({
       <Button
         size="sm"
         variant="ghost"
+        className="btn-excluir"
         icon={<Icon name="trash" size="sm" />}
         aria-label={`Remover ${token.nome}`}
+        title="Remover da cena"
         onClick={() => void enviar({ type: 'token.delete', tokenId: token.id }).then(responder)}
       />
     </li>
+  );
+}
+
+function PersonagensDoMestre({
+  campanhaId,
+  visao,
+  enviar,
+  centroRef,
+}: Pick<Props, 'campanhaId' | 'visao' | 'enviar' | 'centroRef'>) {
+  const avisos = useToast();
+  const uso = useCarga('/api/me/personagens', (signal) =>
+    pedir<{ personagens: PersonagemNaLista[] }>('/api/me/personagens', { signal }).then(
+      (r) => r.personagens,
+    ),
+  );
+
+  async function colocarNaCena(p: PersonagemNaLista) {
+    const centro = centroRef.current ?? { x: 0, y: 0 };
+    const ponto = visao.mapa ? pontoLivre(centro, visao.tokens, visao.mapa) : centro;
+    const r = await enviar({
+      type: 'token.create',
+      nome: p.ficha.nome,
+      personagemId: p.id,
+      ...(p.foto && { imagem: p.foto }),
+      ...ponto,
+    });
+    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para pôr na cena', text: r.motivo });
+  }
+
+  return (
+    <section aria-label="Personagens do mestre" className="col" style={{ gap: 8 }}>
+      <div className="row between">
+        <span className="lab">Personagens do mestre</span>
+        <Link
+          className="btn ghost sm"
+          to={`/personagens/novo/ficha?caso=${encodeURIComponent(campanhaId)}`}
+          title="Montar nova ficha completa"
+        >
+          <Icon name="plus" size="sm" />
+          Nova ficha
+        </Link>
+      </div>
+      <Async uso={uso} falha="Não deu para carregar suas fichas." esqueleto={<Skeleton />}>
+        {(lista) => {
+          const doCaso = lista.filter((p) => p.campanhaId === campanhaId);
+          if (doCaso.length === 0) {
+            return (
+              <p className="small muted">
+                Crie uma ficha completa para o mestre neste caso para colocá-la na cena e no
+                combate.
+              </p>
+            );
+          }
+          return (
+            <ul className="mesa-mapas">
+              {doCaso.map((p) => {
+                const naCena = visao.tokens.some((t) => t.personagemId === p.id);
+                return (
+                  <li key={p.id} className="mapa-na-lista">
+                    <span className="mesa-avatar" aria-hidden="true">
+                      {iniciais(p.ficha.nome)}
+                    </span>
+                    <div className="mapa-info">
+                      <b title={p.ficha.nome}>{p.ficha.nome}</b>
+                      <div className="small muted">
+                        PV {p.ficha.pv}/{p.ficha.pvMax} · PD {p.ficha.pd}/{p.ficha.pdMax}
+                      </div>
+                    </div>
+                    <Link
+                      className="btn ghost sm"
+                      to={linkDaFicha(p.id)}
+                      title="Abrir ficha completa"
+                    >
+                      Ficha
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant={naCena ? 'ghost' : 'secondary'}
+                      disabled={naCena || !visao.mapa}
+                      onClick={() => void colocarNaCena(p)}
+                    >
+                      {naCena ? 'Na cena' : 'Pôr na cena'}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        }}
+      </Async>
+    </section>
   );
 }
 
@@ -264,6 +365,13 @@ export function Npcs({ campanhaId, visao, enviar, centroRef, nomes, aoTrazerGrup
           mapa entra.
         </p>
       </div>
+
+      <PersonagensDoMestre
+        campanhaId={campanhaId}
+        visao={visao}
+        enviar={enviar}
+        centroRef={centroRef}
+      />
 
       <NovoNpc campanhaId={campanhaId} enviar={enviar} centroRef={centroRef} visao={visao} />
 

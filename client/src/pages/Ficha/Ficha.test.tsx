@@ -43,7 +43,7 @@ describe('Ficha em branco', () => {
 
     expect(await screen.findByText('Ficha em branco')).toBeDefined();
     expect(screen.getByLabelText<HTMLInputElement>('Nível').value).toBe('3');
-    expect(dadoDe('Físico')).toBe('d6');
+    expect(dadoDe('Físico')).toBe('d4');
     expect(dadoDe('Luta')).toBe('d4');
     expect(screen.getByLabelText<HTMLInputElement>('PV máximo').value).toBe('10');
     expect(screen.getByText('O Sinal de Santa Ermida')).toBeDefined();
@@ -60,8 +60,8 @@ describe('Ficha em branco', () => {
     await screen.findByText('Ficha em branco');
 
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Rui Batista' } });
-    escolherDado('Mente', 'd10');
-    expect(screen.getByText('Mente d10 passa do limite da criação (d8).')).toBeDefined();
+    escolherDado('Mente', 'd12');
+    expect(screen.getByText('Mente d12 passa do limite da criação (d10).')).toBeDefined();
     expect(screen.getByText('1 aviso', { exact: false })).toBeDefined();
 
     fireEvent.click(salvarFicha());
@@ -72,7 +72,7 @@ describe('Ficha em branco', () => {
     const post = chamadas.find((c) => c.metodo === 'POST');
     expect(post?.corpo).toMatchObject({
       sistemaId: 'sys_op2',
-      ficha: { nome: 'Rui Batista', atributos: { mente: 'd10' } },
+      ficha: { nome: 'Rui Batista', atributos: { mente: 'd12' } },
     });
     await waitFor(() => {
       expect(endereco()).toBe('/personagens');

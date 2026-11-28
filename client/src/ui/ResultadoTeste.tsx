@@ -23,6 +23,8 @@ export interface ResultadoTesteProps {
   total: number;
   dt: number;
   veredito: Veredito;
+  /** Quando verdadeiro (jogador), mostra só o total sem revelar DT nem sucesso/falha. */
+  ocultarVeredito?: boolean;
   /** O que mudou na ficha: "Gambiarra usada: −2 PV." */
   nota?: ReactNode;
   /** Apagado: um resultado antigo, como "antes da edição". */
@@ -45,12 +47,16 @@ export function ResultadoTeste({
   total,
   dt,
   veredito,
+  ocultarVeredito = false,
   nota,
   apagado,
 }: ResultadoTesteProps) {
   const v = VEREDITOS[veredito];
   return (
-    <section className={cx('result', v.tom, apagado && 'apagado')} aria-label="Resultado do teste">
+    <section
+      className={cx('result', !ocultarVeredito && v.tom, apagado && 'apagado')}
+      aria-label="Resultado do teste"
+    >
       <div className="result-h">
         <span>{titulo}</span>
         <span>{origem === 'virtual' ? 'Dados virtuais' : 'Dados físicos'}</span>
@@ -71,10 +77,12 @@ export function ResultadoTeste({
           ))}
         </div>
         <div className="result-total">
-          <span className={cx('num', v.cor)}>{total}</span>
-          <span className={cx('verdict', v.cor)}>
-            {v.texto} · DT {dt}
-          </span>
+          <span className={cx('num', !ocultarVeredito && v.cor)}>{total}</span>
+          {!ocultarVeredito && (
+            <span className={cx('verdict', v.cor)}>
+              {v.texto} · DT {dt}
+            </span>
+          )}
         </div>
       </div>
       {nota && <Note className="result-nota">{nota}</Note>}

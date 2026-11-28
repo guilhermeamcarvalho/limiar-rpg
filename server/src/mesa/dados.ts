@@ -187,8 +187,8 @@ function semOMapa(salvo: Partial<EstadoDaMesa>): Partial<RestoDaMesa> {
 
 /** O que vai para `table_states`: campo a campo, para um campo novo no estado não ficar de fora. */
 function restoDe(estado: EstadoDaMesa): RestoDaMesa {
-  const { nevoa, rodada, trilha, guia, escudo } = estado;
-  return { nevoa, rodada, trilha, guia, escudo };
+  const { nevoa, rodada, combate = null, trilha, guia, escudo } = estado;
+  return { nevoa, rodada, combate, trilha, guia, escudo };
 }
 
 /** Quem guarda cada pista no caso (`clue_holders`), já com título, texto e imagem para sobreviver à troca de mapa. */

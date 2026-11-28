@@ -19,6 +19,9 @@ const TIPOS_REGISTRADOS: ReadonlySet<TipoDeEvento> = new Set([
   'map.activated',
   'audio.changed',
   'round.started',
+  'combat.started',
+  'combat.roundChanged',
+  'combat.ended',
 ]);
 
 export function ehEventoRegistrado(evento: EventoDaMesa): boolean {
@@ -227,6 +230,12 @@ export function aplicarEvento(mesa: MesaNoCliente, evento: EventoDaMesa): MesaNo
         : [...visao.rodada.agiram, evento.userId];
       return { ...mesa, seq, eventos, visao: { ...visao, rodada: { ...visao.rodada, agiram } } };
     }
+    case 'combat.updated':
+      return { ...mesa, seq, eventos, visao: { ...visao, combate: evento.combate } };
+    case 'combat.started':
+    case 'combat.roundChanged':
+    case 'combat.ended':
+      return { ...mesa, seq, eventos };
     case 'room.updated':
       return {
         ...mesa,

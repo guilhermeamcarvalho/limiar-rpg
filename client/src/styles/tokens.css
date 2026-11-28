@@ -69,6 +69,8 @@
   --gold: #e3b552;
   --gold-dark: #6b5520;
   --gold-a08: rgba(227, 181, 82, 0.1);
+  --gold-a14: rgba(212, 165, 92, 0.14);
+  --gold-a50: rgba(212, 165, 92, 0.5);
 
   /* Verde: sucesso */
   --green: #4a9139;
@@ -81,6 +83,8 @@
   /* Azul: informação e PD */
   --blue: #3a7fc4;
   --blue-hi: #7bb3ea;
+  --blue-a14: rgba(58, 127, 196, 0.14);
+  --blue-a35: rgba(58, 127, 196, 0.35);
 
   /* Marca do Discord: só no botão "Entrar com Discord" */
   --discord: #5865f2;
@@ -131,10 +135,17 @@
   /* Sombras e véus */
   --scrim: rgba(5, 4, 4, 0.78); /* atrás de modais */
   --veil: rgba(0, 0, 0, 0.55); /* faixa escura sobre imagem */
+  --black-a85: rgba(0, 0, 0, 0.85); /* contorno legível sobre mapa */
+  --white-a02: rgba(255, 255, 255, 0.02);
+  --white-a04: rgba(255, 255, 255, 0.04);
+  --white-a06: rgba(255, 255, 255, 0.06);
+  --white-a08: rgba(255, 255, 255, 0.08);
+  --white-a16: rgba(255, 255, 255, 0.16);
   --white-a35: rgba(255, 255, 255, 0.35); /* trilho do indicador de carregamento */
   --red-hi-a60: rgba(224, 86, 60, 0.6); /* contorno tracejado de alvo */
   --red-hi-a70: rgba(224, 86, 60, 0.7); /* brilho de token selecionado */
   --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.6); /* fichas e tokens */
+  --shadow-menu: 0 12px 28px rgba(0, 0, 0, 0.45); /* listas suspensas */
   --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.6); /* menus e avisos */
   --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.6); /* painéis flutuantes */
   --shadow-xl: 0 30px 80px rgba(0, 0, 0, 0.8); /* modais */

@@ -5,6 +5,7 @@
 import { useId, useState, type SyntheticEvent } from 'react';
 import {
   espacosDeItens,
+  espacosOcupados,
   nomeDaPericia,
   type FichaOp2,
   type ItemDaFicha,
@@ -73,7 +74,7 @@ function Itens({
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const espacos = espacosDeItens(ficha.atributos);
-  const ocupados = ficha.itens.length;
+  const ocupados = espacosOcupados(ficha.itens);
 
   function adicionar(e: SyntheticEvent) {
     e.preventDefault();
@@ -84,7 +85,10 @@ function Itens({
     }
     mudar((f) => ({
       ...f,
-      itens: [...f.itens, { id: novoIdDeItem(f.itens, Date.now()), nome: limpo, descricao: '' }],
+      itens: [
+        ...f.itens,
+        { id: novoIdDeItem(f.itens, Date.now()), nome: limpo, descricao: '', espacos: 1 },
+      ],
     }));
     setNome('');
     setErro(null);

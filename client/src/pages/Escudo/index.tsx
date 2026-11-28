@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { io, type Socket } from 'socket.io-client';
 import {
+  fichaNova,
   modeloPadraoDoEscudo,
   tituloDaPagina,
   type ComandoDaMesa,
@@ -12,6 +13,8 @@ import {
   type ItemDoInventario,
   type MapaNaMesa,
   type NotasDoEscudo,
+  type Personagem,
+  type PersonagemNaLista,
   type PersonagemNaMesa,
   type PistaNaMesa,
   type PoiNaMesa,
@@ -20,6 +23,7 @@ import {
 } from '@membrana/shared';
 import { ErroDaApi, pedir } from '../../auth/api.ts';
 import { linkDaCampanha } from '../../casos/formatos.ts';
+import { urlDaImagem } from '../../mesa/prontos.ts';
 import { FerramentaDePistas } from '../../mesa/painel/Pistas.tsx';
 import { EditorPoi } from '../../mestre/EditorPoi.tsx';
 import { MiniMapaSeletor } from '../../mestre/MiniMapaSeletor.tsx';
@@ -32,10 +36,13 @@ import {
   Input,
   Modal,
   Skeleton,
+  Tag,
   Textarea,
   useCarga,
   useToast,
 } from '../../ui/index.ts';
+import { useSalvar } from '../Ficha/comum.tsx';
+import { EdicaoDaFicha } from '../Ficha/Edicao.tsx';
 import { BlocosEditaveis } from './BlocosEditaveis.tsx';
 import { PainelRelogiosESegredos } from './Relogio.tsx';
 import './escudo.css';
@@ -53,15 +60,22 @@ interface DadosDoEscudo {
 
 function SalaNoEscudo({
   sala,
+  salas,
+  mapa,
+  campanhaId,
   qtdPois,
   aoExecutar,
 }: {
   sala: SalaNaMesa;
+  salas: readonly SalaNaMesa[];
+  mapa: MapaNaMesa | null;
+  campanhaId: string;
   qtdPois: number;
   aoExecutar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
 }) {
   const avisos = useToast();
   const [aberto, setAberto] = useState(false);
+  const [mapaAberto, setMapaAberto] = useState(false);
   const [nome, setNome] = useState(sala.nome);
   const [notas, setNotas] = useState(sala.notasMestre);
   const [salvando, setSalvando] = useState(false);
@@ -111,9 +125,21 @@ function SalaNoEscudo({
         </div>
         <div className="row" style={{ gap: 4 }}>
           {qtdPois > 0 && (
-            <span className="small muted">
+            <span className="small muted tabular">
               {qtdPois === 1 ? '1 POI' : `${String(qtdPois)} POIs`}
             </span>
+          )}
+          {mapa && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<Icon name="map" size="sm" />}
+              aria-label={`Ver ${sala.nome} no mapa`}
+              title="Ver no mapa"
+              onClick={() => {
+                setMapaAberto(true);
+              }}
+            />
           )}
           <Button
             size="sm"
@@ -151,6 +177,7 @@ function SalaNoEscudo({
             <Button
               size="sm"
               variant="ghost"
+              className="btn-excluir"
               icon={<Icon name="trash" size="sm" />}
               aria-label={`Remover sala ${sala.nome}`}
               onClick={() => {
@@ -218,6 +245,72 @@ function SalaNoEscudo({
           </div>
         </div>
       )}
+
+      {mapa && (
+        <Modal
+          open={mapaAberto}
+          title={`Sala no mapa · ${sala.nome}`}
+          onClose={() => {
+            setMapaAberto(false);
+          }}
+        >
+          <div className="col" style={{ gap: 12 }}>
+            <div
+              className="escudo-mapa-preview"
+              style={{ aspectRatio: `${String(mapa.largura)} / ${String(mapa.altura)}` }}
+            >
+              <img src={urlDaImagem(mapa.imagem)} alt={mapa.nome} />
+              <svg
+                className="escudo-mapa-preview-svg"
+                viewBox={`0 0 ${String(mapa.largura)} ${String(mapa.altura)}`}
+                preserveAspectRatio="xMidYMid meet"
+                aria-hidden="true"
+              >
+                {salas.map((outra) =>
+                  outra.id !== sala.id && outra.area.length >= 3 ? (
+                    <polygon
+                      key={outra.id}
+                      points={outra.area.map((p) => `${String(p.x)},${String(p.y)}`).join(' ')}
+                      className="escudo-minimapa-sala-existente"
+                    />
+                  ) : null,
+                )}
+                {sala.area.length >= 3 && (
+                  <polygon
+                    points={sala.area.map((p) => `${String(p.x)},${String(p.y)}`).join(' ')}
+                    className="escudo-mapa-sala-destaque"
+                  />
+                )}
+                {sala.area[0] && (
+                  <text
+                    x={sala.area[0].x + 8}
+                    y={sala.area[0].y + 20}
+                    className="escudo-mapa-sala-rotulo"
+                  >
+                    {sala.nome.toUpperCase()}
+                  </text>
+                )}
+              </svg>
+            </div>
+            {sala.area.length < 3 && (
+              <p className="small muted">
+                Esta sala ainda não tem contorno demarcado no mapa. Abra a mesa para desenhar a
+                área.
+              </p>
+            )}
+            <div className="row between wrapx" style={{ gap: 8 }}>
+              <span className="small muted">{mapa.nome}</span>
+              <Link
+                className="btn primary sm"
+                to={`${linkDaCampanha(campanhaId, 'mesa')}?sala=${encodeURIComponent(sala.id)}`}
+              >
+                <Icon name="map" size="sm" />
+                Abrir na mesa
+              </Link>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -242,12 +335,122 @@ function areaRetangular(
   ];
 }
 
+function FichasCompletasDoMestre({
+  campanhaId,
+  campanhaNome,
+}: {
+  campanhaId: string;
+  campanhaNome: string;
+}) {
+  const avisos = useToast();
+  const [modalAberto, setModalAberto] = useState(false);
+  const [versao, setVersao] = useState(0);
+  const uso = useCarga(`/api/me/personagens#escudo-${String(versao)}`, (signal) =>
+    pedir<{ personagens?: PersonagemNaLista[] }>('/api/me/personagens', { signal }).then(
+      (r) => r.personagens ?? [],
+    ),
+  );
+  const envio = useSalvar(async (ficha) => {
+    const { personagem } = await pedir<{ personagem: Personagem }>('/api/personagens', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ campanhaId, usarNoCaso: false, ficha }),
+    });
+    avisos.show({
+      type: 'ok',
+      title: 'Personagem criado',
+      text: `${personagem.ficha.nome}, no Escudo de ${campanhaNome}.`,
+    });
+    setModalAberto(false);
+    setVersao((v) => v + 1);
+  });
+
+  return (
+    <div className="col" style={{ gap: 10 }}>
+      <div className="row between wrapx" style={{ gap: 8 }}>
+        <span className="small muted">
+          Monte fichas completas para NPCs e ameaças entrarem na cena e no combate.
+        </span>
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={<Icon name="plus" size="sm" />}
+          onClick={() => {
+            setModalAberto(true);
+          }}
+        >
+          Montar ficha completa
+        </Button>
+      </div>
+
+      <Modal
+        open={modalAberto}
+        size="lg"
+        title="Montar ficha completa"
+        onClose={() => {
+          setModalAberto(false);
+        }}
+      >
+        <EdicaoDaFicha
+          inicial={fichaNova({ nivel: 1 })}
+          titulo="Ficha em branco"
+          contexto={
+            <div className="row wrapx" style={{ gap: 6 }}>
+              <Tag tone="gold">{campanhaNome}</Tag>
+              <Tag>Ordem Paranormal II</Tag>
+            </div>
+          }
+          rotuloDeSalvar="Criar personagem"
+          salvando={envio.salvando}
+          errosDoServidor={envio.falha ? envio.erros : envio.erros}
+          falha={envio.falha}
+          aoCancelar={() => {
+            setModalAberto(false);
+          }}
+          aoSalvar={(ficha) => void envio.salvar(ficha)}
+        />
+      </Modal>
+
+      <Async uso={uso} falha="Não deu para carregar as fichas completas." esqueleto={<Skeleton />}>
+        {(lista) => {
+          const doCaso = lista.filter((p) => p.campanhaId === campanhaId);
+          if (doCaso.length === 0) return null;
+          return (
+            <div className="col" style={{ gap: 6 }}>
+              <span className="lab">Fichas completas do mestre ({doCaso.length})</span>
+              {doCaso.map((p) => (
+                <div
+                  key={p.id}
+                  className="mesa-bloco card row between"
+                  style={{ padding: '8px 10px', gap: 8 }}
+                >
+                  <div className="col" style={{ gap: 2, minWidth: 0 }}>
+                    <b className="small">{p.ficha.nome}</b>
+                    <span className="small muted tabular">
+                      PV {p.ficha.pv}/{p.ficha.pvMax} · PD {p.ficha.pd}/{p.ficha.pdMax}
+                    </span>
+                  </div>
+                  <Link className="btn ghost sm" to={`/personagens/${p.id}/ficha`}>
+                    Abrir ficha
+                  </Link>
+                </div>
+              ))}
+            </div>
+          );
+        }}
+      </Async>
+    </div>
+  );
+}
+
 function PainelDeSalas({
+  campanhaId,
   salas,
   pois,
   mapa,
   aoExecutar,
 }: {
+  campanhaId: string;
   salas: readonly SalaNaMesa[];
   pois: readonly PoiNaMesa[];
   mapa: MapaNaMesa | null;
@@ -328,6 +531,7 @@ function PainelDeSalas({
               ponto={pontoModal}
               aoMudar={setPontoModal}
               rotulo="Posição da sala no mapa"
+              salas={salas}
             />
           )}
           <Field label="Notas secretas">
@@ -366,6 +570,9 @@ function PainelDeSalas({
             <SalaNoEscudo
               key={sala.id}
               sala={sala}
+              salas={salas}
+              mapa={mapa}
+              campanhaId={campanhaId}
               qtdPois={pois.filter((p) => p.salaId === sala.id).length}
               aoExecutar={aoExecutar}
             />
@@ -684,6 +891,7 @@ export function Escudo() {
                   <SecaoEscudo id="escudo-salas" titulo={`Salas (${String(escudo.salas.length)})`}>
                     <div className="card col" style={{ padding: 16, gap: 12 }}>
                       <PainelDeSalas
+                        campanhaId={id}
                         salas={escudo.salas}
                         pois={escudo.pois}
                         mapa={escudo.mapa}
@@ -745,8 +953,13 @@ export function Escudo() {
                     titulo={`Ameaças e NPCs (${String(notas.ameacas.length)})`}
                   >
                     <div className="card col" style={{ padding: 16, gap: 12 }}>
+                      <FichasCompletasDoMestre
+                        campanhaId={escudo.campanha.id}
+                        campanhaNome={escudo.campanha.nome}
+                      />
                       <BlocosEditaveis
                         blocos={notas.ameacas}
+                        comFicha
                         rotuloAdicionar="Adicionar ameaça ou NPC"
                         tituloModal="Nova ameaça ou NPC"
                         placeholderTitulo="Ex.: Vulto na estática, Delegado…"

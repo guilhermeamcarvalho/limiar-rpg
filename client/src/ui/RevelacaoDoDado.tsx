@@ -42,7 +42,11 @@ const TIPOS: readonly TipoDeDado[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20'];
 const ehTipo = (t: string): t is TipoDeDado => (TIPOS as readonly string[]).includes(t);
 
 /** De um teste resolvido (na Mesa ou na Ficha). */
-export function revelacaoDoTeste(registro: RegistroDeTeste): Revelacao {
+export function revelacaoDoTeste(
+  registro: RegistroDeTeste,
+  opcoes: { ocultarVeredito?: boolean } = {},
+): Revelacao {
+  const ocultar = opcoes.ocultarVeredito === true;
   return {
     chave: registro.id,
     titulo: `${nomeDaPericia(registro.periciaId)} · ${nomeDoAtributo(registro.atributo)}`,
@@ -59,8 +63,10 @@ export function revelacaoDoTeste(registro: RegistroDeTeste): Revelacao {
       descartado: d.descartado,
     })),
     total: registro.resultado.total,
-    veredito: registro.resultado.veredito,
-    dt: registro.resultado.dt,
+    ...(!ocultar && {
+      veredito: registro.resultado.veredito,
+      dt: registro.resultado.dt,
+    }),
     girar: registro.origem === 'virtual',
   };
 }
@@ -115,7 +121,6 @@ export function RevelacaoDoDado({
   const girar = revelacao.girar && !querMenosMovimento();
   const [girando, setGirando] = useState(girar);
   const [sorteado, setSorteado] = useState(revelacao.total);
-  const [parado, setParado] = useState(false);
   const fechar = useRef(aoFechar);
   useEffect(() => {
     fechar.current = aoFechar;
@@ -139,24 +144,27 @@ export function RevelacaoDoDado({
     };
   }, [girar, revelacao.total]);
 
-  // Some sozinho depois de um tempo; com o mouse em cima, espera.
+  // Some sozinho depois de um tempo, mesmo se o cursor estiver no centro da tela.
   useEffect(() => {
-    if (girando || parado) return;
+    if (girando) return;
     const t = window.setTimeout(() => {
       fechar.current();
     }, VISIVEL_MS);
     return () => {
       window.clearTimeout(t);
     };
-  }, [girando, parado]);
+  }, [girando]);
 
   useEffect(() => {
     function aoTeclar(e: KeyboardEvent) {
-      if (e.key === 'Escape') fechar.current();
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        fechar.current();
+      }
     }
-    window.addEventListener('keydown', aoTeclar);
+    window.addEventListener('keydown', aoTeclar, { capture: true });
     return () => {
-      window.removeEventListener('keydown', aoTeclar);
+      window.removeEventListener('keydown', aoTeclar, { capture: true });
     };
   }, []);
 
@@ -176,12 +184,6 @@ export function RevelacaoDoDado({
       <section
         className={cx('revelacao', !girando && cor, !girando && 'pronta')}
         aria-label="Resultado da rolagem"
-        onMouseEnter={() => {
-          setParado(true);
-        }}
-        onMouseLeave={() => {
-          setParado(false);
-        }}
       >
         <span className="sr-only" role="status">
           {girando ? '' : anuncio}

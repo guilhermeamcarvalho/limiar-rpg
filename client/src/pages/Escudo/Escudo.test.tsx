@@ -215,6 +215,14 @@ describe('Escudo do mestre', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Adicionar sala no mapa' }));
     expect(await screen.findByText('Porão')).toBeDefined();
 
+    // Ver sala no mapa abre o modal com a prévia do mapa e o link para a mesa.
+    fireEvent.click(screen.getByRole('button', { name: 'Ver Cabine no mapa' }));
+    const modalMapa = await screen.findByRole('dialog', { name: 'Sala no mapa · Cabine' });
+    expect(
+      within(modalMapa).getByRole('link', { name: 'Abrir na mesa' }).getAttribute('href'),
+    ).toBe('/campanhas/cmp_1/mesa?sala=rom_1');
+    fireEvent.click(within(modalMapa).getByRole('button', { name: 'Fechar' }));
+
     // Remover exige confirmação em dois passos (Cancelar volta sem apagar).
     fireEvent.click(screen.getByRole('button', { name: 'Remover sala Cabine' }));
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDefined();
@@ -250,5 +258,11 @@ describe('Escudo do mestre', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Restaurar modelo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar restauração' }));
     expect(screen.getByText('0/6 segmentos')).toBeDefined();
+
+    // Montar ficha completa abre modal no próprio Escudo.
+    fireEvent.click(screen.getByRole('button', { name: 'Montar ficha completa' }));
+    const modalFicha = await screen.findByRole('dialog', { name: 'Montar ficha completa' });
+    expect(within(modalFicha).getByRole('button', { name: 'Criar personagem' })).toBeDefined();
+    fireEvent.click(within(modalFicha).getByRole('button', { name: 'Fechar' }));
   });
 });

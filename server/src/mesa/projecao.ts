@@ -5,6 +5,7 @@
 import {
   sobBreu,
   type EstadoDaMesa,
+  type EstadoDoCombate,
   type EventoDaMesa,
   type ItemDoInventario,
   type Papel,
@@ -115,6 +116,25 @@ const itemVisivel = (
   item: Pick<ItemDoInventario, 'personagemId' | 'apresentada'>,
 ) => item.apresentada || (quem.personagemId !== null && item.personagemId === quem.personagemId);
 
+function combatParaJogador(
+  quem: Espectador,
+  combate: EstadoDoCombate | null | undefined,
+  estado: EstadoDaMesa,
+): EstadoDoCombate | null {
+  if (!combate) return null;
+  const visiveis = combate.participantes.filter((p) => {
+    if (p.oculto) return false;
+    if (p.tokenId) {
+      const tok = estado.tokens.find((t) => t.id === p.tokenId);
+      if (tok && !tokenVisivel(quem, tok, estado)) return false;
+    }
+    return true;
+  });
+  const atualId = combate.participantes[combate.turnoIndex]?.id;
+  const turnoIndex = atualId ? visiveis.findIndex((p) => p.id === atualId) : -1;
+  return { ...combate, participantes: visiveis, turnoIndex };
+}
+
 export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaMesa {
   const comum = {
     mapa: estado.mapa,
@@ -127,6 +147,7 @@ export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaM
     return {
       papel: 'mestre',
       ...comum,
+      combate: estado.combate ?? null,
       tokens: estado.tokens,
       props: estado.props,
       pois: estado.pois,
@@ -140,6 +161,7 @@ export function projetarEstado(quem: Espectador, estado: EstadoDaMesa): VisaoDaM
   return {
     papel: 'jogador',
     ...comum,
+    combate: combatParaJogador(quem, estado.combate, estado),
     tokens: estado.tokens.filter((t) => tokenVisivel(quem, t, estado)),
     props: estado.props.filter((p) => propVisivel(quem, p, estado)),
     pois: estado.pois.map(poiParaJogador),
@@ -244,9 +266,15 @@ function projetarParaJogador(
     case 'audio.changed':
     case 'round.started':
     case 'round.acted':
+    case 'combat.started':
+    case 'combat.roundChanged':
+    case 'combat.ended':
     case 'mist.changed':
     case 'board.pinged':
       return [evento];
+
+    case 'combat.updated':
+      return [{ ...evento, combate: combatParaJogador(quem, evento.combate, depois) }];
 
     case 'mesa.estado':
       return [{ ...evento, estado: projetarEstado(quem, depois) }];

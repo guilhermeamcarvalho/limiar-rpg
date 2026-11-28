@@ -128,42 +128,51 @@ function tipoDeDadoVisual(expressao: string): TipoDeDado {
 
 function CartaoDeTesteNoChat({
   registro,
+  em,
   papel,
   nomesDePersonagens,
 }: {
   registro: RegistroDeTeste;
+  em: string;
   papel: Papel;
   nomesDePersonagens: Readonly<Record<string, string>>;
 }) {
+  const mestre = papel === 'mestre';
   const v = COR_DO_VEREDITO[registro.resultado.veredito];
   const quem =
     registro.personagemNome ??
     nomesDePersonagens[registro.personagemId] ??
     registro.autor?.nome ??
     'Personagem';
-  const origem =
-    registro.origem === 'fisico'
-      ? ' · dados físicos'
-      : papel === 'mestre'
-        ? ' · dados virtuais'
-        : '';
+  const hora = horarioCurto(em);
+  const origemRotulo =
+    registro.origem === 'fisico' ? 'dados físicos' : mestre ? 'dados virtuais' : null;
 
   return (
-    <div className={cx('rmsg', v.classe)}>
-      <div className="row between">
-        <b className="small">
-          {quem} · {nomeDaPericia(registro.periciaId)}
-        </b>
-        <span className={cx('verdict', v.cor)}>{textoDoVeredito(registro.resultado.veredito)}</span>
+    <div className={cx('rmsg', mestre && v.classe)}>
+      <div className="row between" style={{ gap: 8, alignItems: 'center' }}>
+        <div className="row wrapx" style={{ gap: 6, alignItems: 'baseline', minWidth: 0 }}>
+          <b className="small">
+            {quem} · {nomeDaPericia(registro.periciaId)}
+          </b>
+          {hora && <span className="rmsg-hora">{hora}</span>}
+        </div>
+        <span className="rmsg-total">{registro.resultado.total}</span>
       </div>
-      <div className="row wrapx rmsg-dados">
-        {registro.resultado.dados.map((d, i) => (
-          <Die key={i} type={d.tipo} value={d.valor} role={d.papel} discarded={d.descartado} />
-        ))}
-        <span className="small muted">
-          = {registro.resultado.total} contra DT {registro.resultado.dt}
-          {origem}
-        </span>
+      <div className="row between wrapx rmsg-dados" style={{ alignItems: 'center' }}>
+        <div className="row wrapx" style={{ gap: 4, alignItems: 'center' }}>
+          {registro.resultado.dados.map((d, i) => (
+            <Die key={i} type={d.tipo} value={d.valor} role={d.papel} discarded={d.descartado} />
+          ))}
+        </div>
+        <div className="row wrapx" style={{ gap: 6, alignItems: 'center' }}>
+          {mestre && (
+            <span className={cx('verdict', v.cor)}>
+              {textoDoVeredito(registro.resultado.veredito)} · DT {registro.resultado.dt}
+            </span>
+          )}
+          {origemRotulo && <span className="rmsg-microtag">{origemRotulo}</span>}
+        </div>
       </div>
     </div>
   );
@@ -178,22 +187,32 @@ function CartaoDeRolagemLivre({
 }) {
   const forma = tipoDeDadoVisual(item.expressao);
   const simples = item.dados.length === 1 && !/[+-]/.test(item.expressao);
+  const em = 'em' in item && typeof item.em === 'string' ? item.em : '';
+  const hora = em ? horarioCurto(em) : '';
 
   return (
     <div className={cx('rmsg', item.secreta ? 'secreta' : 'neutro')}>
-      <div className="row between" style={{ gap: 8 }}>
-        <b className="small">
-          {autorNome} · {item.expressao}
-          {item.secreta && <span className="small gold"> · secreta</span>}
-        </b>
+      <div className="row between" style={{ gap: 8, alignItems: 'center' }}>
+        <div className="row wrapx" style={{ gap: 6, alignItems: 'baseline', minWidth: 0 }}>
+          <b className="small">
+            {autorNome} · {item.expressao}
+          </b>
+          {hora && <span className="rmsg-hora">{hora}</span>}
+        </div>
         <span className={cx('rmsg-total', item.secreta && 'gold')}>{item.total}</span>
       </div>
-      {!simples && (
-        <div className="row wrapx rmsg-dados">
-          {item.dados.map((valor, i) => (
-            <Die key={i} type={forma} value={valor} role={item.secreta ? 'bonus' : 'pericia'} />
-          ))}
-          {item.secreta && <span className="small muted">só o mestre vê</span>}
+      {(!simples || item.secreta) && (
+        <div className="row between wrapx rmsg-dados" style={{ alignItems: 'center' }}>
+          {!simples ? (
+            <div className="row wrapx" style={{ gap: 4, alignItems: 'center' }}>
+              {item.dados.map((valor, i) => (
+                <Die key={i} type={forma} value={valor} role={item.secreta ? 'bonus' : 'pericia'} />
+              ))}
+            </div>
+          ) : (
+            <span />
+          )}
+          {item.secreta && <span className="rmsg-microtag gold">secreta · só o mestre vê</span>}
         </div>
       )}
     </div>
@@ -435,6 +454,7 @@ export function Chat({
                 <CartaoDeTesteNoChat
                   key={item.seq}
                   registro={item.registro}
+                  em={item.registro.em}
                   papel={papel}
                   nomesDePersonagens={nomesDePersonagens}
                 />
@@ -558,11 +578,10 @@ export function Chat({
           />
           <Button
             type="button"
-            variant="ghost"
-            size="sm"
+            variant="secondary"
             icon={<Icon name="dice" size="sm" />}
-            aria-label="Atalho para rolar dados"
-            title="Inserir comando /r para rolar dados"
+            aria-label="Rolar dado"
+            title="Rolar dado (/r)"
             onClick={() => {
               setTexto((t) => (t.startsWith('/r') ? t : `/r ${t}`));
               campoRef.current?.focus();

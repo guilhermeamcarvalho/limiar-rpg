@@ -32,7 +32,7 @@
 }
 .ficha-pericias {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--s3) var(--s4);
 }
 
@@ -50,6 +50,31 @@
 /* Modo de edição na tela Ficha: terceira coluna com o aviso de testes pausados. */
 .ficha-grade.com-lateral {
   grid-template-columns: minmax(0, 320px) minmax(0, 1fr) minmax(0, 340px);
+}
+
+/* Dentro do modal (Mesa / Escudo): evita espremer as perícias em 3 colunas estreitas. */
+.modal .ficha-edicao {
+  padding-bottom: 0;
+}
+.modal .ficha-grade,
+.modal .ficha-grade.com-lateral {
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+}
+.modal .ficha-grade.com-lateral > :last-child {
+  grid-column: 1 / -1;
+}
+.modal .ficha-tres {
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+}
+.modal .ficha-direita {
+  grid-column: 1 / -1;
+}
+@media (max-width: 780px) {
+  .modal .ficha-grade,
+  .modal .ficha-grade.com-lateral,
+  .modal .ficha-tres {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* ---------- Tela Ficha (artboard 08) ---------- */
@@ -371,4 +396,109 @@
 .ficha-pericias .dado-opcao.on {
   background: var(--text);
   color: var(--bg-2);
+}
+
+/* ---------- Dropdown customizado de Ocupação ---------- */
+.ocupacao-combo {
+  position: relative;
+}
+
+.ocupacao-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ocupacao-input-wrap input {
+  padding-right: 34px;
+}
+
+.ocupacao-toggle {
+  position: absolute;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    background-color 140ms ease;
+}
+
+.ocupacao-toggle:hover {
+  color: var(--text);
+  background: var(--white-a06);
+}
+
+.ocupacao-menu {
+  position: absolute;
+  top: calc(100% - 14px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  box-shadow: var(--shadow-menu);
+  scrollbar-width: thin;
+  scrollbar-color: var(--white-a16) transparent;
+}
+
+.ocupacao-menu::-webkit-scrollbar {
+  width: 5px;
+}
+
+.ocupacao-menu::-webkit-scrollbar-thumb {
+  background: var(--white-a16);
+  border-radius: 999px;
+}
+
+.ocupacao-opcao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 120ms ease;
+}
+
+.ocupacao-opcao:hover,
+.ocupacao-opcao.foco {
+  background: var(--white-a08);
+}
+
+.ocupacao-opcao.selecionada {
+  background: var(--gold-a14);
+}
+
+.ocupacao-opcao-nome {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.ocupacao-opcao-hab {
+  color: var(--gold);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocupacao-toggle,
+  .ocupacao-opcao {
+    transition: none;
+  }
 }

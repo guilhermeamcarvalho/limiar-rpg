@@ -36,6 +36,7 @@ import { CamadaDeDesenhoDaSala, type TracoDaSala } from './Salas.tsx';
 import {
   arrastar,
   centralizarEm,
+  centroDaArea,
   enquadrar,
   paraOMapa,
   PASSO_DO_ZOOM,
@@ -93,6 +94,12 @@ export interface PalcoProps {
   aoAbrirPoi?: (poiId: string) => void;
   /** Clique em um marcador de pista no mapa para guardá-la ou editá-la (#87, #88). */
   aoAbrirPista?: (pistaId: string) => void;
+  /** Token que está no turno atual do combate, para receber destaque no mapa. */
+  turnoTokenId?: string | null;
+  /** Sala que o mestre pediu para mostrar/focar no mapa. */
+  salaFocada?: { salaId: string; seq: number } | null;
+  /** Sala sob o cursor do mouse na lista, para destaque suave no mapa. */
+  salaHoverId?: string | null;
 }
 
 /** Os dois toques, na tela, relativos ao palco. */
@@ -128,12 +135,17 @@ export function Palco({
   aoMarcarPonto,
   aoAbrirPoi,
   aoAbrirPista,
+  turnoTokenId = null,
+  salaFocada = null,
+  salaHoverId = null,
 }: PalcoProps) {
   const { mapa } = visao;
   const avisos = useToast();
   const caixa = useRef<HTMLDivElement>(null);
   const [tamanho, setTamanho] = useState<Tamanho | null>(null);
   const [camera, setCamera] = useState<Camera | null>(null);
+  const [salaDestacadaId, setSalaDestacadaId] = useState<string | null>(null);
+  const [ultimoFocoSalaSeq, setUltimoFocoSalaSeq] = useState(0);
   const [espaco, setEspaco] = useState(false);
   const [arrastandoMapa, setArrastandoMapa] = useState(false);
   const [selecao, setSelecao] = useState<Selecao>(null);
@@ -189,6 +201,26 @@ export function Palco({
     setCamera(enquadrar(mapa, tamanho));
     setSelecao(null);
   }, [mapa, tamanho]);
+
+  if (salaFocada && tamanho && camera && salaFocada.seq !== ultimoFocoSalaSeq) {
+    const sala = visao.salas?.find((s) => s.id === salaFocada.salaId);
+    const centro = sala ? centroDaArea(sala.area) : null;
+    setUltimoFocoSalaSeq(salaFocada.seq);
+    if (sala && centro) {
+      setCamera((c) => (c ? centralizarEm(c, centro, tamanho) : c));
+      setSalaDestacadaId(sala.id);
+    }
+  }
+
+  useEffect(() => {
+    if (!salaDestacadaId) return;
+    const timer = setTimeout(() => {
+      setSalaDestacadaId(null);
+    }, 4500);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [salaDestacadaId]);
 
   if (ultimoPulso && ultimoPulso.seq !== ultimoPulsoVisto) {
     setUltimoPulsoVisto(ultimoPulso.seq);
@@ -490,7 +522,13 @@ export function Palco({
             aoRecusar={recusado}
             cancelarArrasto={cancelarArrasto}
           />
-          {visao.salas && <CamadaDeSalas salas={visao.salas} />}
+          {visao.salas && (
+            <CamadaDeSalas
+              salas={visao.salas}
+              salaDestacadaId={salaDestacadaId}
+              salaHoverId={salaHoverId}
+            />
+          )}
           <CamadaDoBreu breu={visao.breu} mapa={mapa} mestre={mestre} />
           <CamadaDePistas
             pistas={visao.pistas}
@@ -533,6 +571,7 @@ export function Palco({
             escala={camera.escala}
             bloqueado={bloqueado}
             selecionado={selecao?.tipo === 'token' ? selecao.id : null}
+            turnoTokenId={turnoTokenId}
             aoSelecionar={selecionarToken}
             enviar={enviar}
             aoRecusar={recusado}

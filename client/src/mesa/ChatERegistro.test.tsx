@@ -148,7 +148,9 @@ describe('Chat', () => {
     expect(container.querySelector('.msg.sussurro')?.textContent).toContain(
       'Helena · só para você',
     );
-    expect(container.querySelector('.rmsg.ko')?.textContent).toContain('dados físicos');
+    const resultado = container.querySelector('.rmsg');
+    expect(resultado?.textContent).toContain('dados físicos');
+    expect(resultado?.textContent).not.toContain('DT ');
     expect(screen.getByText('Davi · 2d6+1')).toBeDefined();
   });
 
@@ -444,7 +446,7 @@ describe('Chat com muitas mensagens', () => {
     // Limpar busca restaura a lista e botão de atalho de dado preenche /r.
     fireEvent.click(screen.getByRole('button', { name: 'Limpar busca' }));
     expect(screen.getByText('Mensagem 1')).toBeDefined();
-    fireEvent.click(screen.getByRole('button', { name: 'Atalho para rolar dados' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rolar dado' }));
     expect(screen.getByRole<HTMLInputElement>('textbox', { name: 'Mensagem' }).value).toBe('/r ');
   });
 

@@ -1,6 +1,6 @@
 // Aba de itens na mesa: mostra os itens do personagem vinculado e os espaços ocupados,
 // espelhando a regra da ficha (`espacosDeItens`).
-import { espacosDeItens, type Personagem } from '@membrana/shared';
+import { espacosDeItens, espacosOcupados, type Personagem } from '@membrana/shared';
 import { pedir } from '../auth/api.ts';
 import { Async, EmptyState, Icon, Meter, Skeleton, useCarga } from '../ui/index.ts';
 
@@ -47,7 +47,7 @@ export function AbaItens({
       >
         {(p) => {
           const espacos = espacosDeItens(p.ficha.atributos);
-          const ocupados = p.ficha.itens.length;
+          const ocupados = espacosOcupados(p.ficha.itens);
 
           return (
             <div className="col" style={{ gap: 'var(--s3)' }}>

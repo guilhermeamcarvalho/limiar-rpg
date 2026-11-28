@@ -30,17 +30,24 @@ export function FichaEmBranco() {
   );
   const envio = useSalvar(async (ficha) => {
     const caso = uso.carga.estado === 'pronto' ? uso.carga.dados : null;
+    const ehMestreDoCaso = caso?.papel === 'mestre';
     const { personagem } = await pedir<{ personagem: Personagem }>('/api/personagens', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(
-        caso ? { campanhaId: caso.id, usarNoCaso: true, ficha } : { sistemaId: ID_OP2, ficha },
+        caso
+          ? { campanhaId: caso.id, usarNoCaso: !ehMestreDoCaso, ficha }
+          : { sistemaId: ID_OP2, ficha },
       ),
     });
     avisos.show({
       type: 'ok',
       title: 'Personagem criado',
-      text: caso ? `${personagem.ficha.nome}, em uso em ${caso.nome}.` : personagem.ficha.nome,
+      text: caso
+        ? ehMestreDoCaso
+          ? `${personagem.ficha.nome}, no Escudo de ${caso.nome}.`
+          : `${personagem.ficha.nome}, em uso em ${caso.nome}.`
+        : personagem.ficha.nome,
     });
     void navegar('/personagens', { replace: true });
   });

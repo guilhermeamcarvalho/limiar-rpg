@@ -7,12 +7,14 @@ import { Link, useSearchParams } from 'react-router';
 import {
   ATRIBUTOS_OP2,
   ID_OP2,
+  NIVEL_MAXIMO,
   OCUPACOES_OP2,
   PERFIS_INFO_OP2,
   PERICIAS_OP2,
   avisosDaCriacao,
   infoDoPerfil,
   ocupacaoConhecida,
+  passosDePericiaParaNivel,
   textoDoBonus,
   tituloDaPagina,
   type CampanhaDetalhe,
@@ -74,39 +76,87 @@ interface PropsDoPasso {
 
 /* ---------- 1 · Perfil ---------- */
 
-function Perfil({ r, mudar, erro }: PropsDoPasso) {
+function Perfil({
+  r,
+  mudar,
+  erro,
+  nivel,
+  aoMudarNivel,
+}: PropsDoPasso & { nivel: number; aoMudarNivel: (nivel: number) => void }) {
   const mensagem = erro('perfil');
   return (
-    <fieldset className="col criar-opcoes" aria-describedby={mensagem ? 'erro-perfil' : undefined}>
-      <legend className="sr-only">Perfil</legend>
-      <div className="g3">
-        {PERFIS_INFO_OP2.map((p) => (
-          <label key={p.id} className={cx('card criar-opcao', r.perfil === p.id && 'hl')}>
-            <input
-              type="radio"
-              name="perfil"
-              value={p.id}
-              checked={r.perfil === p.id}
-              aria-invalid={mensagem ? true : undefined}
-              onChange={() => {
-                mudar({ perfil: p.id });
-              }}
-            />
-            <span className="col" style={{ gap: 6 }}>
-              <Tag tone={TOM_DO_PERFIL[p.id]}>{p.nome}</Tag>
-              <b className="h3">{p.habilidade}</b>
-              <span className="small muted">{p.regra}</span>
-            </span>
-          </label>
-        ))}
-      </div>
-      {mensagem && (
-        <span id="erro-perfil" className="ferr">
-          <Icon name="alert" size="sm" />
-          {mensagem}
-        </span>
-      )}
-    </fieldset>
+    <div className="col" style={{ gap: 16 }}>
+      <Card className="criar-nivel">
+        <div className="col" style={{ gap: 2 }}>
+          <span className="lab">Nível inicial</span>
+          <span className="small muted">
+            +1 PV, +1 PD e +1 passo de perícia por nível acima do 1.
+          </span>
+        </div>
+        <div className="criar-nivel-ctrl">
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={nivel <= 1}
+            aria-label="Diminuir nível"
+            title="Diminuir nível"
+            onClick={() => {
+              aoMudarNivel(Math.max(1, nivel - 1));
+            }}
+          >
+            −
+          </Button>
+          <span className="criar-nivel-valor" aria-live="polite">
+            Nível {nivel}
+          </span>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={nivel >= NIVEL_MAXIMO}
+            aria-label="Aumentar nível"
+            title="Aumentar nível"
+            onClick={() => {
+              aoMudarNivel(Math.min(NIVEL_MAXIMO, nivel + 1));
+            }}
+          >
+            +
+          </Button>
+        </div>
+      </Card>
+      <fieldset
+        className="col criar-opcoes"
+        aria-describedby={mensagem ? 'erro-perfil' : undefined}
+      >
+        <legend className="sr-only">Perfil</legend>
+        <div className="g3">
+          {PERFIS_INFO_OP2.map((p) => (
+            <label key={p.id} className={cx('card criar-opcao', r.perfil === p.id && 'hl')}>
+              <input
+                type="radio"
+                name="perfil"
+                value={p.id}
+                checked={r.perfil === p.id}
+                aria-invalid={mensagem ? true : undefined}
+                onChange={() => {
+                  mudar({ perfil: p.id });
+                }}
+              />
+              <span className="col" style={{ gap: 6 }}>
+                <Tag tone={TOM_DO_PERFIL[p.id]}>{p.nome}</Tag>
+                <b className="h3">{p.habilidade}</b>
+                <span className="small muted">{p.regra}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+        {mensagem && (
+          <span id="erro-perfil" className="ferr">
+            <Icon name="alert" size="sm" />
+            {mensagem}
+          </span>
+        )}
+      </fieldset>
+    </div>
   );
 }
 
@@ -257,6 +307,7 @@ function ToquesFinais({ r, mudar, erro, permitirFisico }: PropsDoPasso) {
 function Revisao({ ficha, irPara }: { ficha: FichaOp2; irPara: (p: number) => void }) {
   const ocupacao = ocupacaoConhecida(ficha.ocupacao);
   const linhas: [string, ReactNode, number][] = [
+    ['Nível', `Nível ${String(ficha.nivel)}`, 0],
     ['Perfil', `${NOME_DO_PERFIL[ficha.perfil]} · ${infoDoPerfil(ficha.perfil).habilidade}`, 0],
     [
       'Ocupação',
@@ -346,6 +397,7 @@ function FichaAteAgora({
             />
             <div className="row wrapx" style={{ gap: 6 }}>
               <Tag tone={TOM_DO_PERFIL[perfil]}>{NOME_DO_PERFIL[perfil]}</Tag>
+              <Tag>Nível {ficha.nivel}</Tag>
               {ficha.ocupacao && <Tag>{ficha.ocupacao}</Tag>}
             </div>
           </div>
@@ -446,9 +498,8 @@ export function Criar() {
   const caso = usoDoCaso.carga.estado === 'pronto' ? usoDoCaso.carga.dados : null;
   const casoFalhou = usoDoCaso.carga.estado === 'erro';
   const outroSistema = caso !== null && caso.sistema.tipo !== 'op2';
-  const nivel = caso?.nivelInicial ?? 1;
-
   const [r, setR] = useState<Rascunho>(() => lerRascunho(userId, casoId));
+  const nivel = r.nivel ?? caso?.nivelInicial ?? 1;
   const [tentados, setTentados] = useState<ReadonlySet<number>>(() => new Set());
   const [doServidor, setDoServidor] = useState<Record<string, string>>({});
   const [falha, setFalha] = useState<string | null>(null);
@@ -521,7 +572,9 @@ export function Criar() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(
-          caso ? { campanhaId: caso.id, usarNoCaso: true, ficha } : { sistemaId: ID_OP2, ficha },
+          caso
+            ? { campanhaId: caso.id, usarNoCaso: caso.papel !== 'mestre', ficha }
+            : { sistemaId: ID_OP2, ficha },
         ),
       });
       apagarRascunho(userId, casoId);
@@ -668,7 +721,11 @@ export function Criar() {
               <h1 id="criar-titulo" className="h1" tabIndex={-1}>
                 {titulo.titulo}
               </h1>
-              <p className="muted">{titulo.texto}</p>
+              <p className="muted">
+                {passo === 3
+                  ? `Todas as perícias começam em d4. Distribua ${String(passosDePericiaParaNivel(nivel))} passos (máx. d8 na criação).`
+                  : titulo.texto}
+              </p>
             </div>
 
             <form
@@ -682,7 +739,15 @@ export function Criar() {
                 else avancar();
               }}
             >
-              {passo === 0 && <Perfil {...props} />}
+              {passo === 0 && (
+                <Perfil
+                  {...props}
+                  nivel={nivel}
+                  aoMudarNivel={(novoNivel) => {
+                    mudar({ nivel: novoNivel });
+                  }}
+                />
+              )}
               {passo === 1 && <Ocupacao {...props} />}
               {passo === 2 && (
                 <Atributos

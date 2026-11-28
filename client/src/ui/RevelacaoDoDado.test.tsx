@@ -96,4 +96,19 @@ describe('RevelacaoDoDado', () => {
     fireEvent.click(screen.getByText('Clique ou Esc para fechar'));
     expect(porTecla).toHaveBeenCalledTimes(2);
   });
+
+  it('fecha automaticamente mesmo com o cursor sobre o quadrado central', () => {
+    const aoFechar = vi.fn();
+    render(<RevelacaoDoDado revelacao={revelacaoDoTeste(registro())} aoFechar={aoFechar} />);
+
+    fireEvent.mouseEnter(screen.getByRole('region', { name: 'Resultado da rolagem' }));
+
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
+    act(() => {
+      vi.advanceTimersByTime(4600);
+    });
+    expect(aoFechar).toHaveBeenCalledTimes(1);
+  });
 });

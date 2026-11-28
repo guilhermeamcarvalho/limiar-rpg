@@ -56,10 +56,12 @@ export function ResultadoDoRegistro({
   registro,
   quando,
   apagado,
+  ocultarVeredito = false,
 }: {
   registro: RegistroDeTeste;
   quando: string;
   apagado?: boolean;
+  ocultarVeredito?: boolean;
 }) {
   const dados: DadoDoResultado[] = registro.resultado.dados.map((d) => ({
     tipo: d.tipo,
@@ -81,6 +83,7 @@ export function ResultadoDoRegistro({
       total={registro.resultado.total}
       dt={registro.resultado.dt}
       veredito={registro.resultado.veredito}
+      ocultarVeredito={ocultarVeredito}
       nota={registro.efeitos.length > 0 ? registro.efeitos.join(' ') : undefined}
       apagado={apagado ?? false}
     />
@@ -91,9 +94,11 @@ export interface FichaCompletaProps {
   inicial: Personagem;
   /** O caso do personagem, se houver e se carregou. */
   caso: CampanhaDetalhe | null;
+  /** Quando aberta em modal na Mesa, omite o breadcrumb e o cabeçalho de página. */
+  noModal?: boolean;
 }
 
-export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
+export function FichaCompleta({ inicial, caso, noModal = false }: FichaCompletaProps) {
   const avisos = useToast();
   const { sessao } = useMe();
   const eu = sessao.estado === 'logado' ? sessao.usuario.id : null;
@@ -282,40 +287,44 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
   const sistema = caso?.sistema.nome ?? NOME_DO_OP2;
   return (
     <>
-      <TopoDoCelular
-        inicio={
-          <Link className="btn icon ghost" to="/personagens" aria-label="Voltar para Personagens">
-            <Icon name="back" />
-          </Link>
-        }
-        titulo={ficha.nome || 'Sem nome'}
-        subtitulo={caso ? `${caso.nome} · ${sistema}` : `Sem caso · ${sistema}`}
-        fim={
-          podeEditar && (
-            <Button
-              variant="ghost"
-              icon={<Icon name="edit" />}
-              aria-label={`Editar a ficha de ${primeiroNome(ficha.nome) || ficha.nome}`}
-              disabled={vivo.testando}
-              onClick={() => {
-                setEditando(true);
-              }}
-            />
-          )
-        }
-      />
-      <div className="wrap col ficha-pagina">
-        <nav className="crumb" aria-label="Caminho">
-          <Link to="/personagens">Personagens</Link>
-          <Icon name="next" size="sm" />
-          {caso && (
-            <>
-              <Link to={linkDoDossie(caso.id)}>{caso.nome}</Link>
-              <Icon name="next" size="sm" />
-            </>
-          )}
-          <b aria-current="page">{ficha.nome}</b>
-        </nav>
+      {!noModal && (
+        <TopoDoCelular
+          inicio={
+            <Link className="btn icon ghost" to="/personagens" aria-label="Voltar para Personagens">
+              <Icon name="back" />
+            </Link>
+          }
+          titulo={ficha.nome || 'Sem nome'}
+          subtitulo={caso ? `${caso.nome} · ${sistema}` : `Sem caso · ${sistema}`}
+          fim={
+            podeEditar && (
+              <Button
+                variant="ghost"
+                icon={<Icon name="edit" />}
+                aria-label={`Editar a ficha de ${primeiroNome(ficha.nome) || ficha.nome}`}
+                disabled={vivo.testando}
+                onClick={() => {
+                  setEditando(true);
+                }}
+              />
+            )
+          }
+        />
+      )}
+      <div className={noModal ? 'col ficha-pagina' : 'wrap col ficha-pagina'}>
+        {!noModal && (
+          <nav className="crumb" aria-label="Caminho">
+            <Link to="/personagens">Personagens</Link>
+            <Icon name="next" size="sm" />
+            {caso && (
+              <>
+                <Link to={linkDoDossie(caso.id)}>{caso.nome}</Link>
+                <Icon name="next" size="sm" />
+              </>
+            )}
+            <b aria-current="page">{ficha.nome}</b>
+          </nav>
+        )}
 
         <Topo
           ficha={ficha}
@@ -375,6 +384,7 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
             ficha={ficha}
             dt={dt}
             dtPadrao={dtPadrao}
+            ocultarDt={caso?.papel !== 'mestre'}
             aoMudarDt={setDt}
             ajuda={ajuda}
             aoMudarAjuda={setAjuda}
@@ -389,11 +399,19 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
                 Rolando no servidor…
               </p>
             )}
-            {ultimo && <ResultadoDoRegistro registro={ultimo} quando="agora" />}
+            {ultimo && (
+              <ResultadoDoRegistro
+                registro={ultimo}
+                quando="agora"
+                ocultarVeredito={caso?.papel !== 'mestre'}
+              />
+            )}
             {revelar && (
               <RevelacaoDoDado
                 key={revelar.id}
-                revelacao={revelacaoDoTeste(revelar)}
+                revelacao={revelacaoDoTeste(revelar, {
+                  ocultarVeredito: caso?.papel !== 'mestre',
+                })}
                 aoFechar={() => {
                   setRevelar(null);
                 }}
@@ -425,6 +443,7 @@ export function FichaCompleta({ inicial, caso }: FichaCompletaProps) {
             pedido={{ ...previaFisica.pedido, dt }}
             enviando={informando}
             erro={erroFisico}
+            ocultarVeredito={caso?.papel !== 'mestre'}
             aoEnviar={(relato) => void informar(previaFisica.pedido, relato)}
             aoCancelar={() => {
               setFisico(null);

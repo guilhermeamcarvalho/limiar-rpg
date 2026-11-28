@@ -5,7 +5,7 @@
 icone: user
 ordem: 2
 
-O perfil define o estilo de jogo; a ocupação, o passado do personagem e uma habilidade.
+O perfil define o estilo de jogo e sua barra de 3 espaços; a ocupação define o passado do personagem, 2 perícias sugeridas e uma habilidade própria.
 
 ## Executor
 
@@ -14,76 +14,175 @@ resumo: Ímpeto · barra com 3 espaços
 selo: Manual
 etiquetas: Ímpeto
 
-Cada teste que falha preenche 1 espaço da barra de Ímpeto. Gaste 1 para somar **+d4** num teste, ou 3 para subir um atributo um passo até o fim da cena.
+Falhar em um teste preenche 1 espaço da barra de Ímpeto. Gaste 1 para somar **+d4** no próximo teste, ou 3 para subir um atributo um passo até o fim da cena. No nível 7 pode evoluir para 4 espaços.
 
 ## Analista
 
 categoria: Perfil
-resumo: Preparação · até 2 marcadores
-selo: Provisória
-etiquetas: Preparação
+resumo: Plano · barra com 3 espaços
+selo: Manual
+etiquetas: Plano
 
-Gaste uma ação analisando para guardar até 2 marcadores. Antes de rolar, gaste um para subir um dado em um passo.
+Gastar uma ação importante observando ou planejando (sem testar) preenche 1 espaço da barra de Plano. Gaste 1 para somar **+d4** num teste, ou 3 para subir um atributo um passo até o fim da cena.
 
 ## Vigilante
 
 categoria: Perfil
-resumo: Reflexo · age antes de todos
-selo: Provisória
+resumo: Reflexo · barra com 3 espaços
+selo: Manual
 etiquetas: Reflexo
 
-Age antes de todos quando algo inesperado acontece. Uma vez por cena, rola de novo a RB de um teste.
+Ser atacado ou surpreendido preenche 1 espaço da barra de Reflexo. Gaste 1 para somar **+d4** em esquiva, ou 3 para realizar uma ação importante fora do seu turno.
 
-## Mecânico
-
-categoria: Ocupação
-resumo: Gambiarra · +d4 em Máquinas ou Crime
-selo: Provisória
-etiquetas: 1 vez por cena; −2 PV
-
-**Gambiarra.** Uma vez por cena, gaste 2 PV para +d4 num teste de Máquinas ou Crime.
-
-## Jornalista
+## Acadêmico
 
 categoria: Ocupação
-resumo: Fontes · rola Pesquisa ou Persuasão duas vezes
-selo: Provisória
-etiquetas: 1 vez por cena; −1 PD
+resumo: Saber é poder · +d4 em testes de Mente
+selo: Manual
+etiquetas: Aptidão; Pesquisa
 
-**Fontes.** Uma vez por cena, gaste 1 PD para rolar Pesquisa ou Persuasão duas vezes e ficar com o melhor.
+**Saber é poder.** Uma vez por cena, em um teste de Mente, recebe **+d4** se puder consultar ou recordar teoria.
 
-## Enfermeira
-
-categoria: Ocupação
-resumo: Plantão · um aliado recupera PV
-selo: Provisória
-etiquetas: 1 ação; −1 PD
-
-**Plantão.** Gaste uma ação e 1 PD: teste de Medicina; um aliado recupera PV igual à RA.
-
-## Cientista
+## Agente de saúde
 
 categoria: Ocupação
-resumo: Foco mental · +d4 num teste mental
-selo: Provisória
-etiquetas: −2 PD
+resumo: Técnica medicinal · cura +2 PV
+selo: Manual
+etiquetas: Medicina; Intuição
 
-**Foco mental.** Num teste mental, gaste 2 PD para receber +d4.
+**Técnica medicinal.** Ao curar com Medicina, recupera +2 PV adicionais (ou estabiliza automaticamente em sucesso).
+
+## Artista
+
+categoria: Ocupação
+resumo: Magnum opus · +d4 social por cena
+selo: Manual
+etiquetas: Aptidão; Persuasão
+
+**Magnum opus.** Uma vez por cena, cria distração ou conexão emocional (**+d4** em Persuasão ou Enganação).
+
+## Atleta
+
+categoria: Ocupação
+resumo: 110% · gasta 2 PV por +d4 físico
+selo: Manual
+etiquetas: Acrobacia; Atletismo
+
+**110%.** Uma vez por cena, gasta 2 PV para ganhar **+d4** em Acrobacia, Atletismo ou Vigor.
+
+## Criminoso
+
+categoria: Ocupação
+resumo: O crime compensa · +1 passo em Crime
+selo: Manual
+etiquetas: Crime; Furtividade
+
+**O crime compensa.** Recebe +1 passo em Crime para arrombamento, furto ou disfarce.
+
+## Explorador
+
+categoria: Ocupação
+resumo: Desbravador · +d4 para rastrear
+selo: Manual
+etiquetas: Percepção; Sobrevivência
+
+**Desbravador.** Ignora penalidades leves de terreno e recebe **+d4** em Sobrevivência para rastrear.
+
+## Gente do campo
+
+categoria: Ocupação
+resumo: Calejado · +2 espaços de carga
+selo: Manual
+etiquetas: Sobrevivência; Vigor
+
+**Calejado.** Recebe +2 espaços de carga e **+d4** para resistir a exaustão ou veneno.
+
+## Hacker
+
+categoria: Ocupação
+resumo: Invasão silenciosa · +d4 em sistemas
+selo: Manual
+etiquetas: Crime; Tecnologia
+
+**Invasão silenciosa.** Uma vez por cena, recebe **+d4** ao invadir ou manipular sistemas eletrônicos.
+
+## Herdeiro
+
+categoria: Ocupação
+resumo: Patrimônio · +2 itens comuns extras
+selo: Manual
+etiquetas: Aptidão; Persuasão
+
+**Patrimônio.** Começa o caso com +2 itens comuns extras e acesso facilitado a recursos.
+
+## Investigador
+
+categoria: Ocupação
+resumo: Faro para pistas · +d4 em cena de crime
+selo: Manual
+etiquetas: Percepção; Pesquisa
+
+**Faro para pistas.** Uma vez por cena, recebe **+d4** em Percepção ou Pesquisa ao examinar uma cena de crime.
+
+## Líder
+
+categoria: Ocupação
+resumo: Voz de comando · +d4 para aliado
+selo: Manual
+etiquetas: Intimidação; Persuasão
+
+**Voz de comando.** Uma vez por cena, gasta ação para conceder **+d4** no próximo teste de um aliado próximo.
+
+## Ocultista
+
+categoria: Ocupação
+resumo: Contato paranormal · NEX 1 e −2 PD
+selo: Manual
+etiquetas: Ocultismo; Disciplina
+
+**Contato paranormal.** Começa com NEX 1 e 1 ritual de 1º círculo, mas inicia com −2 PD máximos.
 
 ## Policial
 
 categoria: Ocupação
-resumo: Treinamento · sobe Pontaria ou Intimidação
-selo: Provisória
-etiquetas: 1 vez por cena
+resumo: Patrulha · prioridade em emboscada
+selo: Manual
+etiquetas: Percepção; Pontaria
 
-**Treinamento.** Uma vez por cena, num teste de Pontaria ou Intimidação, suba o dado da perícia em um passo.
+**Patrulha.** Uma vez por cena, age com prioridade ao sacar arma ou responder a emboscada.
 
-## Entregador
+## Religioso
 
 categoria: Ocupação
-resumo: Conheço um atalho · +d4 ao fugir
-selo: Provisória
-etiquetas: 1 vez por cena
+resumo: Acalmar · acalma aliado Perturbado
+selo: Manual
+etiquetas: Disciplina; Intuição
 
-**Conheço um atalho.** Uma vez por cena, ao fugir ou se deslocar pela cidade, receba +d4 em Atletismo ou Acrobacia.
+**Acalmar.** Uma vez por cena, pode testar Disciplina ou Persuasão para acalmar aliado Perturbado.
+
+## Soldado
+
+categoria: Ocupação
+resumo: Treinamento tático · proteções e +d4
+selo: Manual
+etiquetas: Luta; Pontaria
+
+**Treinamento tático.** Sabe usar proteções sem penalidade leve e recebe **+d4** no primeiro ataque da cena.
+
+## Técnico
+
+categoria: Ocupação
+resumo: Improvisação · repara equipamento
+selo: Manual
+etiquetas: Máquinas; Tecnologia
+
+**Improvisação.** Uma vez por cena, repara ou adapta equipamento sem precisar de oficina completa.
+
+## Trabalhador braçal
+
+categoria: Ocupação
+resumo: Mão pesada · +2 espaços de carga
+selo: Manual
+etiquetas: Atletismo; Vigor
+
+**Mão pesada.** Soma +2 espaços de carga e **+d4** em esforços prolongados de força.

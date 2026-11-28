@@ -13,6 +13,7 @@ import {
 
 export const VERSAO_DA_FICHA_OP2 = 1;
 export const IMPETO_MAXIMO = 3;
+export const IMPETO_MAXIMO_TRANSBORDANTE = 4;
 
 export const PERFIS_OP2 = ['executor', 'analista', 'vigilante'] as const;
 export type PerfilOp2 = (typeof PERFIS_OP2)[number];
@@ -43,9 +44,18 @@ export const esquemaItemDaFicha = z
     id: z.string().min(1).max(40),
     nome: z.string().trim().min(1, { error: 'Dê um nome ao item.' }).max(80),
     descricao: z.string().max(500).default(''),
+    espacos: z.number().min(0).max(20).default(1),
   })
   .strict();
 export type ItemDaFicha = z.infer<typeof esquemaItemDaFicha>;
+
+export const esquemaAptidaoDaFicha = z
+  .object({
+    area: z.string().trim().min(1).max(40),
+    dado: esquemaDado,
+  })
+  .strict();
+export type AptidaoDaFicha = z.infer<typeof esquemaAptidaoDaFicha>;
 
 const pericias = z
   .object(
@@ -85,12 +95,17 @@ export const esquemaFichaOp2 = z
     pvMax: inteiro(1, 999, 'O PV máximo'),
     pd: inteiro(0, 999, 'O PD'),
     pdMax: inteiro(1, 999, 'O PD máximo'),
-    /** Barra do Executor: de 0 a 3 espaços. */
-    impeto: inteiro(0, IMPETO_MAXIMO, 'O Ímpeto'),
-    /** O atributo que o Ímpeto subiu nesta cena (gastando 3), ou nenhum. */
+    ajustePvPd: inteiro(-2, 2, 'O ajuste entre PV e PD').default(0),
+    xp: inteiro(0, 99999, 'O XP').default(0),
+    nex: inteiro(0, 10, 'O NEX').default(0),
+    /** Barra do perfil (Ímpeto, Plano ou Reflexo): 0 a 3 (ou 4 com Ímpeto transbordante). */
+    impeto: inteiro(0, IMPETO_MAXIMO_TRANSBORDANTE, 'A barra de perfil'),
+    /** O atributo que Ímpeto/Plano subiu nesta cena (gastando 3), ou nenhum. */
     impetoAtributo: z.enum(IDS_DOS_ATRIBUTOS_OP2).nullable(),
     /** Habilidades de "uma vez por cena" já usadas nesta cena, como "gambiarra". */
     usadasNaCena: z.array(z.string().min(1).max(40)).max(20),
+    condicoes: z.array(z.string().min(1).max(40)).max(20).default([]),
+    aptidoes: z.array(esquemaAptidaoDaFicha).max(6).default([]),
 
     itens: z.array(esquemaItemDaFicha).max(100),
     anotacoes: z.string().max(20000),
@@ -105,11 +120,11 @@ export const esquemaFichaOp2 = z
     if (f.pd > f.pdMax) {
       ctx.addIssue({ code: 'custom', path: ['pd'], message: 'O PD não pode passar do máximo.' });
     }
-    if (f.impetoAtributo !== null && f.perfil !== 'executor') {
+    if (f.impetoAtributo !== null && f.perfil === 'vigilante') {
       ctx.addIssue({
         code: 'custom',
         path: ['impetoAtributo'],
-        message: 'Só o Executor tem Ímpeto.',
+        message: 'Apenas Executor (Ímpeto) e Analista (Plano) sobem atributo com a barra.',
       });
     }
     const ids = f.itens.map((i) => i.id);

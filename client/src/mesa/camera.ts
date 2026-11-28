@@ -54,6 +54,22 @@ export function zoomNoPonto(camera: Camera, escalaNova: number, pontoNaTela: Pon
   };
 }
 
+/** Centro da caixa envolvente de uma lista de pontos (ex.: área de uma sala). */
+export function centroDaArea(area: readonly Ponto[]): Ponto | null {
+  if (area.length === 0) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const p of area) {
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
+  }
+  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+}
+
 /** Ponto da tela → ponto do mapa. */
 export function paraOMapa(camera: Camera, pontoNaTela: Ponto): Ponto {
   return {
