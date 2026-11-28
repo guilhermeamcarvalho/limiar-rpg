@@ -2,6 +2,7 @@
 // Cada atributo começa em d6; 2 passos para subir; baixar um para d4 dá mais um passo.
 // Fora da regra é permitido: o aviso dourado não bloqueia.
 import {
+  ATRIBUTO_INICIAL,
   ATRIBUTOS_OP2,
   DADOS,
   PASSOS_DE_ATRIBUTO,
@@ -16,14 +17,14 @@ import { Banner, Button, Card, Die, Icon, cx, type NomeDoIcone } from '../../ui/
 
 const DESCRICAO: Record<AtributoOp2, { icone: NomeDoIcone; texto: string }> = {
   fisico: { icone: 'sword', texto: 'Força, reflexo, resistência. Soma no PV.' },
-  mente: { icone: 'brain', texto: 'Raciocínio, memória, percepção. Soma no PD.' },
-  emocao: { icone: 'heart', texto: 'Vontade, empatia, presença. Soma no PD.' },
+  mente: { icone: 'brain', texto: 'Raciocínio, memória, percepção.' },
+  emocao: { icone: 'heart', texto: 'Vontade, empatia, presença.' },
 };
 
 const faces = (dado: Dado) => Number(dado.slice(1));
 
-/** "d8 · +1 passo", "d6 · sem mudança", "d4 · devolve 1 passo". */
-export function textoDoPasso(dado: Dado, inicial: Dado = 'd6'): string {
+/** "d8 · +2 passos", "d4 · sem mudança". */
+export function textoDoPasso(dado: Dado, inicial: Dado = ATRIBUTO_INICIAL): string {
   const n = DADOS.indexOf(dado) - DADOS.indexOf(inicial);
   if (n === 0) return `${dado} · sem mudança`;
   if (n < 0) return `${dado} · devolve ${String(-n)} ${-n === 1 ? 'passo' : 'passos'}`;
@@ -59,7 +60,7 @@ export function Atributos({
       <div className="g3 criar-atributos">
         {ATRIBUTOS_OP2.map((a) => {
           const dado = ficha.atributos[a.id];
-          const mudou = dado !== 'd6';
+          const mudou = dado !== ATRIBUTO_INICIAL;
           const trocar = (n: number) => {
             mudar({ ...ficha.atributos, [a.id]: mudarPasso(dado, n) });
           };

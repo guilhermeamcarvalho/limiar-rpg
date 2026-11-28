@@ -34,6 +34,29 @@
 .criar-passos {
   gap: var(--s5);
 }
+
+.criar-nivel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: 12px 16px;
+}
+
+.criar-nivel-ctrl {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.criar-nivel-valor {
+  min-width: 72px;
+  text-align: center;
+  font: 800 var(--t-md) var(--f-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--white);
+}
 .criar-passo {
   display: inline-flex;
   align-items: center;

@@ -3,13 +3,17 @@
 // ou de outra imagem, e o servidor recorta igual a partir das frações do quadrado.
 import { useEffect, useId, useRef, useState, type PointerEvent } from 'react';
 import {
+  CATEGORIAS_DE_NPCS,
   LIMITE_DA_IMAGEM,
+  NPCS_PRONTOS,
   urlDoArquivo,
   type Personagem,
   type Recorte,
   type TipoDeImagem,
 } from '@membrana/shared';
 import { ErroDaApi, pedir } from '../auth/api.ts';
+import { SeletorDePronto } from '../mesa/painel/SeletorDePronto.tsx';
+import { urlDaImagem } from '../mesa/prontos.ts';
 import { Button } from './Button.tsx';
 import { Avatar, Banner } from './Display.tsx';
 import { Icon } from './Icon.tsx';
@@ -188,6 +192,7 @@ export function EnviarImagem({
   const [enviando, setEnviando] = useState<TipoDeImagem | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [fonte, setFonte] = useState<Fonte | null>(null);
+  const [escolhendoPronto, setEscolhendoPronto] = useState(false);
   const [enquadramento, setEnquadramento] = useState<Enquadramento>(CENTRO);
   const [tamanho, setTamanho] = useState<Tamanho | null>(null);
 
@@ -253,9 +258,29 @@ export function EnviarImagem({
     if (await enviar('token', corpo)) setFonte(null);
   }
 
+  async function usarTokenPronto(id: string) {
+    setErro(null);
+    setEnviando('token');
+    try {
+      const resp = await fetch(urlDaImagem(id));
+      if (!resp.ok) throw new Error('Não deu para carregar o token pronto.');
+      const blob = await resp.blob();
+      const arquivo = new File([blob], 'token.webp', { type: blob.type || 'image/webp' });
+      const corpo = new FormData();
+      corpo.append('tipo', 'token');
+      corpo.append('recorte', JSON.stringify({ x: 0, y: 0, lado: 1 }));
+      corpo.append('arquivo', arquivo);
+      if (await enviar('token', corpo)) setEscolhendoPronto(false);
+    } catch (e) {
+      setErro(mensagemDe(e));
+      setEnviando(null);
+    }
+  }
+
   const fechar = () => {
     if (enviando) return;
     setFonte(null);
+    setEscolhendoPronto(false);
     setErro(null);
     aoFechar();
   };
@@ -289,7 +314,33 @@ export function EnviarImagem({
       {entrada('foto', entradaDaFoto)}
       {entrada('token', entradaDoToken)}
 
-      {fonte ? (
+      {escolhendoPronto ? (
+        <div className="col" style={{ gap: 12 }}>
+          <SeletorDePronto
+            itens={NPCS_PRONTOS}
+            categorias={CATEGORIAS_DE_NPCS}
+            rotulo="Tokens prontos"
+            verbo="Usar"
+            redondo
+            aoEscolher={(id) => {
+              void usarTokenPronto(id);
+            }}
+          />
+          {erro && <Banner tone="err">{erro}</Banner>}
+          <div className="row envio-acoes">
+            <Button
+              variant="ghost"
+              disabled={enviando !== null}
+              onClick={() => {
+                setEscolhendoPronto(false);
+                setErro(null);
+              }}
+            >
+              Voltar
+            </Button>
+          </div>
+        </div>
+      ) : fonte ? (
         <>
           <p className="muted envio-texto">
             Enquadre o rosto no círculo: é assim que o token aparece na mesa.
@@ -363,6 +414,18 @@ export function EnviarImagem({
                 }}
               >
                 Usar a foto
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Icon name="token" size="sm" />}
+                disabled={enviando !== null}
+                onClick={() => {
+                  setErro(null);
+                  setEscolhendoPronto(true);
+                }}
+              >
+                Token pronto
               </Button>
               <Button
                 variant="ghost"

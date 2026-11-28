@@ -175,6 +175,7 @@ export function PainelRelogiosESegredos({
                     <Button
                       size="sm"
                       variant="ghost"
+                      className="btn-excluir"
                       icon={<Icon name="trash" size="sm" />}
                       aria-label={`Remover relógio ${rel.titulo}`}
                       onClick={() => {

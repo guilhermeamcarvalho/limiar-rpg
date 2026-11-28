@@ -32,13 +32,14 @@ export const tratadoresDeSalas: Tratadores = {
     return [{ type: 'room.updated', salaId: sala.id, sala }];
   },
 
-  'room.update'(ctx, { salaId, nome, notasMestre }) {
+  'room.update'(ctx, { salaId, nome, notasMestre, area }) {
     exigirMestre(ctx);
     exigirMapa(ctx);
     const sala = ctx.estado.salas.find((s) => s.id === salaId);
     if (!sala) throw new Recusa('Essa sala não existe neste mapa.');
     if (nome !== undefined) sala.nome = nome;
     if (notasMestre !== undefined) sala.notasMestre = notasMestre;
+    if (area !== undefined) sala.area = area;
     return [{ type: 'room.updated', salaId: sala.id, sala }];
   },
 

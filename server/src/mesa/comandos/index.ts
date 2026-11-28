@@ -11,6 +11,7 @@ import { tratadoresDaNevoa } from './nevoa.ts';
 import { tratadoresDePistas } from './pistas.ts';
 import { tratadoresDeProps } from './props.ts';
 import { tratadoresDaRodada } from './rodada.ts';
+import { tratadoresDeCombate } from './combate.ts';
 import { tratadoresDeSalas } from './salas.ts';
 import { tratadoresDeTestes } from './testes.ts';
 import { tratadoresDeTokens } from './tokens.ts';
@@ -21,6 +22,7 @@ const TRATADORES: Tratadores = {
   ...tratadoresDoBreu,
   ...tratadoresDaNevoa,
   ...tratadoresDaRodada,
+  ...tratadoresDeCombate,
   ...tratadoresDeInvestigacao,
   ...tratadoresDeSalas,
   ...tratadoresDePistas,

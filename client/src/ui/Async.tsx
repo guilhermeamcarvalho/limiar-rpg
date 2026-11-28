@@ -52,10 +52,15 @@ export function useCarga<T>(
     };
   }, [chave, versao]);
 
+  const mesmaOrigem =
+    resultado !== null && chave !== null && resultado.chave.split('#')[0] === chave.split('#')[0];
+
   const atual =
     resultado && resultado.chave === chave && resultado.versao === versao
       ? resultado.carga
-      : CARREGANDO;
+      : resultado?.carga.estado === 'pronto' && mesmaOrigem
+        ? resultado.carga
+        : CARREGANDO;
 
   return {
     carga: atual,

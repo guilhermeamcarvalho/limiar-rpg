@@ -1,10 +1,31 @@
 // Notas, relógios e segredos do Escudo do mestre (#92, #93). Só o mestre lê e edita.
 import { z } from 'zod';
+import { esquemaDado } from '../sistemas.ts';
+import type { Dado } from '../regras/dados.ts';
+
+export interface FichaDeAmeaca {
+  fisico: Dado;
+  mente: Dado;
+  emocao: Dado;
+  acrobacia: Dado;
+  luta: Dado;
+  pontaria: Dado;
+  percepcao?: Dado;
+  furtividade?: Dado;
+  vigor?: Dado;
+  disciplina?: Dado;
+  pvMax: number;
+  pdMax: number;
+  rd?: number;
+  ataques?: string;
+  patamar?: 'capanga' | 'tenente' | 'chefe';
+}
 
 export interface BlocoDoEscudo {
   id: string;
   titulo: string;
   texto: string;
+  ficha?: FichaDeAmeaca | null;
 }
 
 export interface RelogioDoEscudo {
@@ -32,10 +53,29 @@ const textoId = z.string().trim().min(1).max(64);
 const tituloCurto = z.string().trim().min(1, { error: 'Escreva um título.' }).max(120);
 const textoBloco = z.string().max(4000);
 
+export const esquemaFichaDeAmeaca = z.object({
+  fisico: esquemaDado,
+  mente: esquemaDado,
+  emocao: esquemaDado,
+  acrobacia: esquemaDado,
+  luta: esquemaDado,
+  pontaria: esquemaDado,
+  percepcao: esquemaDado.optional(),
+  furtividade: esquemaDado.optional(),
+  vigor: esquemaDado.optional(),
+  disciplina: esquemaDado.optional(),
+  pvMax: z.number().int().min(1).max(999),
+  pdMax: z.number().int().min(0).max(999),
+  rd: z.number().int().min(0).max(99).optional(),
+  ataques: z.string().max(1000).optional(),
+  patamar: z.enum(['capanga', 'tenente', 'chefe']).optional(),
+});
+
 export const esquemaBlocoDoEscudo = z.object({
   id: textoId,
   titulo: tituloCurto,
   texto: textoBloco,
+  ficha: esquemaFichaDeAmeaca.nullable().optional(),
 });
 
 export const esquemaRelogioDoEscudo = z

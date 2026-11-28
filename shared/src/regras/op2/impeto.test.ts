@@ -37,9 +37,9 @@ describe('Ímpeto enche com as falhas', () => {
     expect(registrarResultadoNoImpeto({ ...fichaDoDavi(), impeto: 3 }, 'falha').impeto).toBe(3);
   });
 
-  it('só o Executor tem Ímpeto: os outros perfis não enchem', () => {
+  it('só o Executor enche automaticamente na falha; todos os perfis têm barra', () => {
     expect(temImpeto(fichaDoDavi())).toBe(true);
-    expect(temImpeto(analista())).toBe(false);
+    expect(temImpeto(analista())).toBe(true);
     expect(registrarResultadoNoImpeto({ ...analista(), impeto: 0 }, 'falha').impeto).toBe(0);
   });
 });
@@ -67,13 +67,13 @@ describe('gastar Ímpeto', () => {
     expect(dadoEfetivo(fimDaCena(ficha), 'mente')).toBe('d6');
   });
 
-  it('quem não é Executor não gasta', () => {
-    expect(erroDe(() => gastarImpetoNoTeste({ ...analista(), impeto: 3 })).message).toBe(
-      'Só o Executor tem Ímpeto.',
-    );
-    expect(erroDe(() => gastarImpetoNoAtributo({ ...analista(), impeto: 3 }, 'fisico')).campo).toBe(
-      'impeto',
-    );
+  it('Analista gasta Plano para +d4 ou +1 passo em atributo; Vigilante não sobe atributo', () => {
+    const a = gastarImpetoNoTeste({ ...analista(), impeto: 2 });
+    expect(a.extra).toEqual({ tipo: 'd4', origem: 'Plano' });
+    const aAtr = gastarImpetoNoAtributo({ ...analista(), impeto: 3 }, 'mente');
+    expect(aAtr.impetoAtributo).toBe('mente');
+    const vigilante = { ...fichaDoDavi(), perfil: 'vigilante' as const, impeto: 3 };
+    expect(erroDe(() => gastarImpetoNoAtributo(vigilante, 'fisico')).campo).toBe('impeto');
   });
 });
 

@@ -2,8 +2,10 @@
 // sair e voltar recupera as escolhas. O personagem de verdade nasce no servidor ao criar.
 // A ficha sai de `fichaNova` do shared, a mesma da ficha em branco: as duas dão a mesma estrutura.
 import {
+  ATRIBUTO_INICIAL,
   DADOS,
   IDS_DAS_PERICIAS_OP2,
+  NIVEL_MAXIMO,
   OCUPACOES_OP2,
   PERFIS_OP2,
   basesDasPericias,
@@ -31,6 +33,7 @@ export const OUTRA = 'outra';
 
 export interface Rascunho {
   passo: number;
+  nivel: number | null;
   perfil: PerfilOp2 | null;
   /** O id de uma ocupação conhecida, `OUTRA` ou vazio. */
   ocupacao: string;
@@ -48,10 +51,11 @@ export interface Rascunho {
 
 export const RASCUNHO_VAZIO: Rascunho = {
   passo: 0,
+  nivel: null,
   perfil: null,
   ocupacao: '',
   ocupacaoLivre: '',
-  atributos: { fisico: 'd6', mente: 'd6', emocao: 'd6' },
+  atributos: { fisico: ATRIBUTO_INICIAL, mente: ATRIBUTO_INICIAL, emocao: ATRIBUTO_INICIAL },
   passosDasPericias: {},
   nome: '',
   idade: '',
@@ -87,10 +91,15 @@ export function lerRascunho(userId: string, caso: string | null): Rascunho {
       }
     }
     const passo = l['passo'];
+    const nivel = l['nivel'];
     const perfil = l['perfil'];
     const ocupacao = l['ocupacao'];
     return {
       passo: Number.isInteger(passo) ? Math.min(Math.max(passo as number, 0), ULTIMO) : 0,
+      nivel:
+        Number.isInteger(nivel) && (nivel as number) >= 1 && (nivel as number) <= NIVEL_MAXIMO
+          ? (nivel as number)
+          : null,
       perfil: (PERFIS_OP2 as readonly unknown[]).includes(perfil) ? (perfil as PerfilOp2) : null,
       ocupacao:
         ehTexto(ocupacao) && (ocupacao === OUTRA || OCUPACOES_OP2.some((o) => o.id === ocupacao))

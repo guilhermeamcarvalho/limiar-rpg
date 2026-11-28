@@ -37,6 +37,9 @@ export type ItemDeAcontecimento = Extract<
       | 'clue.presented'
       | 'map.activated'
       | 'round.started'
+      | 'combat.started'
+      | 'combat.roundChanged'
+      | 'combat.ended'
       | 'audio.changed';
   }
 >;
@@ -49,6 +52,9 @@ export function ehAcontecimento(evento: EventoDaMesa): evento is ItemDeAcontecim
     evento.type === 'clue.presented' ||
     evento.type === 'map.activated' ||
     evento.type === 'round.started' ||
+    evento.type === 'combat.started' ||
+    evento.type === 'combat.roundChanged' ||
+    evento.type === 'combat.ended' ||
     evento.type === 'audio.changed'
   );
 }
@@ -73,7 +79,13 @@ export function filtrarAcontecimentos(
       case 'pistas':
         return e.type === 'clue.presented' || e.type === 'poi.infoRevealed';
       case 'cenas':
-        return e.type === 'map.activated' || e.type === 'round.started';
+        return (
+          e.type === 'map.activated' ||
+          e.type === 'round.started' ||
+          e.type === 'combat.started' ||
+          e.type === 'combat.roundChanged' ||
+          e.type === 'combat.ended'
+        );
       case 'trilha':
         return e.type === 'audio.changed';
     }
@@ -99,6 +111,9 @@ function iconeDo(tipo: ItemDeAcontecimento['type']): NomeDoIcone {
     case 'map.activated':
       return 'map';
     case 'round.started':
+    case 'combat.started':
+    case 'combat.roundChanged':
+    case 'combat.ended':
       return 'flag';
     case 'audio.changed':
       return 'music';
@@ -116,6 +131,9 @@ function categoriaDo(tipo: ItemDeAcontecimento['type']): string {
       return 'pista';
     case 'map.activated':
     case 'round.started':
+    case 'combat.started':
+    case 'combat.roundChanged':
+    case 'combat.ended':
       return 'cena';
     case 'audio.changed':
       return 'trilha';
@@ -273,17 +291,22 @@ export function Registro({ eventos, papel, membros, personagens }: RegistroProps
                               : undefined
                           }
                         >
-                          {item.registro.resultado.total} contra DT {item.registro.resultado.dt}
+                          {item.registro.resultado.total}
+                          {papel === 'mestre'
+                            ? ` contra DT ${String(item.registro.resultado.dt)}`
+                            : ''}
                           {item.registro.origem === 'fisico' && ' · dados físicos'}
                         </span>
-                        <span
-                          className={cx(
-                            'reg-selo',
-                            tomDoVeredito(item.registro.resultado.veredito),
-                          )}
-                        >
-                          {textoDoVeredito(item.registro.resultado.veredito)}
-                        </span>
+                        {papel === 'mestre' && (
+                          <span
+                            className={cx(
+                              'reg-selo',
+                              tomDoVeredito(item.registro.resultado.veredito),
+                            )}
+                          >
+                            {textoDoVeredito(item.registro.resultado.veredito)}
+                          </span>
+                        )}
                       </div>
                       {item.registro.efeitos.length > 0 && (
                         <span className="small">{item.registro.efeitos.join(' ')}</span>
@@ -367,6 +390,33 @@ export function Registro({ eventos, papel, membros, personagens }: RegistroProps
                     <div className="row between" style={{ gap: 8 }}>
                       <span className="small">
                         <b>Rodada {item.numero}</b> iniciada
+                      </span>
+                      {hora && <span className="registro-hora">{hora}</span>}
+                    </div>
+                  )}
+
+                  {item.type === 'combat.started' && (
+                    <div className="row between" style={{ gap: 8 }}>
+                      <span className="small">
+                        <b>Combate iniciado</b> · Rodada {item.rodada}
+                      </span>
+                      {hora && <span className="registro-hora">{hora}</span>}
+                    </div>
+                  )}
+
+                  {item.type === 'combat.roundChanged' && (
+                    <div className="row between" style={{ gap: 8 }}>
+                      <span className="small">
+                        <b>Combate · Rodada {item.rodada}</b>
+                      </span>
+                      {hora && <span className="registro-hora">{hora}</span>}
+                    </div>
+                  )}
+
+                  {item.type === 'combat.ended' && (
+                    <div className="row between" style={{ gap: 8 }}>
+                      <span className="small">
+                        <b>Combate encerrado</b> (Rodada {item.rodada})
                       </span>
                       {hora && <span className="registro-hora">{hora}</span>}
                     </div>

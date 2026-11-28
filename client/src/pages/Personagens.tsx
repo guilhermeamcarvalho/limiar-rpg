@@ -189,7 +189,15 @@ interface AcoesDoCartao {
   remover: (p: PersonagemNaLista) => void;
 }
 
-function Cartao({ p, acoes }: { p: PersonagemNaLista; acoes: AcoesDoCartao }) {
+function Cartao({
+  p,
+  acoes,
+  papelNoCaso,
+}: {
+  p: PersonagemNaLista;
+  acoes: AcoesDoCartao;
+  papelNoCaso?: 'mestre' | 'jogador' | undefined;
+}) {
   const [confirmando, setConfirmando] = useState(false);
   const [usando, setUsando] = useState(false);
   const manter = useRef<HTMLButtonElement>(null);
@@ -198,6 +206,7 @@ function Cartao({ p, acoes }: { p: PersonagemNaLista; acoes: AcoesDoCartao }) {
   const imagem = p.tokenImg ?? p.foto;
   const nome = primeiroNome(ficha.nome) || ficha.nome;
   const ativo = campanha !== null && !campanha.encerrado;
+  const doEscudoDoMestre = campanha !== null && papelNoCaso === 'mestre';
 
   useEffect(() => {
     if (confirmando) manter.current?.focus();
@@ -223,7 +232,8 @@ function Cartao({ p, acoes }: { p: PersonagemNaLista; acoes: AcoesDoCartao }) {
             <b id={`pers-${p.id}`} className="h2">
               {nome}
             </b>
-            {p.emUso && ativo && <Tag tone="green">Em uso</Tag>}
+            {p.emUso && ativo && !doEscudoDoMestre && <Tag tone="green">Em uso</Tag>}
+            {doEscudoDoMestre && <Tag tone="gold">Escudo · {campanha.nome}</Tag>}
           </div>
           <span className="small muted pers-desc">{descricaoDaFicha(ficha)}</span>
           <span className="small muted pers-desc-celular">
@@ -302,13 +312,19 @@ function Cartao({ p, acoes }: { p: PersonagemNaLista; acoes: AcoesDoCartao }) {
           )}
 
           <div className="row wrapx pers-acoes">
-            {ativo && p.emUso && (
+            {doEscudoDoMestre && (
+              <Link className="btn sm" to={linkDaCampanha(campanha.id, 'escudo')}>
+                <Icon name="shield" size="sm" />
+                Abrir Escudo
+              </Link>
+            )}
+            {ativo && p.emUso && !doEscudoDoMestre && (
               <Link className="btn red sm" to={linkDaCampanha(campanha.id, 'mesa')}>
                 <Icon name="map" size="sm" />
                 Jogar na mesa
               </Link>
             )}
-            {ativo && !p.emUso && (
+            {ativo && !p.emUso && !doEscudoDoMestre && (
               <Button
                 size="sm"
                 icon={<Icon name="check" size="sm" />}
@@ -706,7 +722,12 @@ export function Personagens() {
 
                 <div className={cx('g3', 'pers-grade')}>
                   {visiveis.map((p) => (
-                    <Cartao key={p.id} p={p} acoes={acoes} />
+                    <Cartao
+                      key={p.id}
+                      p={p}
+                      acoes={acoes}
+                      papelNoCaso={listaDeCasos?.find((c) => c.id === p.campanhaId)?.papel}
+                    />
                   ))}
                 </div>
               </>

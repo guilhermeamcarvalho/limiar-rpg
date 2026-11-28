@@ -202,9 +202,9 @@ describe('textoDoUso', () => {
 });
 
 describe('espacosDeItens', () => {
-  it('um espaço por face do dado de Físico', () => {
-    expect(espacosDeItens(fichaDoDavi().atributos)).toBe(8);
-    expect(espacosDeItens({ fisico: 'd4', mente: 'd6', emocao: 'd6' })).toBe(4);
+  it('5 + máximo do dado de Físico (Ordem 2, p. 18)', () => {
+    expect(espacosDeItens(fichaDoDavi().atributos)).toBe(13);
+    expect(espacosDeItens({ fisico: 'd4', mente: 'd6', emocao: 'd6' })).toBe(9);
   });
 });
 

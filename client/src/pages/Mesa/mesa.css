@@ -52,6 +52,7 @@
   border: 1px solid var(--line-2);
   border-radius: var(--r-full);
   background: var(--panel-2);
+  font-variant-numeric: tabular-nums;
 }
 
 .mesa-rodada-divisor {
@@ -203,10 +204,17 @@
   backdrop-filter: blur(10px);
 }
 
-.zoom-pct {
-  height: 26px;
-  font-size: 11px;
+.mesa .zoom .tbtn {
+  width: 32px;
+  height: 32px;
+}
+
+.mesa .zoom .tbtn.zoom-pct {
+  height: 22px;
+  padding: 0 2px;
+  font-size: 10px;
   font-weight: 700;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -275,6 +283,7 @@
   gap: 14px;
   width: min(360px, calc(100% - var(--barra-l) - 36px));
   padding: 16px;
+  backdrop-filter: blur(8px);
   overflow: auto;
   border: 1px solid var(--line-2);
   border-radius: var(--r-lg);
@@ -291,6 +300,70 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Lista compacta de salas no popover da mesa */
+.sala-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.sala-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sala-nome-btn {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--text);
+  font: 600 var(--t-sm) var(--f-ui);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
+}
+
+.sala-nome-btn:hover {
+  background: var(--white-a06);
+  color: var(--white);
+}
+
+.sala-nome-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sala-acoes {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.sala-acao-excluir {
+  margin-left: 4px;
+  padding-left: 4px;
+  border-left: 1px solid var(--line);
+}
+
+.sala-acao-excluir:hover:not(:disabled) {
+  color: var(--red-hi);
+  background: var(--red-a10);
 }
 
 .mapa-na-lista {
@@ -745,6 +818,110 @@
   min-width: 0;
 }
 
+.jogador-recurso {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.jogador-recurso-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.jogador-recurso-ctrl {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jogador-mini-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  background: var(--panel-3);
+  color: var(--text);
+  font: 700 13px/1 var(--f-ui);
+  cursor: pointer;
+  transition:
+    background var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
+}
+
+.jogador-mini-btn:hover:not(:disabled) {
+  border-color: var(--line-3);
+  background: var(--panel-4);
+  color: var(--white);
+}
+
+.jogador-mini-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.jogador-recurso-valor {
+  min-width: 38px;
+  padding: 2px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font: 700 var(--t-xs)/1.2 var(--f-ui);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  cursor: pointer;
+}
+
+.jogador-recurso-valor:hover {
+  border-color: var(--line-2);
+  background: var(--panel-2);
+}
+
+.jogador-recurso-input {
+  width: 44px;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--red);
+  border-radius: var(--r-sm);
+  background: var(--field);
+  color: var(--white);
+  font: 700 var(--t-xs)/1 var(--f-ui);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.jogador-impeto-pontos {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jogador-impeto-ponto {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-dark);
+  background: transparent;
+}
+
+.jogador-impeto-ponto.on {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.jogador-acoes-rodape {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
 .jogador-ordem-item {
   min-height: 40px;
   padding: 6px 10px;
@@ -897,10 +1074,36 @@
 }
 
 .rmsg-total {
-  font-size: var(--t-md);
+  flex: none;
+  font-size: var(--t-lg);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: var(--text);
+  color: var(--white);
+}
+
+.rmsg-hora {
+  color: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rmsg-microtag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-full);
+  background: var(--panel-3);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rmsg-microtag.gold {
+  border-color: var(--gold-dark);
+  background: var(--gold-a08);
+  color: var(--gold);
 }
 
 .rmsg .verdict {
@@ -949,11 +1152,14 @@
 }
 
 .chat-destino {
-  flex: 1;
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 100%;
   min-width: 0;
-  min-height: 32px;
-  padding: 4px 28px 4px 10px;
-  font-size: 12.5px;
+  min-height: 28px;
+  padding: 2px 26px 2px 10px;
+  border-radius: var(--r-full);
+  font-size: var(--t-xs);
 }
 
 .chat-erro {
@@ -1108,6 +1314,7 @@
   border-radius: var(--r-full);
   font-size: var(--t-xs);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .reg-selo.ok {
@@ -1144,6 +1351,7 @@
   padding: 12px 14px;
   overflow-y: auto;
   list-style: none;
+  font-variant-numeric: tabular-nums;
 }
 
 .registro-item {
@@ -1222,16 +1430,22 @@
   gap: 8px;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
-  border: 1px solid var(--line);
+  padding: 7px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
   background: var(--panel-2);
   color: var(--text);
   cursor: pointer;
+  transition:
+    background var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
 }
 
 .dados-pericia:hover:not(:disabled) {
-  border-color: var(--red);
+  border-color: var(--red-hi);
   background: var(--panel-3);
+  color: var(--white);
 }
 
 .dados-pericia:disabled {
@@ -1377,4 +1591,133 @@
 .poi-info.destaque {
   border-color: var(--gold);
   background: var(--panel);
+}
+
+/* ---------- Modo de Combate ---------- */
+.mesa-combate-pilula {
+  border-color: var(--red-a40);
+  background: var(--red-a10);
+}
+
+.mesa-turno-banner {
+  border-color: var(--gold-a50);
+  background: var(--gold-a14);
+}
+
+.combate-modal-linha {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white-a02);
+}
+
+.combate-inic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--white-a06);
+  color: var(--text);
+}
+
+.combate-item.on {
+  border-color: var(--red-hi-a60);
+  background: var(--red-a12);
+}
+
+.combate-item .combate-acoes {
+  opacity: 0.7;
+  transition: opacity 160ms ease;
+}
+
+.combate-item:hover .combate-acoes,
+.combate-item:focus-within .combate-acoes {
+  opacity: 1;
+}
+
+.combate-add-form {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white-a04);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combate-item .combate-acoes {
+    transition: none;
+  }
+}
+
+.combate-modal-linha.inativo {
+  opacity: 0.5;
+}
+
+.combate-stepper {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--white-a04);
+  overflow: hidden;
+}
+
+.combate-valor {
+  min-width: 30px;
+  padding: 0 6px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.combate-valor.vazio {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.combate-step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 5px;
+  border: 0;
+  border-left: 1px solid var(--white-a06);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.combate-step-btn:first-child {
+  border-left: 0;
+  border-right: 1px solid var(--white-a06);
+}
+
+.combate-step-btn:hover:not(:disabled) {
+  background: var(--white-a08);
+  color: var(--text);
+}
+
+.combate-step-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combate-step-btn {
+    transition: none;
+  }
 }

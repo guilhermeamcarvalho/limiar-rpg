@@ -2,12 +2,13 @@
 // (`dice.roll`) e executa testes de perícia pela mesa (`test.resolve` no modo virtual e
 // `test.report` com `ModalDadosFisicos` no modo físico), recarregando a ficha a cada
 // `character.changed`.
-import { useId, useState, type SyntheticEvent } from 'react';
+import { useState, type SyntheticEvent } from 'react';
 import {
   DT_PADRAO,
   habilidadesDaFicha,
-  IMPETO_MAXIMO,
+  maximoDaBarraDePerfil,
   PERICIAS_OP2,
+  recursoDoPerfil,
   temImpeto,
   type ComandoDaMesa,
   type Papel,
@@ -62,13 +63,12 @@ function TestesDoPersonagem({
   enviar,
 }: SecaoDaFichaProps) {
   const avisos = useToast();
-  const idDt = useId();
   const url = `/api/personagens/${encodeURIComponent(personagemId)}`;
   const uso = useCarga(`${url}#${String(versao)}`, (signal) =>
     pedir<{ personagem: Personagem }>(url, { signal }).then((r) => r.personagem),
   );
 
-  const [dt, setDt] = useState(dtPadrao);
+  const dt = dtPadrao;
   const [ajuda, setAjuda] = useState(false);
   const [armados, setArmados] = useState<Armados>(NADA_ARMADO);
   const [testando, setTestando] = useState(false);
@@ -165,7 +165,8 @@ function TestesDoPersonagem({
               <b className="small">{ficha.nome}</b>
               <span className="small muted">
                 PV {ficha.pv}/{ficha.pvMax} · PD {ficha.pd}/{ficha.pdMax}
-                {temImpeto(ficha) && ` · Ímpeto ${String(ficha.impeto)}/${String(IMPETO_MAXIMO)}`}
+                {temImpeto(ficha) &&
+                  ` · ${recursoDoPerfil(ficha.perfil).nome} ${String(ficha.impeto)}/${String(maximoDaBarraDePerfil(ficha))}`}
               </span>
             </div>
 
@@ -177,24 +178,8 @@ function TestesDoPersonagem({
             )}
 
             <div className="row wrapx dados-opcoes">
-              <div className="row dados-dt">
-                <label className="lab" htmlFor={idDt}>
-                  DT
-                </label>
-                <Input
-                  id={idDt}
-                  type="number"
-                  min={1}
-                  max={99}
-                  value={dt}
-                  onChange={(e) => {
-                    const n = Number(e.target.value);
-                    if (Number.isInteger(n) && n >= 1 && n <= 99) setDt(n);
-                  }}
-                />
-              </div>
               <Checkbox
-                label="Ajuda (+1 passo)"
+                label="Ajuda (+1/+2 passos)"
                 checked={ajuda}
                 onChange={(e) => {
                   setAjuda(e.target.checked);
@@ -206,6 +191,7 @@ function TestesDoPersonagem({
               <div className="row wrapx prontos-categorias">
                 {temImpeto(ficha) && (
                   <button
+                    key="impeto"
                     type="button"
                     className={cx('chip', armados.impeto && 'on')}
                     aria-pressed={armados.impeto}
@@ -214,7 +200,8 @@ function TestesDoPersonagem({
                       setArmados((a) => ({ ...a, impeto: !a.impeto }));
                     }}
                   >
-                    Ímpeto +d4 ({ficha.impeto}/{IMPETO_MAXIMO})
+                    {recursoDoPerfil(ficha.perfil).nome} +d4 ({ficha.impeto}/
+                    {maximoDaBarraDePerfil(ficha)})
                   </button>
                 )}
                 {habilidades.map((hab) => {
@@ -283,6 +270,7 @@ function TestesDoPersonagem({
                 pedido={{ ...previaFisica.pedido, dt }}
                 enviando={testando}
                 erro={erroFisico}
+                ocultarVeredito
                 aoEnviar={(relato) => void informarPericia(personagem, previaFisica.pedido, relato)}
                 aoCancelar={() => {
                   setFisico(null);

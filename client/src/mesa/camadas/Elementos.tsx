@@ -15,32 +15,50 @@ import { useImagem } from '../useImagem.ts';
 
 /* ---------- Salas (só o mestre recebe) ---------- */
 
-export const CamadaDeSalas = memo(function CamadaDeSalas({ salas }: { salas: SalaNaMesa[] }) {
+export const CamadaDeSalas = memo(function CamadaDeSalas({
+  salas,
+  salaDestacadaId = null,
+  salaHoverId = null,
+}: {
+  salas: SalaNaMesa[];
+  salaDestacadaId?: string | null;
+  salaHoverId?: string | null;
+}) {
   const c = cores();
   if (salas.length === 0) return null;
   return (
     <Layer listening={false}>
-      {salas.map((sala) => (
-        <Group key={sala.id}>
-          <Line
-            points={sala.area.flatMap((p) => [p.x, p.y])}
-            closed
-            stroke={c['map-room']}
-            strokeWidth={1}
-            strokeScaleEnabled={false}
-          />
-          {sala.area[0] && (
-            <Text
-              x={sala.area[0].x + 8}
-              y={sala.area[0].y + 8}
-              text={sala.nome.toUpperCase()}
-              fill={c.text}
-              fontStyle="bold"
-              fontSize={14}
+      {salas.map((sala) => {
+        const destacada = sala.id === salaDestacadaId;
+        const hover = !destacada && sala.id === salaHoverId;
+        const fill = destacada
+          ? 'rgba(220, 38, 38, 0.16)'
+          : hover
+            ? 'rgba(220, 38, 38, 0.08)'
+            : undefined;
+        return (
+          <Group key={sala.id}>
+            <Line
+              points={sala.area.flatMap((p) => [p.x, p.y])}
+              closed
+              {...(fill && { fill })}
+              stroke={destacada ? c['red-hi'] : hover ? c.gold : c['map-room']}
+              strokeWidth={destacada ? 3 : hover ? 2 : 1}
+              strokeScaleEnabled={false}
             />
-          )}
-        </Group>
-      ))}
+            {sala.area[0] && (
+              <Text
+                x={sala.area[0].x + 8}
+                y={sala.area[0].y + 8}
+                text={sala.nome.toUpperCase()}
+                fill={destacada ? c['red-hi'] : hover ? c.gold : c.text}
+                fontStyle="bold"
+                fontSize={14}
+              />
+            )}
+          </Group>
+        );
+      })}
     </Layer>
   );
 });

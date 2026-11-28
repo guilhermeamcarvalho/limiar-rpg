@@ -3,7 +3,7 @@
 // Ficha-Inventado). Erros (como PV acima do máximo) bloqueiam salvar, aparecem no campo e levam o
 // foco até ele; avisos da regra de criação não bloqueiam. O rascunho é separado do estado salvo:
 // Cancelar descarta.
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import {
   ATRIBUTOS_OP2,
   DADOS,
@@ -31,6 +31,135 @@ import {
   Textarea,
 } from '../../ui/index.ts';
 import './ficha.css';
+
+function CampoOcupacao({
+  valor,
+  erro,
+  aoMudar,
+}: {
+  valor: string;
+  erro: string | undefined;
+  aoMudar: (novo: string) => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [focoIdx, setFocoIdx] = useState(-1);
+  const raizRef = useRef<HTMLDivElement>(null);
+  const listaId = useId();
+
+  const termo = valor.trim().toLowerCase();
+  const opcoes = termo
+    ? OCUPACOES_OP2.filter(
+        (o) => o.nome.toLowerCase().includes(termo) || o.habilidade.toLowerCase().includes(termo),
+      )
+    : OCUPACOES_OP2;
+  const mostrar = aberto && opcoes.length > 0;
+
+  useEffect(() => {
+    if (!aberto) return;
+    function aoClicarFora(e: MouseEvent) {
+      if (raizRef.current && !raizRef.current.contains(e.target as Node)) {
+        setAberto(false);
+      }
+    }
+    document.addEventListener('mousedown', aoClicarFora);
+    return () => {
+      document.removeEventListener('mousedown', aoClicarFora);
+    };
+  }, [aberto]);
+
+  function escolher(nome: string) {
+    aoMudar(nome);
+    setAberto(false);
+    setFocoIdx(-1);
+  }
+
+  return (
+    <div ref={raizRef} className="ocupacao-combo">
+      <Field label="Ocupação" error={erro} help="Conhecidas trazem habilidade.">
+        <div className="ocupacao-input-wrap">
+          <Input
+            value={valor}
+            maxLength={40}
+            role="combobox"
+            aria-expanded={mostrar}
+            aria-controls={listaId}
+            aria-autocomplete="list"
+            placeholder="Escolha ou digite…"
+            onFocus={() => {
+              setAberto(true);
+              setFocoIdx(-1);
+            }}
+            onChange={(e) => {
+              aoMudar(e.target.value);
+              setAberto(true);
+              setFocoIdx(-1);
+            }}
+            onKeyDown={(e) => {
+              if (!mostrar) {
+                if (e.key === 'ArrowDown') {
+                  setAberto(true);
+                  setFocoIdx(0);
+                  e.preventDefault();
+                }
+                return;
+              }
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setFocoIdx((i) => (i + 1) % opcoes.length);
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setFocoIdx((i) => (i <= 0 ? opcoes.length - 1 : i - 1));
+              } else if (e.key === 'Enter' && focoIdx >= 0 && opcoes[focoIdx]) {
+                e.preventDefault();
+                escolher(opcoes[focoIdx].nome);
+              } else if (e.key === 'Escape') {
+                setAberto(false);
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="ocupacao-toggle"
+            aria-label={aberto ? 'Fechar lista de ocupações' : 'Abrir lista de ocupações'}
+            tabIndex={-1}
+            onClick={() => {
+              setAberto((v) => !v);
+            }}
+          >
+            <Icon name={aberto ? 'up' : 'down'} size="sm" />
+          </button>
+        </div>
+      </Field>
+
+      {mostrar && (
+        <ul id={listaId} className="ocupacao-menu" role="listbox" aria-label="Ocupações">
+          {opcoes.map((o, i) => {
+            const selecionada = o.nome.toLowerCase() === termo;
+            return (
+              <li
+                key={o.id}
+                role="option"
+                aria-selected={selecionada}
+                className={cx(
+                  'ocupacao-opcao',
+                  selecionada && 'selecionada',
+                  i === focoIdx && 'foco',
+                )}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  escolher(o.nome);
+                }}
+              >
+                <span className="ocupacao-opcao-nome">{o.nome}</span>
+                <span className="ocupacao-opcao-hab">{o.habilidade}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 /** Os campos como a tela os edita: números ainda como texto, do jeito que a pessoa digitou. */
 type CampoNumerico = 'nivel' | 'idade' | 'pv' | 'pvMax' | 'pd' | 'pdMax';
@@ -210,7 +339,10 @@ export function EdicaoDaFicha({
   }
 
   function recalcular() {
-    const { pvMax, pdMax } = maximosDeRecursos(f.atributos);
+    const { pvMax, pdMax } = maximosDeRecursos(f.atributos, {
+      nivel: Number(f.nivel) || 1,
+      ocupacao: f.ocupacao,
+    });
     mudar({ pv: String(pvMax), pvMax: String(pvMax), pd: String(pdMax), pdMax: String(pdMax) });
   }
 
@@ -291,21 +423,13 @@ export function EdicaoDaFicha({
           {contexto}
           <div className="g3">
             {texto('nome', 'Nome', { maxLength: 60, className: 'ficha-nome' })}
-            <Field label="Ocupação" error={erro('ocupacao')} help="Conhecidas trazem habilidade.">
-              <Input
-                value={f.ocupacao}
-                maxLength={40}
-                list="ocupacoes-op2"
-                onChange={(e) => {
-                  mudar({ ocupacao: e.target.value });
-                }}
-              />
-            </Field>
-            <datalist id="ocupacoes-op2">
-              {OCUPACOES_OP2.map((o) => (
-                <option key={o.id} value={o.nome} />
-              ))}
-            </datalist>
+            <CampoOcupacao
+              valor={f.ocupacao}
+              erro={erro('ocupacao')}
+              aoMudar={(ocupacao) => {
+                mudar({ ocupacao });
+              }}
+            />
             <Field label="Perfil" error={erro('perfil')}>
               <Select
                 value={f.perfil}

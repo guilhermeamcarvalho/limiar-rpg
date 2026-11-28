@@ -1,6 +1,6 @@
 // Mini-mapa clicável para escolher a posição (x, y) de uma pista ou ponto de interesse direto no
 // modal do Escudo do mestre, sem precisar ir até a Mesa para arrastar depois.
-import type { MapaNaMesa } from '@membrana/shared';
+import type { MapaNaMesa, SalaNaMesa } from '@membrana/shared';
 import type { Ponto } from '../mesa/camera.ts';
 import { urlDaImagem } from '../mesa/prontos.ts';
 import { Icon } from '../ui/index.ts';
@@ -10,11 +10,13 @@ export function MiniMapaSeletor({
   ponto,
   aoMudar,
   rotulo = 'Posição no mapa',
+  salas = [],
 }: {
   mapa: MapaNaMesa;
   ponto: Ponto;
   aoMudar: (novo: Ponto) => void;
   rotulo?: string;
+  salas?: readonly SalaNaMesa[];
 }) {
   const esquerda = Math.min(100, Math.max(0, (ponto.x / Math.max(1, mapa.largura)) * 100));
   const topo = Math.min(100, Math.max(0, (ponto.y / Math.max(1, mapa.altura)) * 100));
@@ -49,6 +51,25 @@ export function MiniMapaSeletor({
         }}
       >
         <img src={urlDaImagem(mapa.imagem)} alt={mapa.nome} />
+        {salas.length > 0 && (
+          <svg
+            className="escudo-minimapa-salas"
+            viewBox={`0 0 ${String(mapa.largura)} ${String(mapa.altura)}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            {salas.map(
+              (s) =>
+                s.area.length >= 3 && (
+                  <polygon
+                    key={s.id}
+                    points={s.area.map((pt) => `${String(pt.x)},${String(pt.y)}`).join(' ')}
+                    className="escudo-minimapa-sala-existente"
+                  />
+                ),
+            )}
+          </svg>
+        )}
         <span
           className="escudo-minimapa-pino"
           style={{ left: `${String(esquerda)}%`, top: `${String(topo)}%` }}

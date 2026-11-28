@@ -8,8 +8,10 @@ import {
   dadoEfetivo,
   faces,
   habilidadesDaFicha,
+  maximoDaBarraDePerfil,
   nomeDaPericia,
   nomeDoAtributo,
+  recursoDoPerfil,
   temImpeto,
   type AtributoOp2,
   type FichaOp2,
@@ -205,28 +207,35 @@ export function CartaoDoImpeto({
 }) {
   const [escolhendo, setEscolhendo] = useState(false);
   if (!temImpeto(ficha)) return null;
+  const info = recursoDoPerfil(ficha.perfil);
+  const maxBarra = maximoDaBarraDePerfil(ficha);
   const subiu = ficha.impetoAtributo;
+  const nomePerfil =
+    ficha.perfil === 'executor'
+      ? 'Executor'
+      : ficha.perfil === 'analista'
+        ? 'Analista'
+        : 'Vigilante';
   return (
     <Card pad className="col ficha-impeto" style={{ gap: 12 }}>
       <div className="row between">
-        <span className="lab gold">Ímpeto · Executor</span>
+        <span className="lab gold">
+          {info.nome} · {nomePerfil}
+        </span>
         <div
           className="boxes imp ficha-impeto-barra"
           role="meter"
-          aria-label="Ímpeto"
+          aria-label={info.nome}
           aria-valuemin={0}
-          aria-valuemax={IMPETO_MAXIMO}
+          aria-valuemax={maxBarra}
           aria-valuenow={ficha.impeto}
         >
-          {Array.from({ length: IMPETO_MAXIMO }, (_, i) => (
+          {Array.from({ length: maxBarra }, (_, i) => (
             <i key={i} className={cx(i >= ficha.impeto && 'o')} />
           ))}
         </div>
       </div>
-      <p className="small muted">
-        Cada falha enche um espaço. Gaste 1 para somar d4 num teste, ou 3 para subir um atributo um
-        passo até o fim da cena.
-      </p>
+      <p className="small muted">{info.descricao}</p>
       {subiu && (
         <p className="small gold">{nomeDoAtributo(subiu)} subiu um passo até o fim da cena.</p>
       )}
@@ -242,18 +251,20 @@ export function CartaoDoImpeto({
               aoArmar(!armado);
             }}
           >
-            {armado ? 'No próximo teste · +d4' : 'Gastar 1 · +d4'}
+            {armado ? 'No próximo teste · +d4' : `Gastar 1 · +d4 (${info.rotuloTeste})`}
           </Button>
-          <Button
-            size="sm"
-            className="grow"
-            disabled={ficha.impeto < IMPETO_MAXIMO || subiu !== null}
-            onClick={() => {
-              setEscolhendo(true);
-            }}
-          >
-            Gastar 3 · +1 passo
-          </Button>
+          {info.podeSubirAtributo && (
+            <Button
+              size="sm"
+              className="grow"
+              disabled={ficha.impeto < IMPETO_MAXIMO || subiu !== null}
+              onClick={() => {
+                setEscolhendo(true);
+              }}
+            >
+              Gastar 3 · +1 passo
+            </Button>
+          )}
         </div>
       )}
       <Modal
@@ -264,7 +275,7 @@ export function CartaoDoImpeto({
         title="Subir um atributo"
       >
         <p className="small muted">
-          Gasta os 3 espaços de Ímpeto. O atributo sobe um passo até o fim da cena.
+          Gasta 3 espaços de {info.nome}. O atributo sobe um passo até o fim da cena.
         </p>
         <div className="g3">
           {ATRIBUTOS_OP2.map((a) => (

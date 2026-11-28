@@ -5,7 +5,7 @@
 icone: key
 ordem: 4
 
-Cada item ocupa 1 espaço no inventário. O limite é o valor máximo do dado de Físico: Físico d8 carrega 8 itens. Passar do limite é permitido; o mestre decide o que isso custa.
+O limite de carga é **5 + máximo do dado de Físico** (ex.: Físico d8 carrega 13 espaços). Pesos: Desprezível (0), Normal (1), Volumoso (2), Pesado (5), Muito pesado (10). Acima do limite fica sobrecarregado (−1 passo em Físico); acima do dobro não consegue se mover.
 
 ## Lanterna tática
 

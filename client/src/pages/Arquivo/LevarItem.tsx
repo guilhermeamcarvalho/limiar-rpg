@@ -3,6 +3,7 @@
 import { useId, useState } from 'react';
 import {
   espacosDeItens,
+  espacosOcupados,
   type FichaOp2,
   type ItemDaFicha,
   type Personagem,
@@ -45,10 +46,10 @@ function PainelLevar({
 
   const ficha = fichasLocais[alvoBase.id] ?? alvoBase.ficha;
   const espacos = espacosDeItens(ficha.atributos);
-  const ocupados = ficha.itens.length;
-  const semEspaco = ocupados >= espacos || ocupados >= MAX_ITENS;
+  const ocupados = espacosOcupados(ficha.itens);
+  const semEspaco = ocupados >= espacos || ficha.itens.length >= MAX_ITENS;
   const motivoBloqueio =
-    ocupados >= MAX_ITENS
+    ficha.itens.length >= MAX_ITENS
       ? `O inventário atingiu o máximo de ${String(MAX_ITENS)} itens.`
       : ocupados >= espacos
         ? `Sem espaço livre no inventário de ${primeiroNome(ficha.nome)} (${String(ocupados)}/${String(espacos)} espaços ocupados).`

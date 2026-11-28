@@ -32,6 +32,9 @@ const REGISTRADOS: ReadonlySet<TipoDeEvento> = new Set([
   'map.activated',
   'audio.changed',
   'round.started',
+  'combat.started',
+  'combat.roundChanged',
+  'combat.ended',
 ]);
 
 export const ehRegistrado = (tipo: TipoDeEvento) => REGISTRADOS.has(tipo);

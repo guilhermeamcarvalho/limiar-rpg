@@ -20,6 +20,7 @@ function TokenKonva({
   celula,
   meu,
   selecionado,
+  noTurno,
   posicao,
   arrastavel,
   eventos,
@@ -28,6 +29,7 @@ function TokenKonva({
   celula: number;
   meu: boolean;
   selecionado: boolean;
+  noTurno: boolean;
   posicao: { x: number; y: number };
   arrastavel: boolean;
   eventos: KonvaNodeEvents;
@@ -49,6 +51,16 @@ function TokenKonva({
       opacity={token.oculto ? 0.5 : 1}
       {...eventos}
     >
+      {noTurno && (
+        <Circle
+          radius={raio + 7}
+          stroke={c.gold}
+          strokeWidth={2.5}
+          opacity={0.9}
+          strokeScaleEnabled={false}
+          listening={false}
+        />
+      )}
       {selecionado && (
         <Circle
           radius={raio + 4}
@@ -107,6 +119,7 @@ export interface CamadaDeTokensProps {
   /** Navegando o mapa (espaço segurado) ou escolhendo um ponto: nada se arrasta. */
   bloqueado: boolean;
   selecionado: string | null;
+  turnoTokenId?: string | null;
   aoSelecionar: (id: string) => void;
   enviar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
   aoRecusar: (motivo: string) => void;
@@ -124,6 +137,7 @@ export function CamadaDeTokens({
   escala,
   bloqueado,
   selecionado,
+  turnoTokenId = null,
   aoSelecionar,
   enviar,
   aoRecusar,
@@ -155,6 +169,7 @@ export function CamadaDeTokens({
             celula={celula}
             meu={token.donoId === meuId}
             selecionado={selecionado === token.id}
+            noTurno={turnoTokenId === token.id}
             posicao={arrastando[token.id] ?? token}
             arrastavel={arrastavel}
             eventos={{

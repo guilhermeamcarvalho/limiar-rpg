@@ -110,6 +110,8 @@ export interface ModalDadosFisicosProps {
   enviando?: boolean;
   /** O servidor recusou o envio: o modal fica aberto com o motivo. */
   erro?: string | null;
+  /** Quando verdadeiro (jogador sem DT visível), oculta DT, veredito e a aba "Só o resultado". */
+  ocultarVeredito?: boolean;
   aoEnviar: (relato: RelatoDeTesteOp2) => void;
   /** Fechar ou cancelar: nada é enviado. */
   aoCancelar: () => void;
@@ -120,6 +122,7 @@ export function ModalDadosFisicos({
   pedido,
   enviando = false,
   erro = null,
+  ocultarVeredito = false,
   aoEnviar,
   aoCancelar,
 }: ModalDadosFisicosProps) {
@@ -147,7 +150,10 @@ export function ModalDadosFisicos({
       }))
     : [];
 
-  const [jeito, setJeito] = useState<JeitoDeInformar>(lerJeito);
+  const [jeito, setJeito] = useState<JeitoDeInformar>(() =>
+    ocultarVeredito ? 'dados' : lerJeito(),
+  );
+  const jeitoEfetivo: JeitoDeInformar = ocultarVeredito ? 'dados' : jeito;
   const [valores, setValores] = useState<string[]>(() => dados.map(() => ''));
   const [veredito, setVeredito] = useState<Veredito | null>(null);
   const [numeros, setNumeros] = useState({ soma: '', maior: '', menor: '' });
@@ -278,7 +284,7 @@ export function ModalDadosFisicos({
       ) : (
         <>
           <p className="fisico-intro">
-            {jeito === 'dados'
+            {jeitoEfetivo === 'dados'
               ? `Role na mesa e digite o valor de cada dado. ${NOME_DO_APP} soma os três maiores e aplica a regra.`
               : 'Role na mesa e diga como foi. Os números só valem se o teste pedir.'}
           </p>
@@ -286,7 +292,7 @@ export function ModalDadosFisicos({
             <Tag>
               {nomeDaPericia(pedido.periciaId)} · {nomeDoAtributo(atributo)}
             </Tag>
-            <Tag>DT {pedido.dt}</Tag>
+            {!ocultarVeredito && <Tag>DT {pedido.dt}</Tag>}
             {dados
               .filter((d) => d.papel === 'bonus')
               .map((d, i) => (
@@ -296,18 +302,20 @@ export function ModalDadosFisicos({
               ))}
           </div>
 
-          <Tabs
-            idBase={idBase}
-            label="Como informar"
-            value={jeito}
-            onChange={trocarJeito}
-            items={[
-              { id: 'dados', label: 'Informar os dados' },
-              { id: 'veredito', label: 'Só o resultado' },
-            ]}
-          />
+          {!ocultarVeredito && (
+            <Tabs
+              idBase={idBase}
+              label="Como informar"
+              value={jeitoEfetivo}
+              onChange={trocarJeito}
+              items={[
+                { id: 'dados', label: 'Informar os dados' },
+                { id: 'veredito', label: 'Só o resultado' },
+              ]}
+            />
+          )}
 
-          {jeito === 'dados' ? (
+          {jeitoEfetivo === 'dados' ? (
             <TabPanel idBase={idBase} id="dados" className="col fisico-painel">
               <div className="fisico-dados">
                 {dados.map((d, i) => {
@@ -355,7 +363,9 @@ export function ModalDadosFisicos({
               <div
                 className={cx(
                   'fisico-soma',
-                  resultadoDosDados && COR_DO_VEREDITO[resultadoDosDados.veredito],
+                  !ocultarVeredito &&
+                    resultadoDosDados &&
+                    COR_DO_VEREDITO[resultadoDosDados.veredito],
                 )}
                 role="status"
               >
@@ -367,9 +377,13 @@ export function ModalDadosFisicos({
                         .map((d) => d.valor)
                         .join(' + ')}
                     </span>
-                    <b className={cx('verdict', COR_DO_VEREDITO[resultadoDosDados.veredito])}>
-                      {resultadoDosDados.total} · {textoDoVeredito(resultadoDosDados.veredito)}
-                    </b>
+                    {ocultarVeredito ? (
+                      <b>Total {resultadoDosDados.total}</b>
+                    ) : (
+                      <b className={cx('verdict', COR_DO_VEREDITO[resultadoDosDados.veredito])}>
+                        {resultadoDosDados.total} · {textoDoVeredito(resultadoDosDados.veredito)}
+                      </b>
+                    )}
                   </>
                 ) : (
                   <>

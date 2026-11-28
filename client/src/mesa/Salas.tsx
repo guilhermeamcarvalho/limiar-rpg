@@ -183,11 +183,20 @@ export function CamadaDeDesenhoDaSala({
 function CartaoDaSala({
   sala,
   enviar,
+  aoMostrarNoMapa,
+  reajustando = false,
+  aoReajustarTamanho,
+  aoHover,
 }: {
   sala: SalaNaMesa;
   enviar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
+  aoMostrarNoMapa?: ((salaId: string) => void) | undefined;
+  reajustando?: boolean;
+  aoReajustarTamanho?: ((salaId: string) => void) | undefined;
+  aoHover?: ((salaId: string | null) => void) | undefined;
 }) {
   const avisos = useToast();
+  const [aberto, setAberto] = useState(false);
   const [nome, setNome] = useState(sala.nome);
   const [notas, setNotas] = useState(sala.notasMestre);
 
@@ -212,44 +221,134 @@ function CartaoDaSala({
   }
 
   return (
-    <div className="mesa-bloco card">
-      <div className="row" style={{ gap: 6 }}>
-        <Input
-          aria-label={`Nome da sala ${sala.nome}`}
-          value={nome}
-          onChange={(e) => {
-            setNome(e.target.value);
-          }}
-          onBlur={() => {
-            void salvar();
-          }}
-        />
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<Icon name="trash" size="sm" />}
-          aria-label={`Remover sala ${sala.nome}`}
+    <div
+      className="mesa-bloco card sala-item"
+      onMouseEnter={() => {
+        aoHover?.(sala.id);
+      }}
+      onMouseLeave={() => {
+        aoHover?.(null);
+      }}
+    >
+      <div className="sala-linha">
+        <button
+          type="button"
+          className="sala-nome-btn"
+          title={`Focar ${sala.nome} no mapa`}
           onClick={() => {
-            void enviar({ type: 'room.delete', salaId: sala.id }).then((r) => {
-              if (!r.ok)
-                avisos.show({ type: 'err', title: 'Não deu para remover', text: r.motivo });
-            });
+            aoMostrarNoMapa?.(sala.id);
           }}
-        />
+        >
+          <Icon name="door" size="sm" />
+          <span>{sala.nome}</span>
+        </button>
+        <div className="sala-acoes">
+          {aoMostrarNoMapa && sala.area.length > 0 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<Icon name="target" size="sm" />}
+              aria-label={`Focar ${sala.nome} no mapa`}
+              title="Focar no mapa"
+              onClick={() => {
+                aoMostrarNoMapa(sala.id);
+              }}
+            />
+          )}
+          {aoReajustarTamanho && (
+            <Button
+              size="sm"
+              variant={reajustando ? 'primary' : 'ghost'}
+              aria-pressed={reajustando}
+              icon={<Icon name="move" size="sm" />}
+              aria-label={`Redimensionar área de ${sala.nome}`}
+              title={
+                reajustando ? 'Redimensionando área (clique para cancelar)' : 'Redimensionar área'
+              }
+              onClick={() => {
+                aoReajustarTamanho(sala.id);
+              }}
+            />
+          )}
+          <Button
+            size="sm"
+            variant={aberto ? 'secondary' : 'ghost'}
+            icon={<Icon name="edit" size="sm" />}
+            aria-label={`Editar ${sala.nome}`}
+            title={aberto ? 'Fechar edição' : 'Editar sala'}
+            aria-expanded={aberto}
+            onClick={() => {
+              setAberto((v) => !v);
+            }}
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="sala-acao-excluir"
+            icon={<Icon name="trash" size="sm" />}
+            aria-label={`Excluir sala ${sala.nome}`}
+            title="Excluir sala"
+            onClick={() => {
+              void enviar({ type: 'room.delete', salaId: sala.id }).then((r) => {
+                if (!r.ok)
+                  avisos.show({ type: 'err', title: 'Não deu para remover', text: r.motivo });
+              });
+            }}
+          />
+        </div>
       </div>
-      <Field label={`Notas do mestre · ${sala.nome}`}>
-        <Textarea
-          placeholder="Notas exclusivas do mestre (jogadores nunca veem)…"
-          value={notas}
-          rows={2}
-          onChange={(e) => {
-            setNotas(e.target.value);
-          }}
-          onBlur={() => {
-            void salvar();
-          }}
-        />
-      </Field>
+      {aberto && (
+        <div className="col" style={{ gap: 8 }}>
+          <Field label="Nome da sala">
+            <Input
+              aria-label={`Nome da sala ${sala.nome}`}
+              value={nome}
+              onChange={(e) => {
+                setNome(e.target.value);
+              }}
+              onBlur={() => {
+                void salvar();
+              }}
+            />
+          </Field>
+          <Field label={`Notas do mestre · ${sala.nome}`}>
+            <Textarea
+              placeholder="Notas exclusivas do mestre (jogadores nunca veem)…"
+              value={notas}
+              rows={2}
+              onChange={(e) => {
+                setNotas(e.target.value);
+              }}
+              onBlur={() => {
+                void salvar();
+              }}
+            />
+          </Field>
+          <div className="row between wrapx" style={{ gap: 6 }}>
+            {aoReajustarTamanho && (
+              <Button
+                size="sm"
+                variant={reajustando ? 'primary' : 'secondary'}
+                aria-pressed={reajustando}
+                onClick={() => {
+                  aoReajustarTamanho(sala.id);
+                }}
+              >
+                {reajustando ? 'Desenhando novo tamanho…' : 'Reajustar tamanho no mapa'}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                void salvar();
+              }}
+            >
+              Salvar
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -261,6 +360,12 @@ export function FerramentaDeSalas({
   aoMudarTraco,
   aoMudarNomeNovaSala,
   enviar,
+  aoMostrarNoMapa,
+  adicionandoSala = false,
+  aoAlternarAdicionando,
+  salaEmReajusteId = null,
+  aoReajustarTamanho,
+  aoHoverSala,
 }: {
   salas: readonly SalaNaMesa[];
   traco: TracoDaSala;
@@ -268,58 +373,121 @@ export function FerramentaDeSalas({
   aoMudarTraco: (traco: TracoDaSala) => void;
   aoMudarNomeNovaSala: (nome: string) => void;
   enviar: (comando: ComandoDaMesa) => Promise<RespostaDoComando>;
+  aoMostrarNoMapa?: (salaId: string) => void;
+  adicionandoSala?: boolean;
+  aoAlternarAdicionando?: () => void;
+  salaEmReajusteId?: string | null;
+  aoReajustarTamanho?: (salaId: string | null) => void;
+  aoHoverSala?: (salaId: string | null) => void;
 }) {
+  const salaEmReajuste = salaEmReajusteId
+    ? (salas.find((s) => s.id === salaEmReajusteId) ?? null)
+    : null;
+  const desenhando = adicionandoSala || salaEmReajuste !== null;
   return (
     <div className="col">
-      <p className="small muted">
-        Desenhe no mapa para demarcar uma sala. Só você vê os nomes, as notas e as áreas (usadas
-        também em Breu → Cobrir/revelar por sala).
-      </p>
+      <p className="small muted">Áreas visíveis apenas para o mestre e usadas no breu.</p>
 
-      <Field label="Nome da próxima sala">
-        <Input
-          placeholder="Ex.: Recepção, Estúdio B…"
-          value={nomeNovaSala}
-          onChange={(e) => {
-            aoMudarNomeNovaSala(e.target.value);
-          }}
-        />
-      </Field>
+      {aoAlternarAdicionando && (
+        <Button
+          size="sm"
+          wide
+          variant="primary"
+          aria-pressed={adicionandoSala}
+          icon={<Icon name="plus" size="sm" />}
+          onClick={aoAlternarAdicionando}
+        >
+          {adicionandoSala ? 'Desenhando nova sala…' : 'Adicionar sala'}
+        </Button>
+      )}
 
-      <div className="mesa-grupo">
-        <span className="lab">Traço no mapa</span>
-        <div className="row">
-          <Button
-            size="sm"
-            variant={traco === 'retangulo' ? 'primary' : 'secondary'}
-            aria-pressed={traco === 'retangulo'}
-            onClick={() => {
-              aoMudarTraco('retangulo');
-            }}
-          >
-            Retângulo
-          </Button>
-          <Button
-            size="sm"
-            variant={traco === 'poligono' ? 'primary' : 'secondary'}
-            aria-pressed={traco === 'poligono'}
-            onClick={() => {
-              aoMudarTraco('poligono');
-            }}
-          >
-            Polígono
+      {adicionandoSala && aoAlternarAdicionando && (
+        <div className="banner" role="status">
+          <span>Desenhe no mapa a área da nova sala.</span>
+          <Button size="sm" variant="ghost" onClick={aoAlternarAdicionando}>
+            Cancelar
           </Button>
         </div>
-      </div>
+      )}
+
+      {salaEmReajuste && aoReajustarTamanho && (
+        <div className="banner" role="status">
+          <span>
+            Editando o tamanho de <b>{salaEmReajuste.nome}</b>: desenhe a nova área no mapa.
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              aoReajustarTamanho(null);
+            }}
+          >
+            Cancelar
+          </Button>
+        </div>
+      )}
+
+      {adicionandoSala && (
+        <Field label="Nome da próxima sala">
+          <Input
+            placeholder="Ex.: Recepção, Estúdio B…"
+            value={nomeNovaSala}
+            onChange={(e) => {
+              aoMudarNomeNovaSala(e.target.value);
+            }}
+          />
+        </Field>
+      )}
+
+      {desenhando && (
+        <div className="mesa-grupo">
+          <span className="lab">Traço no mapa</span>
+          <div className="row">
+            <Button
+              size="sm"
+              variant={traco === 'retangulo' ? 'primary' : 'secondary'}
+              aria-pressed={traco === 'retangulo'}
+              onClick={() => {
+                aoMudarTraco('retangulo');
+              }}
+            >
+              Retângulo
+            </Button>
+            <Button
+              size="sm"
+              variant={traco === 'poligono' ? 'primary' : 'secondary'}
+              aria-pressed={traco === 'poligono'}
+              onClick={() => {
+                aoMudarTraco('poligono');
+              }}
+            >
+              Polígono
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="mesa-grupo">
-        <span className="lab">Salas neste mapa ({salas.length})</span>
         {salas.length === 0 ? (
           <p className="small muted">Nenhuma sala demarcada ainda.</p>
         ) : (
           <div className="col" style={{ gap: 8 }}>
             {salas.map((sala) => (
-              <CartaoDaSala key={sala.id} sala={sala} enviar={enviar} />
+              <CartaoDaSala
+                key={sala.id}
+                sala={sala}
+                enviar={enviar}
+                aoMostrarNoMapa={aoMostrarNoMapa}
+                reajustando={salaEmReajusteId === sala.id}
+                aoReajustarTamanho={
+                  aoReajustarTamanho
+                    ? (id) => {
+                        aoReajustarTamanho(salaEmReajusteId === id ? null : id);
+                      }
+                    : undefined
+                }
+                aoHover={aoHoverSala}
+              />
             ))}
           </div>
         )}

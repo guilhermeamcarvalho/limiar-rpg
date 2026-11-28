@@ -150,15 +150,20 @@ describe('montarTeste e recursos (exemplos das regras)', () => {
     expect(montarTeste(machucado, 'luta').atributo).toBe('d6');
   });
 
-  it('PV = 4 + máximo de Físico; PD = máximo de Mente + máximo de Emoção', () => {
+  it('PV = 4 + máximo de Físico; PD = 24 - PV no nível 1', () => {
     expect(maximosDeRecursos(fichaDoDavi().atributos)).toEqual({ pvMax: 12, pdMax: 12 });
     expect(maximosDeRecursos({ fisico: 'd6', mente: 'd8', emocao: 'd8' })).toEqual({
       pvMax: 10,
-      pdMax: 16,
+      pdMax: 14,
     });
     expect(maximosDeRecursos({ fisico: 'd12', mente: 'd4', emocao: 'd4' })).toEqual({
       pvMax: 16,
       pdMax: 8,
     });
+  });
+
+  it('Ajuda dá +1 passo em d4–d8 e +2 passos em d10–d12', () => {
+    expect(montarTeste(fichaDoDavi(), 'luta', { ajuda: true }).pericia).toBe('d10');
+    expect(montarTeste(fichaDoDavi(), 'maquinas', { ajuda: true }).pericia).toBe('d12');
   });
 });

@@ -1,6 +1,8 @@
 // Cartão de resultado de um teste na mesa (artboard 10, #70): aparece sempre no canto inferior
 // esquerdo do mapa, nunca no centro, para não cobrir a cena. Todos veem o resultado; o mestre (e
-// todo teste físico) vê também a origem dos dados.
+// todo teste físico) vê também a origem dos dados. Some sozinho após alguns segundos (pausando ao
+// passar o mouse).
+import { useEffect, useRef, useState } from 'react';
 import {
   nomeDaPericia,
   nomeDoAtributo,
@@ -9,6 +11,8 @@ import {
   type Veredito,
 } from '@membrana/shared';
 import { Button, cx, Die, Icon, Note, textoDoVeredito } from '../ui/index.ts';
+
+const TEMPO_LIMITE_MS = 8000;
 
 const ESTILO_DO_VEREDITO = {
   sucesso: { tom: 'ok', cor: 'green' },
@@ -22,22 +26,52 @@ export interface ResultadoNaMesaProps {
   papel: Papel;
   nomesDePersonagens: Readonly<Record<string, string>>;
   aoFechar: () => void;
+  tempoLimiteMs?: number;
 }
 
-export function Resultado({ registro, papel, nomesDePersonagens, aoFechar }: ResultadoNaMesaProps) {
+export function Resultado({
+  registro,
+  papel,
+  nomesDePersonagens,
+  aoFechar,
+  tempoLimiteMs = TEMPO_LIMITE_MS,
+}: ResultadoNaMesaProps) {
+  const [pausado, setPausado] = useState(false);
+  const fecharRef = useRef(aoFechar);
+  useEffect(() => {
+    fecharRef.current = aoFechar;
+  }, [aoFechar]);
+
+  useEffect(() => {
+    if (pausado || tempoLimiteMs <= 0) return;
+    const t = window.setTimeout(() => {
+      fecharRef.current();
+    }, tempoLimiteMs);
+    return () => {
+      window.clearTimeout(t);
+    };
+  }, [pausado, tempoLimiteMs, registro]);
+
+  const mestre = papel === 'mestre';
   const estilo = ESTILO_DO_VEREDITO[registro.resultado.veredito];
   const quem =
     registro.personagemNome ??
     nomesDePersonagens[registro.personagemId] ??
     registro.autor?.nome ??
     'Personagem';
-  const mostrarOrigem = papel === 'mestre' || registro.origem === 'fisico';
+  const mostrarOrigem = mestre || registro.origem === 'fisico';
   const textoOrigem = registro.origem === 'fisico' ? 'Dados físicos' : 'Dados virtuais';
 
   return (
     <section
-      className={cx('result mesa-resultado', estilo.tom)}
+      className={cx('result mesa-resultado', mestre && estilo.tom)}
       aria-label="Resultado do teste na mesa"
+      onMouseEnter={() => {
+        setPausado(true);
+      }}
+      onMouseLeave={() => {
+        setPausado(false);
+      }}
     >
       <div className="result-h">
         <span>
@@ -72,10 +106,12 @@ export function Resultado({ registro, papel, nomesDePersonagens, aoFechar }: Res
           })}
         </div>
         <div className="result-total">
-          <span className={cx('num', estilo.cor)}>{registro.resultado.total}</span>
-          <span className={cx('verdict', estilo.cor)}>
-            {textoDoVeredito(registro.resultado.veredito)} · DT {registro.resultado.dt}
-          </span>
+          <span className={cx('num', mestre && estilo.cor)}>{registro.resultado.total}</span>
+          {mestre && (
+            <span className={cx('verdict', estilo.cor)}>
+              {textoDoVeredito(registro.resultado.veredito)} · DT {registro.resultado.dt}
+            </span>
+          )}
         </div>
       </div>
       {registro.efeitos.length > 0 && (

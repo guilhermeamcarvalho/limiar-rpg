@@ -198,6 +198,11 @@ const roomUpdate = comando('room.update', {
   salaId: id,
   nome: nomeCurto.optional(),
   notasMestre: textoLongo.optional(),
+  area: z
+    .array(esquemaPonto)
+    .min(3, { error: 'Uma sala precisa de pelo menos 3 pontos.' })
+    .max(200, { error: 'No máximo 200 pontos.' })
+    .optional(),
 }).refine(algumCampo('salaId'), NADA_PARA_MUDAR);
 const roomDelete = comando('room.delete', { salaId: id });
 
@@ -327,6 +332,43 @@ const chatSend = comando('chat.send', {
 
 const roundEnd = comando('round.end', {});
 
+const esquemaParticipanteCombate = z
+  .object({
+    id: id,
+    tipo: z.enum(['jogador', 'npc']),
+    nome: z.string().trim().min(1).max(80),
+    tokenId: id.nullable(),
+    donoId: id.nullable(),
+    personagemId: id.nullable(),
+    iniciativa: z.int().min(-99).max(999),
+    oculto: z.boolean().default(false),
+    incapacitado: z.boolean().default(false),
+    condicoes: z.array(z.string().min(1).max(40)).max(20).default([]),
+  })
+  .strict();
+
+const combatStart = comando('combat.start', {
+  participantes: z.array(esquemaParticipanteCombate).min(1).max(50),
+});
+const combatEnd = comando('combat.end', {});
+const combatNextTurn = comando('combat.nextTurn', {});
+const combatPrevTurn = comando('combat.prevTurn', {});
+const combatFinishTurn = comando('combat.finishTurn', {});
+const combatAddParticipant = comando('combat.addParticipant', {
+  participante: esquemaParticipanteCombate,
+});
+const combatRemoveParticipant = comando('combat.removeParticipant', { id });
+const combatUpdateParticipant = comando('combat.updateParticipant', {
+  id,
+  iniciativa: z.int().min(-99).max(999).optional(),
+  oculto: z.boolean().optional(),
+  incapacitado: z.boolean().optional(),
+  condicoes: z.array(z.string().min(1).max(40)).max(20).optional(),
+});
+const combatReorder = comando('combat.reorder', {
+  ordem: z.array(id).min(1).max(50),
+});
+
 const boardPing = comando('board.ping', { x: coordenada, y: coordenada });
 
 export const esquemaComando = z.discriminatedUnion(
@@ -370,6 +412,15 @@ export const esquemaComando = z.discriminatedUnion(
     audioVolume,
     chatSend,
     roundEnd,
+    combatStart,
+    combatEnd,
+    combatNextTurn,
+    combatPrevTurn,
+    combatFinishTurn,
+    combatAddParticipant,
+    combatRemoveParticipant,
+    combatUpdateParticipant,
+    combatReorder,
     boardPing,
   ],
   { error: 'Comando desconhecido.' },
@@ -593,6 +644,26 @@ export interface EstadoDaRodada {
   agiram: string[];
 }
 
+export interface ParticipanteDoCombate {
+  id: string;
+  tipo: 'jogador' | 'npc';
+  nome: string;
+  tokenId: string | null;
+  donoId: string | null;
+  personagemId: string | null;
+  iniciativa: number;
+  oculto: boolean;
+  incapacitado: boolean;
+  condicoes: string[];
+}
+
+export interface EstadoDoCombate {
+  ativo: boolean;
+  rodada: number;
+  turnoIndex: number;
+  participantes: ParticipanteDoCombate[];
+}
+
 /** O estado completo de uma mesa, como o servidor guarda. O mestre recebe tudo. */
 export interface EstadoDaMesa {
   mapa: MapaNaMesa | null;
@@ -606,6 +677,7 @@ export interface EstadoDaMesa {
   pistas: PistaNaMesa[];
   comAlguem: PistaComAlguem[];
   rodada: EstadoDaRodada;
+  combate?: EstadoDoCombate | null;
   trilha: TrilhaTocando | null;
   /** Guia de cena e notas do escudo (Fase 3): nunca vão para o jogador. */
   guia: string;
@@ -624,6 +696,7 @@ export function estadoVazioDaMesa(): EstadoDaMesa {
     pistas: [],
     comAlguem: [],
     rodada: { numero: 1, agiram: [] },
+    combate: null,
     trilha: null,
     guia: '',
     escudo: '',
@@ -666,6 +739,7 @@ export interface VisaoDaMesa {
   pistas: (PistaNaMesa | PistaParaJogador)[];
   inventario: ItemDoInventario[];
   rodada: EstadoDaRodada;
+  combate?: EstadoDoCombate | null;
   trilha: TrilhaTocando | null;
   /** Só o mestre. */
   salas?: SalaNaMesa[];
@@ -741,6 +815,10 @@ export type EventoDaMesaSemSeq =
     }
   | { type: 'round.started'; numero: number }
   | { type: 'round.acted'; userId: string }
+  | { type: 'combat.updated'; combate: EstadoDoCombate | null }
+  | { type: 'combat.started'; rodada: number; participantes: number }
+  | { type: 'combat.roundChanged'; rodada: number }
+  | { type: 'combat.ended'; rodada: number }
   | { type: 'board.pinged'; autorId: string; x: number; y: number };
 
 /** Todo evento leva o número de sequência da mesa: chegam e se aplicam nessa ordem. */

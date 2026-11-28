@@ -159,10 +159,10 @@ describe('Ficha: topo, atributos, PV/PD, Ímpeto e Gambiarra (#45)', () => {
   });
 
   it('Ímpeto e Gambiarra só aparecem para quem tem a habilidade', async () => {
-    await abrirDavi({ perfil: 'analista', ocupacao: 'Jornalista' });
+    await abrirDavi({ perfil: 'analista', ocupacao: 'Investigador' });
     expect(screen.queryByText('Ímpeto · Executor')).toBeNull();
+    expect(screen.getByText('Plano · Analista')).toBeDefined();
     expect(screen.queryByText('Gambiarra')).toBeNull();
-    expect(screen.queryByRole('button', { name: /Gastar 1/ })).toBeNull();
   });
 
   it('Gastar 3 sobe o atributo escolhido até o fim da cena', async () => {
@@ -255,7 +255,7 @@ describe('Ficha: 20 perícias com prévia de teste (#46)', () => {
       },
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Gastar 1 · +d4' }));
+    fireEvent.click(screen.getByRole('button', { name: /Gastar 1 · \+d4/ }));
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Testar Luta: d8 de atributo, d8 de perícia e d4 de Ímpeto',
@@ -268,7 +268,10 @@ describe('Ficha: 20 perícias com prévia de teste (#46)', () => {
       dt: 7,
       impeto: true,
     });
-    expect(screen.getByRole('button', { name: 'Gastar 1 · +d4' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: /Gastar 1 · \+d4/ })).toHaveProperty(
+      'disabled',
+      true,
+    );
   });
 
   it('erro do servidor no teste aparece como aviso e não muda a ficha', async () => {
@@ -468,7 +471,9 @@ describe('Ficha: seletor de dados e foto (#49, #52)', () => {
       `/api/arquivos/${'a'.repeat(64)}.webp`,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Trocar foto e token' }));
-    expect(await screen.findByRole('dialog', { name: 'Foto e token' })).toBeDefined();
+    const dialog = await screen.findByRole('dialog', { name: 'Foto e token' });
+    expect(dialog).toBeDefined();
+    expect(within(dialog).getByRole('button', { name: 'Token pronto' })).toBeDefined();
   });
 });
 
@@ -477,7 +482,7 @@ describe('Ficha: abas Itens, Pistas, Anotações e Histórico (#54)', () => {
     await abrirDavi();
     const abas = screen.getAllByRole('tab').map((t) => t.textContent);
     expect(abas).toEqual(['Itens4', 'Pistas0', 'Anotações', 'Histórico']);
-    expect(screen.getByText('4 de 8 ocupados')).toBeDefined();
+    expect(screen.getByText('4 de 13 ocupados')).toBeDefined();
     expect(screen.getByText('Kit de ferramentas')).toBeDefined();
   });
 
@@ -498,13 +503,21 @@ describe('Ficha: abas Itens, Pistas, Anotações e Histórico (#54)', () => {
   });
 
   it('item sem nome não entra; acima do limite, avisa sem bloquear', async () => {
-    await abrirDavi({ atributos: { fisico: 'd4', mente: 'd6', emocao: 'd6' } });
+    await abrirDavi({
+      atributos: { fisico: 'd4', mente: 'd6', emocao: 'd6' },
+      itens: Array.from({ length: 9 }, (_, i) => ({
+        id: `it_${String(i)}`,
+        nome: `Item ${String(i)}`,
+        descricao: '',
+        espacos: 1,
+      })),
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar' }));
     expect(screen.getByText('Dê um nome ao item.')).toBeDefined();
 
     fireEvent.change(screen.getByLabelText('Novo item'), { target: { value: 'Corda' } });
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar' }));
-    expect(await screen.findByText(/Passa do limite do Físico \(4 espaços\)/)).toBeDefined();
+    expect(await screen.findByText(/Passa do limite do Físico \(9 espaços\)/)).toBeDefined();
   });
 
   it('anotações salvam ao sair do campo', async () => {

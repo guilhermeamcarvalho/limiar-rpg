@@ -45,6 +45,7 @@ export interface PericiasProps {
   ficha: FichaOp2;
   dt: number;
   dtPadrao: number;
+  ocultarDt?: boolean;
   aoMudarDt: (dt: number) => void;
   ajuda: boolean;
   aoMudarAjuda: (ajuda: boolean) => void;
@@ -58,6 +59,7 @@ export function Pericias({
   ficha,
   dt,
   dtPadrao,
+  ocultarDt = false,
   aoMudarDt,
   ajuda,
   aoMudarAjuda,
@@ -78,25 +80,27 @@ export function Pericias({
               aoMudarAjuda(e.target.checked);
             }}
           />
-          <span className="row" style={{ gap: 6 }}>
-            <label htmlFor={idDt} className="lab">
-              DT
-            </label>
-            <select
-              id={idDt}
-              className="fld ficha-dt"
-              value={dt}
-              onChange={(e) => {
-                aoMudarDt(Number(e.target.value));
-              }}
-            >
-              {opcoesDeDt(dtPadrao).map((n) => (
-                <option key={n} value={n}>
-                  {n === dtPadrao ? `${String(n)} · padrão` : n}
-                </option>
-              ))}
-            </select>
-          </span>
+          {!ocultarDt && (
+            <span className="row" style={{ gap: 6 }}>
+              <label htmlFor={idDt} className="lab">
+                DT
+              </label>
+              <select
+                id={idDt}
+                className="fld ficha-dt"
+                value={dt}
+                onChange={(e) => {
+                  aoMudarDt(Number(e.target.value));
+                }}
+              >
+                {opcoesDeDt(dtPadrao).map((n) => (
+                  <option key={n} value={n}>
+                    {n === dtPadrao ? `${String(n)} · padrão` : n}
+                  </option>
+                ))}
+              </select>
+            </span>
+          )}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 // Regras de Ordem Paranormal II. Funções puras: a ficha mostra a prévia e o servidor dá a palavra
 // final com o mesmo código.
 export * from './pericias.ts';
+export * from './condicoes.ts';
 export * from './passos.ts';
 export * from './teste.ts';
 export * from './falha-critica.ts';

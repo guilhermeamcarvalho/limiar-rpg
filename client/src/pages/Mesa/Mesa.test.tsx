@@ -909,8 +909,11 @@ describe('dados, testes, chat e registro na página da Mesa', () => {
     fireEvent.click(await within(painel).findByRole('button', { name: /Testar Percepção/ }));
 
     const modal = await screen.findByRole('dialog');
-    fireEvent.click(within(modal).getByRole('tab', { name: 'Só o resultado' }));
-    fireEvent.click(within(modal).getByRole('button', { name: /Sucesso$/i }));
+    expect(within(modal).queryByText(/^DT /)).toBeNull();
+    const campos = within(modal).getAllByLabelText(/^Valor do /);
+    for (const campo of campos) {
+      fireEvent.change(campo, { target: { value: '4' } });
+    }
     fireEvent.click(within(modal).getByRole('button', { name: 'Enviar resultado' }));
 
     await waitFor(() => {
@@ -919,7 +922,7 @@ describe('dados, testes, chat e registro na página da Mesa', () => {
         personagemId: 'chr_davi',
         periciaId: 'percepcao',
         dt: 7,
-        resultado: { modo: 'veredito', veredito: 'sucesso' },
+        resultado: { modo: 'dados', valores: campos.map(() => 4) },
       });
     });
   });
@@ -982,6 +985,42 @@ describe('layout recolhível, painel do jogador e ordem da rodada', () => {
       visao({
         papel: 'mestre',
         rodada: { numero: 3, agiram: ['usr_1'] },
+        tokens: [
+          {
+            id: 'tok_z',
+            nome: 'Zumbi',
+            imagem: null,
+            x: 100,
+            y: 100,
+            tamanho: 1,
+            oculto: false,
+            donoId: null,
+            personagemId: null,
+          },
+        ],
+        escudo: JSON.stringify({
+          regras: [],
+          ameacas: [
+            {
+              id: 'amc_z',
+              titulo: 'Zumbi',
+              texto: '',
+              ficha: {
+                fisico: 'd6',
+                mente: 'd4',
+                emocao: 'd4',
+                acrobacia: 'd6',
+                luta: 'd6',
+                pontaria: 'd4',
+                pvMax: 10,
+                pdMax: 6,
+                patamar: 'capanga',
+              },
+            },
+          ],
+          relogios: [],
+          segredos: [],
+        }),
       }),
       {
         'GET /api/campanhas/cmp_1': json(200, {
@@ -1015,9 +1054,11 @@ describe('layout recolhível, painel do jogador e ordem da rodada', () => {
     expect(within(caioItem).getByText('Agindo')).toBeDefined();
     expect(within(teoItem).getByText('ausente')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Encerrar rodada' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar combate' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Iniciar combate' });
+    fireEvent.click(within(dialogo).getByRole('button', { name: /iniciar/i }));
     await waitFor(() => {
-      expect(socket().comandos).toContainEqual({ type: 'round.end' });
+      expect(socket().comandos.some((c) => c.type === 'combat.start')).toBe(true);
     });
   });
 
@@ -1120,7 +1161,20 @@ describe('layout recolhível, painel do jogador e ordem da rodada', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Salas, ferramenta do mestre' }));
+    expect(await screen.findByRole('heading', { name: 'Salas (1)' })).toBeDefined();
+    expect(await screen.findByText('Recepção')).toBeDefined();
+    const btnAdicionar = screen.getByRole('button', { name: 'Adicionar sala' });
+    fireEvent.click(btnAdicionar);
+    expect(await screen.findByText('Desenhe no mapa a área da nova sala.')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Editar Recepção' }));
     expect(await screen.findByDisplayValue('Recepção')).toBeDefined();
+    const btnTamanho = screen.getByRole('button', {
+      name: 'Redimensionar área de Recepção',
+    });
+    fireEvent.click(btnTamanho);
+    expect(btnTamanho.getAttribute('aria-pressed')).toBe('true');
+    expect(btnAdicionar.getAttribute('aria-pressed')).toBe('false');
+    expect(await screen.findByText(/Editando o tamanho de/i)).toBeDefined();
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Pontos de interesse, ferramenta do mestre' }),

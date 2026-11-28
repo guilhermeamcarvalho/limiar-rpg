@@ -2,10 +2,10 @@
 // 8 passos para distribuir ("seis d6 e um d8"). Fora da regra é permitido, com aviso.
 import {
   ATRIBUTOS_OP2,
-  PASSOS_DE_PERICIA,
   PERICIAS_OP2,
   avisosDaCriacao,
-  basesDasPericias,
+  ocupacaoConhecida,
+  passosDePericiaParaNivel,
   passosEmPericias,
   type FichaOp2,
   type PericiaOp2,
@@ -24,20 +24,19 @@ export function Pericias({
   passos: Partial<Record<PericiaOp2, number>>;
   mudar: (passos: Partial<Record<PericiaOp2, number>>) => void;
 }) {
-  const bases = basesDasPericias(ficha.ocupacao);
+  const sugeridas: readonly PericiaOp2[] = ocupacaoConhecida(ficha.ocupacao)?.pericias ?? [];
+  const meta = passosDePericiaParaNivel(ficha.nivel);
   const usados = passosEmPericias(ficha.pericias, ficha.ocupacao);
-  const restantes = PASSOS_DE_PERICIA - usados;
+  const restantes = meta - usados;
   const avisos = avisosDaCriacao(ficha).filter((a) => a.campo.startsWith('pericias'));
 
   return (
     <>
       <p className="small" role="status">
         <b>
-          {usados} de {PASSOS_DE_PERICIA} passos usados.
+          {usados} de {meta} passos usados.
         </b>{' '}
-        {Object.values(bases).some((b) => b !== 'd4')
-          ? 'As perícias da ocupação já começam em d6.'
-          : 'Sem ocupação conhecida, todas começam em d4.'}
+        Todas as perícias começam em d4 (máx. d8 na criação).
       </p>
 
       <div className="g3 criar-pericias">
@@ -50,7 +49,7 @@ export function Pericias({
               {PERICIAS_OP2.filter((p) => p.atributo === a.id).map((p) => {
                 const dado = ficha.pericias[p.id];
                 const n = passos[p.id] ?? 0;
-                const daOcupacao = bases[p.id] !== 'd4';
+                const daOcupacao = sugeridas.includes(p.id);
                 return (
                   <li key={p.id} className="criar-pericia">
                     <span className="grow">
@@ -58,7 +57,7 @@ export function Pericias({
                       {daOcupacao && (
                         <>
                           {' '}
-                          <Tag tone="gold">ocupação</Tag>
+                          <Tag tone="gold">sugerida</Tag>
                         </>
                       )}
                     </span>

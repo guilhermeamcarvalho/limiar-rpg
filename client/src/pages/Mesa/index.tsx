@@ -3,7 +3,7 @@
 // mapa, cartão de resultado no canto, barra de ferramentas em grupos, e painel direito recolhível
 // com Chat, Registro, Pistas e Itens. O estado recolhido dos painéis fica salvo no navegador.
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import {
   tituloDaPagina,
   type CampanhaDetalhe,
@@ -31,6 +31,7 @@ import type { PincelDoBreu } from '../../mesa/Breu.tsx';
 import { FerramentaDoBreu } from '../../mesa/painel/Breu.tsx';
 import { DadosETestes } from '../../mesa/painel/DadosETestes.tsx';
 import { Jogador } from '../../mesa/painel/Jogador.tsx';
+import { ModalCombate } from '../../mesa/painel/ModalCombate.tsx';
 import { FerramentaDaNevoa } from '../../mesa/painel/Nevoa.tsx';
 import { NovoProp } from '../../mesa/painel/NovoProp.tsx';
 import { Npcs } from '../../mesa/painel/Npcs.tsx';
@@ -49,6 +50,7 @@ import {
   cx,
   EmptyState,
   Icon,
+  Modal,
   TabPanel,
   Tabs,
   RevelacaoDoDado,
@@ -269,7 +271,22 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   const [pincel, setPincel] = useState<PincelDoBreu>({ modo: 'cobrir', forma: 'retangulo' });
   const [tracoSala, setTracoSala] = useState<TracoDaSala>('retangulo');
   const [nomeNovaSala, setNomeNovaSala] = useState('');
+  const [adicionandoSala, setAdicionandoSala] = useState(false);
+  const [salaEmReajusteId, setSalaEmReajusteId] = useState<string | null>(null);
+  const [salaHoverId, setSalaHoverId] = useState<string | null>(null);
+  const [modalCombate, setModalCombate] = useState(false);
+  const [confirmarFimCombate, setConfirmarFimCombate] = useState(false);
+  const [searchParams] = useSearchParams();
+  const salaDaUrl = searchParams.get('sala');
+  const [salaFocada, setSalaFocada] = useState<{ salaId: string; seq: number } | null>(null);
+  const focoSalaSeq = useRef(0);
+  const salaInicialFocada = useRef<string | null>(null);
   const centroRef = useRef<Ponto | null>(null);
+
+  function mostrarSalaNoMapa(salaId: string) {
+    focoSalaSeq.current += 1;
+    setSalaFocada({ salaId, seq: focoSalaSeq.current });
+  }
 
   const caso = useCarga(`/api/campanhas/${campanhaId}`, (signal) =>
     pedir<{ campanha: CampanhaDetalhe }>(`/api/campanhas/${encodeURIComponent(campanhaId)}`, {
@@ -313,6 +330,15 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
   );
 
   const { visao } = mesa;
+
+  useEffect(() => {
+    if (!salaDaUrl || !visao?.mapa || !visao.salas?.some((s) => s.id === salaDaUrl)) return;
+    if (salaInicialFocada.current === salaDaUrl) return;
+    salaInicialFocada.current = salaDaUrl;
+    focoSalaSeq.current += 1;
+    setSalaFocada({ salaId: salaDaUrl, seq: focoSalaSeq.current });
+  }, [salaDaUrl, visao?.mapa, visao?.salas]);
+
   const mestre = visao?.papel === 'mestre';
   const temMapa = Boolean(visao?.mapa);
   const meuId = sessao.estado === 'logado' ? sessao.usuario.id : '';
@@ -447,13 +473,28 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para mexer no breu', text: r.motivo });
   }
 
-  /** A forma desenhada no mapa cria uma sala exclusiva do mestre (#82). */
-  async function criarSala(area: Ponto[]) {
+  /** A forma desenhada no mapa cria uma sala exclusiva do mestre (#82) ou reajusta a sala em edição. */
+  async function criarOuReajustarSala(area: Ponto[]) {
+    if (salaEmReajusteId) {
+      const r = await enviar({ type: 'room.update', salaId: salaEmReajusteId, area });
+      if (r.ok) {
+        mostrarSalaNoMapa(salaEmReajusteId);
+        setSalaEmReajusteId(null);
+      } else {
+        avisos.show({ type: 'err', title: 'Não deu para reajustar a sala', text: r.motivo });
+      }
+      return;
+    }
+    if (!adicionandoSala) return;
     const quantidade = visao?.salas?.length ?? 0;
     const nome = nomeNovaSala.trim() || `Sala ${String(quantidade + 1)}`;
     const r = await enviar({ type: 'room.create', nome, area });
-    if (r.ok) setNomeNovaSala('');
-    else avisos.show({ type: 'err', title: 'Não deu para criar a sala', text: r.motivo });
+    if (r.ok) {
+      setNomeNovaSala('');
+      setAdicionandoSala(false);
+    } else {
+      avisos.show({ type: 'err', title: 'Não deu para criar a sala', text: r.motivo });
+    }
   }
 
   async function trazerGrupo(ponto: Ponto) {
@@ -467,11 +508,29 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para marcar o ponto', text: r.motivo });
   }
 
-  async function encerrarRodada() {
-    const r = await enviar({ type: 'round.end' });
-    if (!r.ok)
-      avisos.show({ type: 'err', title: 'Não deu para encerrar a rodada', text: r.motivo });
+  async function proximoTurnoCombate() {
+    const r = await enviar({ type: 'combat.nextTurn' });
+    if (!r.ok) avisos.show({ type: 'err', title: 'Não deu para avançar o turno', text: r.motivo });
   }
+
+  async function encerrarCombate() {
+    const r = await enviar({ type: 'combat.end' });
+    if (!r.ok) {
+      avisos.show({ type: 'err', title: 'Não deu para encerrar o combate', text: r.motivo });
+      return;
+    }
+    setConfirmarFimCombate(false);
+  }
+
+  const combate = visao?.combate?.ativo ? visao.combate : null;
+  const participanteDaVez = combate ? (combate.participantes[combate.turnoIndex] ?? null) : null;
+  const turnoTokenId = participanteDaVez?.tokenId ?? null;
+  const meuTurnoCombate =
+    !mestre &&
+    participanteDaVez !== null &&
+    (participanteDaVez.donoId === meuId ||
+      (detalhe?.meuPersonagem?.id != null &&
+        participanteDaVez.personagemId === detalhe.meuPersonagem.id));
 
   if (situacao.estado === 'excluido') {
     return (
@@ -499,7 +558,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     escolhendoPoi !== null ||
     escolhendoPista !== null ||
     aberta?.id === 'breu' ||
-    aberta?.id === 'salas'
+    (aberta?.id === 'salas' && (adicionandoSala || salaEmReajusteId !== null))
       ? null
       : modo;
   const ferramentasComuns = FERRAMENTAS.filter((f) => !f.soMestre);
@@ -510,7 +569,10 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
     const rolagem = mesa.ultimaRolagem?.autorId === meuId ? mesa.ultimaRolagem : null;
     const ultima =
       teste && (!rolagem || teste.seq > rolagem.seq)
-        ? { seq: teste.seq, revelacao: revelacaoDoTeste(teste.registro) }
+        ? {
+            seq: teste.seq,
+            revelacao: revelacaoDoTeste(teste.registro, { ocultarVeredito: !mestre }),
+          }
         : rolagem
           ? { seq: rolagem.seq, revelacao: revelacaoDaRolagem({ chave: rolagem.seq, ...rolagem }) }
           : null;
@@ -531,6 +593,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           title="Voltar para a Central"
         >
           <Icon name="back" size="sm" />
+          <span>Central</span>
         </Link>
         <div className="row mesa-titulo-linha">
           <h1 className="mesa-titulo">{nomeDoCaso ?? 'Mesa'}</h1>
@@ -540,23 +603,52 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           )}
         </div>
 
-        {visao && (
-          <div className="row mesa-rodada-pilula">
-            <span className="small muted">Rodada {visao.rodada.numero}</span>
+        {visao && combate && (
+          <div className="row mesa-rodada-pilula mesa-combate-pilula">
+            <span className="small">
+              <b className="red">Combate · Rodada {combate.rodada}</b>
+              {participanteDaVez && (
+                <span className="muted"> · Turno: {participanteDaVez.nome}</span>
+              )}
+            </span>
             {mestre && (
               <>
                 <span className="mesa-rodada-divisor" aria-hidden="true" />
                 <button
                   type="button"
                   className="mesa-rodada-btn"
-                  onClick={() => void encerrarRodada()}
+                  onClick={() => void proximoTurnoCombate()}
+                >
+                  <Icon name="next" size="sm" />
+                  Próximo turno
+                </button>
+                <span className="mesa-rodada-divisor" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="mesa-rodada-btn"
+                  onClick={() => {
+                    setConfirmarFimCombate(true);
+                  }}
                 >
                   <Icon name="flag" size="sm" />
-                  Encerrar rodada
+                  Encerrar combate
                 </button>
               </>
             )}
           </div>
+        )}
+
+        {visao && !combate && mestre && (
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<Icon name="sword" size="sm" />}
+            onClick={() => {
+              setModalCombate(true);
+            }}
+          >
+            Iniciar combate
+          </Button>
         )}
 
         <span className="grow" />
@@ -659,12 +751,15 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               <div className="pnl-b">
                 <Jogador
                   campanhaId={campanhaId}
+                  caso={detalhe}
                   papel={visao.papel}
                   meuPersonagemId={detalhe?.meuPersonagem?.id ?? null}
                   versaoPersonagens={mesa.versaoPersonagens}
                   dtPadrao={detalhe?.dtPadrao}
                   rodadas={rodadasAtivo}
                   rodada={visao.rodada}
+                  combate={combate}
+                  meuId={meuId}
                   membros={detalhe?.membros ?? []}
                   personagens={personagens}
                   online={mesa.online}
@@ -769,8 +864,12 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               aoSoltarImagem={(arquivo, ponto) => void aoSoltarImagem(arquivo, ponto, comMapa)}
               pincelDoBreu={mestre && aberta?.id === 'breu' ? pincel : null}
               aoDesenharBreu={(forma) => void desenharBreu(forma)}
-              tracoDaSala={mestre && aberta?.id === 'salas' ? tracoSala : null}
-              aoDesenharSala={(area) => void criarSala(area)}
+              tracoDaSala={
+                mestre && aberta?.id === 'salas' && (adicionandoSala || salaEmReajusteId !== null)
+                  ? tracoSala
+                  : null
+              }
+              aoDesenharSala={(area) => void criarOuReajustarSala(area)}
               modo={modoEfetivo ?? 'mover'}
               ultimoPulso={mesa.ultimoPulso}
               aoMarcarPonto={(ponto) => void marcarPonto(ponto)}
@@ -782,6 +881,9 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                 setPoiAbertoId(null);
                 setPistaAbertaId(id);
               }}
+              turnoTokenId={turnoTokenId}
+              salaFocada={salaFocada}
+              salaHoverId={aberta?.id === 'salas' ? salaHoverId : null}
             />
           ) : (
             <div className="mesa-vazia">
@@ -818,6 +920,21 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
               fila={fila}
               aoTentarAgora={tentarAgora}
             />
+          )}
+
+          {meuTurnoCombate && (
+            <div className="mesa-dica mesa-turno-banner" role="status">
+              <span className="small">
+                <b>É o seu turno!</b>
+              </span>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => void enviar({ type: 'combat.finishTurn' })}
+              >
+                Encerrar meu turno
+              </Button>
+            </div>
           )}
 
           {/* Flutua sobre o mapa: uma faixa no fluxo empurraria o mapa bem na hora do clique. */}
@@ -892,7 +1009,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
 
           {minhaRevelacao && (
             <RevelacaoDoDado
-              key={minhaRevelacao.seq}
+              key={`revelacao-${String(minhaRevelacao.seq)}`}
               revelacao={minhaRevelacao.revelacao}
               aoFechar={() => {
                 setSeqRevelacaoFechada(minhaRevelacao.seq);
@@ -902,6 +1019,7 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
 
           {visao && resultadoVisivel && (
             <Resultado
+              key={`resultado-${String(mesa.ultimoTeste?.seq ?? 0)}`}
               registro={resultadoVisivel}
               papel={visao.papel}
               nomesDePersonagens={nomesDePersonagens}
@@ -1036,7 +1154,17 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
           {visao && aberta && (
             <aside className="mesa-painel" aria-label={aberta.titulo}>
               <div className="row between">
-                <h2 className="h3">{aberta.titulo}</h2>
+                <h2 className="h3">
+                  {aberta.id === 'salas'
+                    ? `Salas (${String(visao.salas?.length ?? 0)})`
+                    : aberta.id === 'tokens'
+                      ? `Tokens e NPCs (${String(visao.tokens.length)})`
+                      : aberta.id === 'pistas'
+                        ? `Pistas (${String(visao.pistas.length)})`
+                        : aberta.id === 'guia'
+                          ? `Pontos de interesse (${String(visao.pois.length)})`
+                          : aberta.titulo}
+                </h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1089,6 +1217,24 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
                   aoMudarTraco={setTracoSala}
                   aoMudarNomeNovaSala={setNomeNovaSala}
                   enviar={enviar}
+                  aoMostrarNoMapa={mostrarSalaNoMapa}
+                  adicionandoSala={adicionandoSala}
+                  aoAlternarAdicionando={() => {
+                    setAdicionandoSala((atual) => {
+                      const proximo = !atual;
+                      if (proximo) setSalaEmReajusteId(null);
+                      return proximo;
+                    });
+                  }}
+                  salaEmReajusteId={salaEmReajusteId}
+                  aoReajustarTamanho={(salaId) => {
+                    setSalaEmReajusteId(salaId);
+                    if (salaId) {
+                      setAdicionandoSala(false);
+                      mostrarSalaNoMapa(salaId);
+                    }
+                  }}
+                  aoHoverSala={setSalaHoverId}
                 />
               )}
               {mestre && aberta.id === 'guia' && (
@@ -1313,6 +1459,51 @@ function MesaDoCaso({ campanhaId }: { campanhaId: string }) {
             </>
           ))}
       </div>
+
+      {visao && mestre && (
+        <ModalCombate
+          open={modalCombate}
+          onClose={() => {
+            setModalCombate(false);
+          }}
+          tokens={visao.tokens}
+          membros={detalhe?.membros ?? []}
+          personagens={personagens}
+          escudo={visao.escudo ?? null}
+          meuId={meuId}
+          enviar={enviar}
+          aoFalhar={(motivo) =>
+            avisos.show({ type: 'err', title: 'Não deu para iniciar o combate', text: motivo })
+          }
+        />
+      )}
+
+      <Modal
+        open={confirmarFimCombate}
+        onClose={() => {
+          setConfirmarFimCombate(false);
+        }}
+        title="Encerrar combate"
+      >
+        <div className="col" style={{ gap: 14 }}>
+          <p className="small muted">
+            Deseja encerrar o combate na Rodada {combate?.rodada ?? 1} e voltar ao modo exploração?
+          </p>
+          <div className="row end" style={{ gap: 8 }}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setConfirmarFimCombate(false);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={() => void encerrarCombate()}>
+              Encerrar combate
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
